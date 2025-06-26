@@ -53,6 +53,7 @@ interface ParsedVariable {
   name: string;
   typeBefore: string;
   typeAfter: string;
+  isReadonly: boolean;
 }
 
 interface ParsedFunction {
@@ -63,7 +64,7 @@ interface ParsedFunction {
 
 interface ParsedEnum {
   name: string;
-  members: Array<{ name: string; value: string | null; type: ts.Type; }>;
+  members: Array<{ name: string; value: string | null; type: ts.Type }>;
 }
 
 interface ParsedTypeAlias {
@@ -288,14 +289,14 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
 
   private processEnumDeclaration(enumDeclaration: ts.EnumDeclaration): string {
     const parsedEnum = this.parseEnum(enumDeclaration);
-    this.logEnum(parsedEnum);   
+    this.logEnum(parsedEnum);
     // Generate Dart enum
     const members = parsedEnum.members
       .map((member) => {
         return `  external static ${this.typeParser.resolveDartType(member.type)} get ${member.name};`;
       })
       .join("\n");
-    
+
     return `class ${parsedEnum.name}{}\nextension ${parsedEnum.name}Enum on ${parsedEnum.name}{\n${members}\n}`;
   }
 
@@ -319,15 +320,29 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     const dartParts: string[] = [];
 
     // Class declaration with extends
-    let classDecl = `abstract class ${parsedInterface.name}`;
-    if (parsedInterface.extends.length > 0) {
-      classDecl += ` extends ${parsedInterface.extends[0]}`; // Dart only supports single inheritance
-    }
-    dartParts.push(classDecl + " {");
 
+    // Constructor
+    if (parsedInterface.constructSignatures.length > 0) {
+      dartParts.push(`class ${parsedInterface.name}{`);
+      dartParts.push(
+        `  external factory ${parsedInterface.name}(${parsedInterface.constructSignatures[0].parameters});`,
+      );
+      dartParts.push("}");
+    } else {
+      dartParts.push(`abstract class ${parsedInterface.name}{}`);
+    }
+
+    dartParts.push(
+      `extension ${parsedInterface.name}Extenstion on ${parsedInterface.name} {`,
+    );
     // Properties
     parsedInterface.properties.forEach((prop) => {
-      dartParts.push(`  external ${prop.typeAfter} ${prop.name};`);
+      if (prop.isReadonly) {
+        dartParts.push(`  external ${prop.typeAfter} get ${prop.name};`);
+      } else {
+        dartParts.push(`  external ${prop.typeAfter} get ${prop.name};`);
+        dartParts.push(`  external set ${prop.name}(${prop.typeAfter} value);`);
+      }
     });
 
     // Methods
@@ -346,7 +361,14 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     parsedInterface.setAccessors.forEach((setter) => {
       dartParts.push(`  external set ${setter.name}(${setter.parameter});`);
     });
-
+    
+    // Index signatures
+    // Note: this is base implementation not precise one
+    if(parsedInterface.indexSignatures.length > 0){
+      dartParts.push("  external dynamic operator [](Object key);");
+      dartParts.push("  external void operator []=(Object key, dynamic value);");
+    }
+    
     dartParts.push("}");
 
     return dartParts.join("\n");
@@ -444,11 +466,21 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   private parseVariableStatement(
     variableStatement: ts.VariableStatement,
   ): ParsedVariable[] {
-    return variableStatement.getDeclarations().map((decl) => ({
-      name: decl.getName(),
-      typeBefore: decl.getTypeNode()?.getText() || "inferred",
-      typeAfter: this.typeParser.resolveDartType(decl.getType()),
-    }));
+    return variableStatement.getDeclarations().map((decl) => {
+      const typeBefore = decl.getTypeNode()?.getText() || "inferred";
+      const typeAfter = this.typeParser.resolveDartType(decl.getType());
+
+      const isReadonly =
+        variableStatement.getDeclarationKind() ===
+        ts.VariableDeclarationKind.Const;
+
+      return {
+        name: decl.getName(),
+        typeBefore,
+        typeAfter,
+        isReadonly,
+      };
+    });
   }
 
   private parseTypeAlias(typeAlias: ts.TypeAliasDeclaration): ParsedTypeAlias {
@@ -466,7 +498,7 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
       members: enumDeclaration.getMembers().map((member) => ({
         name: member.getName(),
         value: member.getInitializer()?.getText() || null,
-        type: member.getType()
+        type: member.getType(),
       })),
     };
   }
@@ -477,73 +509,69 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     const parameters = functionDeclaration
       .getParameters()
       .map(
-        (param) =>
-          `${this.getTypeRefName(param)} ${param.getName()}`,
+        (param) => `${this.getTypeRefNameFromParam(param)} ${param.getName()}`,
       )
-      .join(", ");    
+      .join(", ");
 
     return {
       name: functionDeclaration.getName() || "anonymous",
-      returnType: this.getRetTypeRefName(functionDeclaration),
+      returnType: this.getRetTypeRefNameForMethod(functionDeclaration),
       parameters,
     };
   }
-  
-  private getRetTypeRefName(func: ts.FunctionDeclaration,
-): string{
-    let val = this.getReturnTypeReferenceName(func);
-    if (val != undefined) return val;
-    return this.typeParser.resolveDartType(func.getReturnType());
-}
-  
-  private getReturnTypeReferenceName(
-    func: ts.FunctionDeclaration,
+
+  // Shared util for extracting type reference name
+  private getTypeReferenceNameFromNode(
+    typeNode?: ts.TypeNode,
   ): string | undefined {
-    const returnTypeNode = func.getReturnTypeNode();
-  
-    if (!returnTypeNode) return undefined;
-  
-    if (returnTypeNode.getKind() === ts.SyntaxKind.TypeReference) {
-      const typeRef = returnTypeNode.asKindOrThrow(ts.SyntaxKind.TypeReference);
-  
+    if (!typeNode) return undefined;
+
+    if (typeNode.getKind() === ts.SyntaxKind.TypeReference) {
+      const typeRef = typeNode.asKindOrThrow(ts.SyntaxKind.TypeReference);
       const typeName = typeRef.getTypeName();
-  
+
       if (ts.Node.isIdentifier(typeName)) {
-        return typeName.getText(); // ✅ e.g. "CoordIJ"
+        return typeName.getText();
       } else if (ts.Node.isQualifiedName(typeName)) {
-        return typeName.getRight().getText(); // e.g. ns.Type → "Type"
+        return typeName.getRight().getText();
       }
     }
-  
+
     return undefined;
   }
 
-  
-  private getTypeRefName(param: ts.ParameterDeclaration): string{
-    let val = this.getTypeReferenceName(param);
+  // For method declarations in classes or interfaces
+  private getRetTypeRefNameForMethod(
+    method: ts.MethodDeclaration | ts.MethodSignature | ts.FunctionDeclaration,
+  ): string {
+    const val = this.getTypeReferenceNameFromNode(method.getReturnTypeNode());
+    if (val != undefined) return val;
+    return this.typeParser.resolveDartType(method.getReturnType());
+  }
+
+  private getTypeRefNameFromParam(param: ts.ParameterDeclaration): string {
+    const val = this.getTypeReferenceNameFromNode(param.getTypeNode());
     if (val != undefined) return val;
     return this.typeParser.resolveDartType(param.getType());
   }
-  private getTypeReferenceName(param: ts.ParameterDeclaration): string | undefined {
-    const typeNode = param.getTypeNode();
-  
-    if (!typeNode) return undefined;
-  
-    if (typeNode.getKind() === ts.SyntaxKind.TypeReference) {
-      const typeRef = typeNode.asKindOrThrow(ts.SyntaxKind.TypeReference) as ts.TypeReferenceNode;
-      const typeName = typeRef.getTypeName(); // could be Identifier or QualifiedName
-  
-      // Handle both Identifier and QualifiedName
-      if (ts.Node.isIdentifier(typeName)) {
-        return typeName.getText(); // ✅ "H3IndexInput"
-      } else if (ts.Node.isQualifiedName(typeName)) {
-        return typeName.getRight().getText(); // e.g., in `ns.Type`, get `Type`
-      }
-    }
-  
-    return undefined;
+
+  // For call/construct sigs
+  private getRetTypeRefNameFromSig(sig: ts.SignaturedDeclaration): string {
+    const val = this.getTypeReferenceNameFromNode(sig.getReturnTypeNode?.());
+    if (val != undefined) return val;
+    return this.typeParser.resolveDartType(sig.getReturnType());
   }
-  
+
+  private getRetTypeRefNameFromGetAccessor(
+    getAccessor: ts.GetAccessorDeclaration,
+  ): string {
+    const val = this.getTypeReferenceNameFromNode(
+      getAccessor.getReturnTypeNode?.(),
+    );
+    if (val != undefined) return val;
+    return this.typeParser.resolveDartType(getAccessor.getReturnType());
+  }
+
   private parseInterface(
     interfaceDeclaration: ts.InterfaceDeclaration,
   ): ParsedInterface {
@@ -563,11 +591,23 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   private parseInterfaceProperties(
     interfaceDeclaration: ts.InterfaceDeclaration,
   ): ParsedVariable[] {
-    return interfaceDeclaration.getProperties().map((prop) => ({
-      name: prop.getName(),
-      typeBefore: prop.getTypeNode()?.getText() || "inferred",
-      typeAfter: this.typeParser.resolveDartType(prop.getType()),
-    }));
+    return interfaceDeclaration.getProperties().map((prop) => {
+      const name = prop.getName();
+
+      // This is the correct way to check readonly
+      const isReadonly = prop.hasModifier(ts.SyntaxKind.ReadonlyKeyword);
+
+      const typeNode = prop.getTypeNode();
+      const typeBefore = typeNode ? typeNode.getText() : "inferred";
+      const typeAfter = this.typeParser.resolveDartType(prop.getType());
+
+      return {
+        name,
+        typeBefore,
+        typeAfter,
+        isReadonly,
+      };
+    });
   }
 
   private parseInterfaceMethods(
@@ -575,10 +615,13 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   ): ParsedFunction[] {
     return interfaceDeclaration.getMethods().map((method) => ({
       name: method.getName(),
-      returnType: this.typeParser.resolveDartType(method.getReturnType()),
+      returnType: this.getRetTypeRefNameFromSig(method),
       parameters: method
         .getParameters()
-        .map((p) => p.getText())
+        .map(
+          (param) =>
+            `${this.getTypeRefNameFromParam(param)} ${param.getName()}`,
+        )
         .join(", "),
     }));
   }
@@ -601,10 +644,13 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   ): ParsedFunction[] {
     return interfaceDeclaration.getConstructSignatures().map((sig) => ({
       name: "constructor",
-      returnType: this.typeParser.resolveDartType(sig.getReturnType()),
+      returnType: this.getRetTypeRefNameFromSig(sig),
       parameters: sig
         .getParameters()
-        .map((p) => p.getText())
+        .map(
+          (param) =>
+            `${this.getTypeRefNameFromParam(param)} ${param.getName()}`,
+        )
         .join(", "),
     }));
   }
@@ -622,7 +668,7 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   ): ParsedFunction[] {
     return interfaceDeclaration.getGetAccessors().map((getter) => ({
       name: getter.getName(),
-      returnType: this.typeParser.resolveDartType(getter.getReturnType()),
+      returnType: this.getRetTypeRefNameFromGetAccessor(getter),
       parameters: "",
     }));
   }
@@ -630,7 +676,13 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   private parseSetAccessors(interfaceDeclaration: ts.InterfaceDeclaration) {
     return interfaceDeclaration.getSetAccessors().map((setter) => ({
       name: setter.getName(),
-      parameter: setter.getParameters()[0]?.getText() || "value",
+      parameter: setter
+        .getParameters()
+        .map(
+          (param) =>
+            `${this.getTypeRefNameFromParam(param)} ${param.getName()}`,
+        )
+        .join(", "),
     }));
   }
 

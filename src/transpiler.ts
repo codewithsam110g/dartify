@@ -89,6 +89,15 @@ interface ParsedInterface {
   extends: string[];
 }
 
+interface ParsedClass {
+  name: string;
+  properties: ParsedVariable[];
+  getAccessors: ParsedFunction[];
+  setAccessors: Array<{ name: string; parameter: string }>;
+  constructSignatures: ParsedFunction[];
+  methods: ParsedFunction[];
+}
+
 interface FileTranspileResult {
   filePath: string;
   dartOutput: string;
@@ -361,14 +370,16 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     parsedInterface.setAccessors.forEach((setter) => {
       dartParts.push(`  external set ${setter.name}(${setter.parameter});`);
     });
-    
+
     // Index signatures
     // Note: this is base implementation not precise one
-    if(parsedInterface.indexSignatures.length > 0){
+    if (parsedInterface.indexSignatures.length > 0) {
       dartParts.push("  external dynamic operator [](Object key);");
-      dartParts.push("  external void operator []=(Object key, dynamic value);");
+      dartParts.push(
+        "  external void operator []=(Object key, dynamic value);",
+      );
     }
-    
+
     dartParts.push("}");
 
     return dartParts.join("\n");
@@ -377,9 +388,46 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   private processClassDeclaration(
     classDeclaration: ts.ClassDeclaration,
   ): string {
+    const parsedClass = this.parseClass(classDeclaration);
     this.logDebug(`Processing class: ${classDeclaration.getName()}`);
-    // TODO: Implement full class processing
-    return `// TODO: Class ${classDeclaration.getName()} processing not yet implemented`;
+    let dartParts: string[] = [];
+
+    dartParts.push(`class ${parsedClass.name} {`);
+    
+    // Constructors
+    let constructorCount = 0;
+    for(let constructor of parsedClass.constructSignatures){
+      let constructorName = parsedClass.name + "_".repeat(constructorCount);
+      dartParts.push(`  external factory ${constructorName}(${constructor.parameters});`);
+    }
+    // Properties
+    parsedClass.properties.forEach((prop) => {
+      if (prop.isReadonly) {
+        dartParts.push(`  external ${prop.typeAfter} get ${prop.name};`);
+      } else {
+        dartParts.push(`  external ${prop.typeAfter} get ${prop.name};`);
+        dartParts.push(`  external set ${prop.name}(${prop.typeAfter} value);`);
+      }
+    });
+
+    // Methods
+    parsedClass.methods.forEach((method) => {
+      dartParts.push(
+        `  external ${method.returnType} ${method.name}(${method.parameters});`,
+      );
+    });
+
+    // Getters
+    parsedClass.getAccessors.forEach((getter) => {
+      dartParts.push(`  external ${getter.returnType} get ${getter.name};`);
+    });
+
+    // Setters
+    parsedClass.setAccessors.forEach((setter) => {
+      dartParts.push(`  external set ${setter.name}(${setter.parameter});`);
+    });
+    dartParts.push("}");
+    return dartParts.join("\n");
   }
 
   private processModuleDeclaration(
@@ -544,6 +592,12 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   private getRetTypeRefNameForMethod(
     method: ts.MethodDeclaration | ts.MethodSignature | ts.FunctionDeclaration,
   ): string {
+    const typeText = method.getReturnType().getText();
+    const types = ["Array<", "Promise<"];
+    const dontTypeRef = types.some((e) => typeText.includes(e));
+    if (dontTypeRef){
+      return this.typeParser.resolveDartType(method.getReturnType());      
+    }
     const val = this.getTypeReferenceNameFromNode(method.getReturnTypeNode());
     if (val != undefined) return val;
     return this.typeParser.resolveDartType(method.getReturnType());
@@ -557,6 +611,12 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
 
   // For call/construct sigs
   private getRetTypeRefNameFromSig(sig: ts.SignaturedDeclaration): string {
+    const typeText = sig.getReturnType().getText();
+    const types = ["Array<", "Promise<"];
+    const dontTypeRef = types.some((e) => typeText.includes(e));
+    if (dontTypeRef){
+      return this.typeParser.resolveDartType(sig.getReturnType());      
+    }
     const val = this.getTypeReferenceNameFromNode(sig.getReturnTypeNode?.());
     if (val != undefined) return val;
     return this.typeParser.resolveDartType(sig.getReturnType());
@@ -565,6 +625,14 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   private getRetTypeRefNameFromGetAccessor(
     getAccessor: ts.GetAccessorDeclaration,
   ): string {
+    
+    const typeText = getAccessor.getReturnType().getText();
+    const types = ["Array<", "Promise<"];
+    const dontTypeRef = types.some((e) => typeText.includes(e));
+    if (dontTypeRef){
+      return this.typeParser.resolveDartType(getAccessor.getReturnType());      
+    }
+    
     const val = this.getTypeReferenceNameFromNode(
       getAccessor.getReturnTypeNode?.(),
     );
@@ -578,7 +646,7 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     return {
       name: interfaceDeclaration.getName(),
       properties: this.parseInterfaceProperties(interfaceDeclaration),
-      methods: this.parseInterfaceMethods(interfaceDeclaration),
+      methods: this.parseMethods(interfaceDeclaration),
       callSignatures: this.parseCallSignatures(interfaceDeclaration),
       constructSignatures: this.parseConstructSignatures(interfaceDeclaration),
       indexSignatures: this.parseIndexSignatures(interfaceDeclaration),
@@ -589,7 +657,7 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   }
 
   private parseInterfaceProperties(
-    interfaceDeclaration: ts.InterfaceDeclaration,
+    interfaceDeclaration: ts.InterfaceDeclaration | ts.ClassDeclaration,
   ): ParsedVariable[] {
     return interfaceDeclaration.getProperties().map((prop) => {
       const name = prop.getName();
@@ -610,8 +678,8 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     });
   }
 
-  private parseInterfaceMethods(
-    interfaceDeclaration: ts.InterfaceDeclaration,
+  private parseMethods(
+    interfaceDeclaration: ts.InterfaceDeclaration | ts.ClassDeclaration,
   ): ParsedFunction[] {
     return interfaceDeclaration.getMethods().map((method) => ({
       name: method.getName(),
@@ -664,7 +732,7 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   }
 
   private parseGetAccessors(
-    interfaceDeclaration: ts.InterfaceDeclaration,
+    interfaceDeclaration: ts.InterfaceDeclaration | ts.ClassDeclaration,
   ): ParsedFunction[] {
     return interfaceDeclaration.getGetAccessors().map((getter) => ({
       name: getter.getName(),
@@ -673,7 +741,9 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     }));
   }
 
-  private parseSetAccessors(interfaceDeclaration: ts.InterfaceDeclaration) {
+  private parseSetAccessors(
+    interfaceDeclaration: ts.InterfaceDeclaration | ts.ClassDeclaration,
+  ) {
     return interfaceDeclaration.getSetAccessors().map((setter) => ({
       name: setter.getName(),
       parameter: setter
@@ -692,6 +762,38 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     return interfaceDeclaration.getExtends().map((ext) => ext.getText());
   }
 
+  private parseClass(classDeclaration: ts.ClassDeclaration): ParsedClass {
+    let name = classDeclaration.getName() ?? "";
+    let methods = this.parseMethods(classDeclaration);
+    let getAccessor = this.parseGetAccessors(classDeclaration);
+    let setAccessor = this.parseSetAccessors(classDeclaration);
+    let constructorSignatures =
+      this.parseConstructorDeclarations(classDeclaration);
+    let properties = this.parseInterfaceProperties(classDeclaration);
+    return {
+      name: name,
+      properties: properties,
+      getAccessors: getAccessor,
+      setAccessors: setAccessor,
+      constructSignatures: constructorSignatures,
+      methods: methods,
+    };
+  }
+  private parseConstructorDeclarations(
+    classDecl: ts.ClassDeclaration,
+  ): ParsedFunction[] {
+    return classDecl.getConstructors().map((sig) => ({
+      name: "constructor",
+      returnType: this.getRetTypeRefNameFromSig(sig),
+      parameters: sig
+        .getParameters()
+        .map(
+          (param) =>
+            `${this.getTypeRefNameFromParam(param)} ${param.getName()}`,
+        )
+        .join(", "),
+    }));
+  }
   private async writeResults(results: FileTranspileResult[]): Promise<void> {
     for (const result of results) {
       if (result.dartOutput) {

@@ -1,4 +1,13 @@
 #!/usr/bin/env node
+/**
+ * Copyright 2025 Samba Siva Rao Kovvuru <codewithsam110g>
+ * Licensed under the Apache License, Version 2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
+ */
+
+import "./transpiler";
+import "./type";
+
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import fg from "fast-glob";
@@ -14,7 +23,7 @@ interface CliOptions {
 }
 
 const argv = yargs(hideBin(process.argv))
-  .usage("Usage: $0 [options]")
+  .usage("Usage: Dartify [options]")
   .option("def-files", {
     alias: "d",
     type: "array",
@@ -39,13 +48,13 @@ const argv = yargs(hideBin(process.argv))
     describe: "Show what would be processed without doing it",
     default: false,
   })
-  .example('$0 -d "**/*.d.ts"', "Process all .d.ts files recursively")
+  .example('Dartify -d "**/*.d.ts"', "Process all .d.ts files recursively")
   .example(
-    '$0 -d "src/*.d.ts" -d "lib/*.d.ts" -o ./output',
+    'Dartify -d "src/*.d.ts" -d "lib/*.d.ts" -o ./output',
     "Multiple patterns with custom output",
   )
   .example(
-    '$0 --def-files "types/**/*.d.ts" --verbose',
+    'Dartify --def-files "types/**/*.d.ts" --verbose',
     "Verbose processing of types directory",
   )
   .help()

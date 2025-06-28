@@ -1,18 +1,29 @@
 {
   "name": "dartify",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "TypeScript .d.ts to Dart JS interop code generator.",
+  "main": "dist/cli.js",
+  "bin": {
+    "dartify": "dist/cli.js"
+  },
   "scripts": {
     "dev": "tsx src/main.ts",
-    "build": "tsup src/**/*.ts --format esm --target node20 --out-dir dist --clean",
+    "build": "tsup src/cli.ts --format esm --target node20 --out-dir dist --clean",
     "cli": "pnpm build && node dist/cli.js",
-    "clean": "rm -rf dist output"
+    "clean": "rm -rf dist output",
+    "prepare": "pnpm build"
   },
   "type": "module",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "typescript",
+    "dart",
+    "interop",
+    "codegen",
+    "flutter",
+    "bindings"
+  ],
+  "author": "Samba Siva Rao Kovvuru <codewithsam110g>",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@10.9.0",
   "dependencies": {
     "fast-glob": "^3.3.3",
@@ -20,8 +31,6 @@
     "yargs": "^18.0.0"
   },
   "devDependencies": {
-    "@types/events": "^3.0.3",
-    "@types/lodash": "^4.17.18",
     "@types/node": "^24.0.3",
     "@types/yargs": "^17.0.33",
     "tsup": "^8.5.0",

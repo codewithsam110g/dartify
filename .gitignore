@@ -3,5 +3,7 @@ node_modules/
 **/*.d.ts
 def_files/
 dist/
+
+dart_test/
 **/*.dart
 output/

@@ -1,3 +1,9 @@
+/**
+ * Copyright 2025 Samba Siva Rao Kovvuru <codewithsam110g>
+ * Licensed under the Apache License, Version 2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
+ */
+
 import * as ts from "ts-morph";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { TypeScriptToDartParser, createParser } from "./type.js";
@@ -233,8 +239,9 @@ export class Transpiler {
     return `// Generated from ${basename(filePath)}
 // Do not edit directly
 
+@JS()
 library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
-
+import 'package:js/js.dart';
 `;
   }
 
@@ -282,7 +289,13 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
 
     // Generate Dart code for variables
     return variables
-      .map((variable) => `external ${variable.typeAfter} ${variable.name};`)
+      .map((variable) => {
+        const internalVal = TranspilerUtils.stripQuotes(
+          `${this.modulePrefix}${variable.name}`,
+        );
+        const jsAnnotation = `@JS("${internalVal}")`;
+        return `${jsAnnotation}\nexternal ${variable.typeAfter} ${variable.name};`;
+      })
       .join("\n");
   }
 
@@ -299,6 +312,12 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   private processEnumDeclaration(enumDeclaration: ts.EnumDeclaration): string {
     const parsedEnum = this.parseEnum(enumDeclaration);
     this.logEnum(parsedEnum);
+
+    const internalVal = TranspilerUtils.stripQuotes(
+      `${this.modulePrefix}${parsedEnum.name}`,
+    );
+    const jsAnnotation = `@JS("${internalVal}")`;
+
     // Generate Dart enum
     const members = parsedEnum.members
       .map((member) => {
@@ -306,7 +325,7 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
       })
       .join("\n");
 
-    return `class ${parsedEnum.name}{}\nextension ${parsedEnum.name}Enum on ${parsedEnum.name}{\n${members}\n}`;
+    return `${jsAnnotation}\nclass ${parsedEnum.name}{}\n${jsAnnotation}\nextension ${parsedEnum.name}Enum on ${parsedEnum.name}{\n${members}\n}`;
   }
 
   private processFunctionDeclaration(
@@ -314,9 +333,12 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   ): string {
     const parsedFunction = this.parseFunction(functionDeclaration);
     this.logFunction(parsedFunction);
-
+    const internalVal = TranspilerUtils.stripQuotes(
+      `${this.modulePrefix}${parsedFunction.name}`,
+    );
+    const jsAnnotation = `@JS("${internalVal}")`;
     // Generate Dart function declaration
-    return `external ${parsedFunction.returnType} ${parsedFunction.name}(${parsedFunction.parameters});`;
+    return `${jsAnnotation}\nexternal ${parsedFunction.returnType} ${parsedFunction.name}(${parsedFunction.parameters});`;
   }
 
   private processInterfaceDeclaration(
@@ -328,7 +350,8 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     // Generate Dart class/interface
     const dartParts: string[] = [];
 
-    // Class declaration with extends
+    dartParts.push("@JS()");
+    dartParts.push("@anonymous");
 
     // Constructor
     if (parsedInterface.constructSignatures.length > 0) {
@@ -342,7 +365,7 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     }
 
     dartParts.push(
-      `extension ${parsedInterface.name}Extenstion on ${parsedInterface.name} {`,
+      `extension ${parsedInterface.name}Extension on ${parsedInterface.name} {`,
     );
     // Properties
     parsedInterface.properties.forEach((prop) => {
@@ -391,14 +414,19 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     const parsedClass = this.parseClass(classDeclaration);
     this.logDebug(`Processing class: ${classDeclaration.getName()}`);
     let dartParts: string[] = [];
+    const internalVal = TranspilerUtils.stripQuotes(
+      `${this.modulePrefix}${parsedClass.name}`,
+    );
+    const jsAnnotation = `@JS("${internalVal}")`;
+    dartParts.push(`${jsAnnotation}\nclass ${parsedClass.name} {`);
 
-    dartParts.push(`class ${parsedClass.name} {`);
-    
     // Constructors
     let constructorCount = 0;
-    for(let constructor of parsedClass.constructSignatures){
+    for (let constructor of parsedClass.constructSignatures) {
       let constructorName = parsedClass.name + "_".repeat(constructorCount);
-      dartParts.push(`  external factory ${constructorName}(${constructor.parameters});`);
+      dartParts.push(
+        `  external factory ${constructorName}(${constructor.parameters});`,
+      );
     }
     // Properties
     parsedClass.properties.forEach((prop) => {
@@ -435,7 +463,7 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   ): string {
     this.logDebug(`Processing module: ${moduleDeclaration.getName()}`);
 
-    const previousPrefix = this.modulePrefix;
+    const previousPrefix = TranspilerUtils.stripQuotes(this.modulePrefix);
     this.modulePrefix += moduleDeclaration.getName() + ".";
     this.logDebug(`Module prefix updated to: ${this.modulePrefix}`);
 
@@ -447,7 +475,7 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
       .map((nested) => this.processModuleDeclaration(nested))
       .join("\n\n");
 
-    this.modulePrefix = previousPrefix;
+    this.modulePrefix = TranspilerUtils.stripQuotes(previousPrefix);
 
     // Generate Dart library/namespace equivalent
     const moduleName = moduleDeclaration.getName();
@@ -595,8 +623,8 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     const typeText = method.getReturnType().getText();
     const types = ["Array<", "Promise<"];
     const dontTypeRef = types.some((e) => typeText.includes(e));
-    if (dontTypeRef){
-      return this.typeParser.resolveDartType(method.getReturnType());      
+    if (dontTypeRef) {
+      return this.typeParser.resolveDartType(method.getReturnType());
     }
     const val = this.getTypeReferenceNameFromNode(method.getReturnTypeNode());
     if (val != undefined) return val;
@@ -614,8 +642,8 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
     const typeText = sig.getReturnType().getText();
     const types = ["Array<", "Promise<"];
     const dontTypeRef = types.some((e) => typeText.includes(e));
-    if (dontTypeRef){
-      return this.typeParser.resolveDartType(sig.getReturnType());      
+    if (dontTypeRef) {
+      return this.typeParser.resolveDartType(sig.getReturnType());
     }
     const val = this.getTypeReferenceNameFromNode(sig.getReturnTypeNode?.());
     if (val != undefined) return val;
@@ -625,14 +653,13 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
   private getRetTypeRefNameFromGetAccessor(
     getAccessor: ts.GetAccessorDeclaration,
   ): string {
-    
     const typeText = getAccessor.getReturnType().getText();
     const types = ["Array<", "Promise<"];
     const dontTypeRef = types.some((e) => typeText.includes(e));
-    if (dontTypeRef){
-      return this.typeParser.resolveDartType(getAccessor.getReturnType());      
+    if (dontTypeRef) {
+      return this.typeParser.resolveDartType(getAccessor.getReturnType());
     }
-    
+
     const val = this.getTypeReferenceNameFromNode(
       getAccessor.getReturnTypeNode?.(),
     );
@@ -940,6 +967,6 @@ library ${fileName.replace(/[^a-zA-Z0-9]/g, "_")};
 // Utility functions
 export class TranspilerUtils {
   static stripQuotes(str: string): string {
-    return str.replace(/^['"]|['"]$/g, "");
+    return str.replace(/['"]/g, "");
   }
 }

@@ -66,6 +66,7 @@ interface ParsedFunction {
   name: string;
   returnType: string;
   parameters: string;
+  functionDecl: ts.FunctionDeclaration | any;
 }
 
 interface ParsedEnum {
@@ -438,12 +439,33 @@ import 'package:js/js.dart';
       }
     });
 
+    let overloadMethods = this.getOverloadFuncs(parsedClass.methods);
+
+    for (let [func_name, func_arr] of overloadMethods.entries()) {
+      let count = 0;
+      for (let func of func_arr) {
+        if (func_arr.length == 1) {
+          dartParts.push(
+            `  external ${func.returnType} ${func.name}(${func.parameters});`,
+          );
+        } else {
+          count += 1;
+          let name = func_name + "_" + count;
+          // this.getParamTypeSuffix(func.functionDecl.getParameters());
+          dartParts.push(`  @JS("${func_name}")`);
+          dartParts.push(
+            `  external ${func.returnType} ${name}(${func.parameters});`,
+          );
+        }
+      }
+    }
+
     // Methods
-    parsedClass.methods.forEach((method) => {
-      dartParts.push(
-        `  external ${method.returnType} ${method.name}(${method.parameters});`,
-      );
-    });
+    // parsedClass.methods.forEach((method) => {
+    //   dartParts.push(
+    //     `  external ${method.returnType} ${method.name}(${method.parameters});`,
+    //   );
+    // });
 
     // Getters
     parsedClass.getAccessors.forEach((getter) => {
@@ -538,6 +560,31 @@ import 'package:js/js.dart';
     return dartParts.join("\n\n");
   }
 
+  private getParamTypeSuffix(params: ts.ParameterDeclaration[]): string {
+    return params
+      .map((param) => {
+        const typeNode = param.getTypeNode();
+        if (typeNode) {
+          return typeNode.getText().replace(/\W+/g, ""); // sanitize like List<T> => ListT
+        }
+        return "any";
+      })
+      .join("_");
+  }
+
+  // overload fix using map<string, ParsedFunction[]>
+  private getOverloadFuncs(
+    funcs: ParsedFunction[],
+  ): Map<String, ParsedFunction[]> {
+    const map = new Map<string, ParsedFunction[]>();
+    for (const func of funcs) {
+      const list = map.get(func.name) ?? [];
+      list.push(func);
+      map.set(func.name, list);
+    }
+    return map;
+  }
+
   // Parsing methods (same as before)
   private parseVariableStatement(
     variableStatement: ts.VariableStatement,
@@ -593,6 +640,7 @@ import 'package:js/js.dart';
       name: functionDeclaration.getName() || "anonymous",
       returnType: this.getRetTypeRefNameForMethod(functionDeclaration),
       parameters,
+      functionDecl: functionDeclaration,
     };
   }
 
@@ -718,6 +766,7 @@ import 'package:js/js.dart';
             `${this.getTypeRefNameFromParam(param)} ${param.getName()}`,
         )
         .join(", "),
+      functionDecl: method,
     }));
   }
 
@@ -731,6 +780,7 @@ import 'package:js/js.dart';
         .getParameters()
         .map((p) => p.getText())
         .join(", "),
+      functionDecl: sig,
     }));
   }
 
@@ -747,6 +797,7 @@ import 'package:js/js.dart';
             `${this.getTypeRefNameFromParam(param)} ${param.getName()}`,
         )
         .join(", "),
+      functionDecl: sig,
     }));
   }
 
@@ -765,6 +816,7 @@ import 'package:js/js.dart';
       name: getter.getName(),
       returnType: this.getRetTypeRefNameFromGetAccessor(getter),
       parameters: "",
+      functionDecl: getter,
     }));
   }
 
@@ -819,6 +871,7 @@ import 'package:js/js.dart';
             `${this.getTypeRefNameFromParam(param)} ${param.getName()}`,
         )
         .join(", "),
+      functionDecl: sig,
     }));
   }
   private async writeResults(results: FileTranspileResult[]): Promise<void> {

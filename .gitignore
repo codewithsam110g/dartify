@@ -4,6 +4,10 @@ node_modules/
 def_files/
 dist/
 
-dart_test/
+dart_web_bindings_test/
 **/*.dart
 output/
+
+# Temp stuff
+src/emitter/new
+src/utils/debug.ts

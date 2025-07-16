@@ -5,7 +5,7 @@
  * https://www.apache.org/licenses/LICENSE-2.0
  */
 
-import "./transpiler";
+import "./main";
 import "./type";
 
 import yargs from "yargs/yargs";
@@ -13,7 +13,7 @@ import { hideBin } from "yargs/helpers";
 import fg from "fast-glob";
 import { promises as fsPromises, constants as fsConstants } from "fs";
 import path from "path";
-import { Transpiler, TranspilerOptions } from "./transpiler";
+import { Transpiler, TranspilerOptions } from "./main";
 
 interface CliOptions {
   defFiles: string[];
@@ -23,7 +23,7 @@ interface CliOptions {
 }
 
 const argv = yargs(hideBin(process.argv))
-  .usage("Usage: Dartify [options]")
+  .usage("Usage: dartify [options]")
   .option("def-files", {
     alias: "d",
     type: "array",
@@ -48,13 +48,13 @@ const argv = yargs(hideBin(process.argv))
     describe: "Show what would be processed without doing it",
     default: false,
   })
-  .example('Dartify -d "**/*.d.ts"', "Process all .d.ts files recursively")
+  .example('dartify -d "**/*.d.ts"', "Process all .d.ts files recursively")
   .example(
-    'Dartify -d "src/*.d.ts" -d "lib/*.d.ts" -o ./output',
+    'dartify -d "src/*.d.ts" -d "lib/*.d.ts" -o ./output',
     "Multiple patterns with custom output",
   )
   .example(
-    'Dartify --def-files "types/**/*.d.ts" --verbose',
+    'dartify --def-files "types/**/*.d.ts" --verbose',
     "Verbose processing of types directory",
   )
   .help()
@@ -135,7 +135,7 @@ async function processFiles(
   let transpilerOptions: TranspilerOptions = {
     files: files,
     outDir: options.output,
-    debugOut: options.verbose,
+    debug: options.verbose,
   };
   let transpiler: Transpiler = new Transpiler(transpilerOptions);
   await transpiler.transpile();

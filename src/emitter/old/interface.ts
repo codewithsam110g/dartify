@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import { IRInterface } from "../../ir/interface";
+import { formatParameterList,returnTypeAliasName } from "../shared/shared";
 
 export function emitInterface(
   irInterface: IRInterface,
@@ -16,7 +17,7 @@ export function emitInterface(
   if (irInterface.constructors.length > 0) {
     dartParts.push(`class ${irInterface.name}{`);
     dartParts.push(
-      `  external factory ${irInterface.name}(${irInterface.constructors[0].parameters});`,
+      `  external factory ${irInterface.name}(${formatParameterList(irInterface.constructors[0].parameters)});`,
     );
     dartParts.push("}");
   } else {
@@ -39,18 +40,18 @@ export function emitInterface(
   // Methods
   irInterface.methods.forEach((method) => {
     dartParts.push(
-      `  external ${method.returnType} ${method.name}(${method.parameters});`,
+      `  external ${returnTypeAliasName(method.returnTypeNode)} ${method.name}(${formatParameterList(method.parameters)});`,
     );
   });
 
   // Getters
   irInterface.getAccessors.forEach((getter) => {
-    dartParts.push(`  external ${getter.typeAfter} get ${getter.name};`);
+    dartParts.push(`  external ${returnTypeAliasName(getter.typeBefore)} get ${getter.name};`);
   });
 
   // Setters
   irInterface.setAccessors.forEach((setter) => {
-    dartParts.push(`  external set ${setter.name}(${setter.parameter});`);
+    dartParts.push(`  external set ${setter.name}(${formatParameterList([setter.parameter])});`);
   });
 
   // Index signatures

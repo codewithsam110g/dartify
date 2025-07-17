@@ -23,7 +23,7 @@ interface CliOptions {
 }
 
 const argv = yargs(hideBin(process.argv))
-  .usage("Usage: dartify [options]")
+  .usage("Usage: dart_bindgen [options]")
   .option("def-files", {
     alias: "d",
     type: "array",
@@ -48,13 +48,13 @@ const argv = yargs(hideBin(process.argv))
     describe: "Show what would be processed without doing it",
     default: false,
   })
-  .example('dartify -d "**/*.d.ts"', "Process all .d.ts files recursively")
+  .example('dart_bindgen -d "**/*.d.ts"', "Process all .d.ts files recursively")
   .example(
-    'dartify -d "src/*.d.ts" -d "lib/*.d.ts" -o ./output',
+    'dart_bindgen -d "src/*.d.ts" -d "lib/*.d.ts" -o ./output',
     "Multiple patterns with custom output",
   )
   .example(
-    'dartify --def-files "types/**/*.d.ts" --verbose',
+    'dart_bindgen --def-files "types/**/*.d.ts" --verbose',
     "Verbose processing of types directory",
   )
   .help()

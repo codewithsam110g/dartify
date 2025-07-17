@@ -1,17 +1,24 @@
 {
-  "name": "dartify",
-  "version": "1.0.0",
-  "description": "TypeScript .d.ts to Dart JS interop code generator.",
+  "name": "dart_bindgen",
+  "version": "0.1.0",
+  "description": "A modern, type-safe code generator to create Dart JS-interop bindings from TypeScript .d.ts files.",
   "main": "dist/cli.js",
   "bin": {
-    "dartify": "dist/cli.js"
+    "dart_bindgen": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codewithsam110g/dartify.git"
   },
   "scripts": {
-    "dev": "tsx src/main.ts",
+    "dev": "tsx src/cli.ts",
     "build": "tsup src/cli.ts --format esm --target node20 --out-dir dist --clean",
-    "cli": "pnpm build && node dist/cli.js",
+    "test:cli": "pnpm build && node dist/cli.js --files ./path/to/test.d.ts --outDir ./output",
     "clean": "rm -rf dist output",
-    "prepare": "pnpm build"
+    "prepublishOnly": "pnpm build"
   },
   "type": "module",
   "keywords": [
@@ -20,7 +27,11 @@
     "interop",
     "codegen",
     "flutter",
-    "bindings"
+    "bindings",
+    "js_facade_gen",
+    "js_interop",
+    "dts",
+    "bindgen"
   ],
   "author": "Samba Siva Rao Kovvuru <codewithsam110g>",
   "license": "Apache-2.0",

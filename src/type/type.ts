@@ -8,6 +8,7 @@ import { handleFunctionTypes } from "./function";
 import { handleTypeLiterals } from "./typeLiterals";
 import { handleTupleType } from "./tuple";
 import { handleIntersectionType } from "./intersection";
+import { handleRestType } from "./restType";
 
 export function parseType(
   typeNode: ts.TypeNode | undefined,
@@ -114,5 +115,8 @@ export function parseType(
     // TypeLiterals are raw inline interface / objects
     case ts.SyntaxKind.TypeLiteral:
       return handleTypeLiterals(typeNode as ts.TypeLiteralNode, depth);
+      
+    case ts.SyntaxKind.RestType:
+      return handleRestType(typeNode as ts.RestTypeNode, depth)
   }
 }

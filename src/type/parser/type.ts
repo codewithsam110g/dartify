@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { IRType, TypeKind, IRParameter, IRProperty } from "../ir/type";
+import { IRType, TypeKind, IRParameter, IRProperty } from "../../ir/type";
 import { handleLiteralType } from "./literals";
 import { handleUnionType } from "./unions";
 import { handleDirectArrayType } from "./array";

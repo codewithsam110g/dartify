@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { IRType, TypeKind } from "../ir/type";
+import { IRType, TypeKind } from "../../ir/type";
 
 
 export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRType {

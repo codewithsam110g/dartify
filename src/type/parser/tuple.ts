@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { IRType, TypeKind } from "../ir/type";
+import { IRType, TypeKind } from "../../ir/type";
 import { parseType } from "./type";
 
 export function handleTupleType(node: ts.TupleTypeNode, depth: number): IRType {

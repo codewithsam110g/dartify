@@ -1,10 +1,9 @@
 // test_harness.ts
 // A simple, focused script to stress-test the new IR-based type parser.
 
-import { Project, Node, SyntaxKind, TypeNode } from "ts-morph";
+import { Project } from "ts-morph";
 import { resolve } from "path";
 import { parseType } from "../type/parser/type"; // Main entry point to your new parser
-import { IRType } from "../ir/type"; // Your new IR definition
 
 // --- Configuration ---
 const TEST_FILE_PATH = resolve("./def_files/types.d.ts");

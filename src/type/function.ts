@@ -6,10 +6,7 @@ export function handleFunctionTypes(
   node: ts.FunctionTypeNode,
   depth: number,
 ): IRType {
-  let params = node
-    .getParameters()
-    .map((e) => handleParamTypes(e, depth))
-    .filter((e) => e.name != "");
+  let params = node.getParameters().map((e) => handleParamTypes(e, depth));
   let retType = node.getReturnTypeNode();
   let returnIR = parseType(retType);
 
@@ -30,23 +27,10 @@ function handleParamTypes(
   const isOptional = param.isOptional();
   const name = param.getName();
   const paramType = parseType(param.getTypeNode(), depth);
-  if (paramType != undefined) {
-    return {
-      name: name,
-      type: paramType,
-      isRestParameter: isRest,
-      isOptional: isOptional,
-    };
-  } else {
-    return {
-      name: "",
-      isOptional: false,
-      isRestParameter: false,
-      type: {
-        kind: TypeKind.Unknown,
-        name: TypeKind.Unknown,
-        isNullable: false,
-      },
-    };
-  }
+  return {
+    name: name,
+    type: paramType,
+    isRestParameter: isRest,
+    isOptional: isOptional,
+  };
 }

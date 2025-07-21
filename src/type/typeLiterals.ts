@@ -50,11 +50,7 @@ export function handleTypeLiterals(
       let isRest = param.isRestParameter();
       parameters.push({
         name: name,
-        type: typeAfter ?? {
-          kind: TypeKind.Unknown,
-          name: TypeKind.Unknown,
-          isNullable: false,
-        },
+        type: typeAfter,
         isOptional: isOptional,
         isRestParameter: isRest,
       });
@@ -85,16 +81,12 @@ export function handleTypeLiterals(
       let isRest = param.isRestParameter();
       parameters.push({
         name: name,
-        type: typeAfter ?? {
-          kind: TypeKind.Unknown,
-          name: TypeKind.Unknown,
-          isNullable: false,
-        },
+        type: typeAfter,
         isOptional: isOptional,
         isRestParameter: isRest,
       });
     }
-    methods.push({
+    constructors.push({
       name: "constructor",
       parameters,
       returnType,
@@ -126,11 +118,7 @@ export function handleTypeLiterals(
       name: name,
       parameter: {
         name: param.getName(),
-        type: parseType(param.getTypeNode()) ?? {
-          kind: TypeKind.Unknown,
-          name: TypeKind.Unknown,
-          isNullable: false,
-        },
+        type: parseType(param.getTypeNode()),
         isOptional: param.hasQuestionToken(),
         isRestParameter: param.isRestParameter(),
       },

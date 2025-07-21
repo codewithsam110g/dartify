@@ -13,11 +13,11 @@ import { handleRestType } from "./restType";
 export function parseType(
   typeNode: ts.TypeNode | undefined,
   depth: number = 0,
-): IRType | undefined {
+): IRType {
   if (typeNode == undefined) {
     return {
-      kind: TypeKind.Undefined,
-      name: TypeKind.Undefined,
+      kind: TypeKind.Any,
+      name: TypeKind.Any,
       isNullable: false,
     };
   }
@@ -69,12 +69,10 @@ export function parseType(
     case ts.SyntaxKind.UnknownKeyword:
       return { kind: TypeKind.Any, name: TypeKind.Any, isNullable: false };
 
-    // case ts.SyntaxKind.NeverKeyword:
-    //   return "Never";
-    // case ts.SyntaxKind.ObjectKeyword:
-    //   return "Object";
-    // case ts.SyntaxKind.SymbolKeyword:
-    //   return "Symbol";
+    case ts.SyntaxKind.NeverKeyword:
+      return { kind: TypeKind.Never, name: "Never", isNullable: false };
+    case ts.SyntaxKind.ObjectKeyword:
+      return { kind: TypeKind.Object, name: "Object", isNullable: false };
 
     // Literals: "abc", 1, -2n, false
     case ts.SyntaxKind.LiteralType:
@@ -90,8 +88,8 @@ export function parseType(
 
     // Intersection: T1 & T2
     case ts.SyntaxKind.IntersectionType:
-      return handleIntersectionType(typeNode as ts.IntersectionTypeNode, depth)
-      
+      return handleIntersectionType(typeNode as ts.IntersectionTypeNode, depth);
+
     // Direct Arrays: T[] => string[], num[], (str | num)[]
     case ts.SyntaxKind.ArrayType:
       return handleDirectArrayType(typeNode as ts.ArrayTypeNode, depth);
@@ -115,8 +113,11 @@ export function parseType(
     // TypeLiterals are raw inline interface / objects
     case ts.SyntaxKind.TypeLiteral:
       return handleTypeLiterals(typeNode as ts.TypeLiteralNode, depth);
-      
+
+    // Rest Type: ...number[] with internal type being number[]
     case ts.SyntaxKind.RestType:
-      return handleRestType(typeNode as ts.RestTypeNode, depth)
+      return handleRestType(typeNode as ts.RestTypeNode, depth);
+    default:
+      return { kind: TypeKind.Any, name: TypeKind.Any, isNullable: false };
   }
 }

@@ -12,7 +12,6 @@ export function handleUnionType(node: ts.UnionTypeNode, depth: number): IRType {
 
   const unionIRs = nonNullUnionNodes
     .map((uNode) => parseType(uNode, depth + 1))
-    .filter((e) => e != undefined);
 
   return {
     kind: TypeKind.Union,

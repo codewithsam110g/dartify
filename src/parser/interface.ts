@@ -95,7 +95,7 @@ export function parseInterface(
         isRest: isRest,
       });
     }
-    methods.push({
+    constructors.push({
       name: "constructor",
       parameters,
       returnType,

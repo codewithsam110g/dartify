@@ -3,7 +3,7 @@
 
 import { Project, Node, SyntaxKind, TypeNode } from "ts-morph";
 import { resolve } from "path";
-import { parseType } from "../type/type"; // Main entry point to your new parser
+import { parseType } from "../type/parser/type"; // Main entry point to your new parser
 import { IRType } from "../ir/type"; // Your new IR definition
 
 // --- Configuration ---

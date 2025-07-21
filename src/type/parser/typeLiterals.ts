@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { IRParameter, IRType, TypeKind } from "../ir/type";
+import { IRParameter, IRType, TypeKind } from "../../ir/type";
 import { parseType } from "./type";
 import {
   IRGetAccessor,
@@ -7,7 +7,7 @@ import {
   IRMethod,
   IRProperties,
   IRSetAccessor,
-} from "../ir/literal";
+} from "../../ir/literal";
 
 export function handleTypeLiterals(
   node: ts.TypeLiteralNode,

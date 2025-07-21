@@ -7,6 +7,7 @@ import { handleTypeReferences } from "./typeRefernce";
 import { handleFunctionTypes } from "./function";
 import { handleTypeLiterals } from "./typeLiterals";
 import { handleTupleType } from "./tuple";
+import { handleIntersectionType } from "./intersection";
 
 export function parseType(
   typeNode: ts.TypeNode | undefined,
@@ -75,7 +76,6 @@ export function parseType(
     //   return "Symbol";
 
     // Literals: "abc", 1, -2n, false
-
     case ts.SyntaxKind.LiteralType:
       return handleLiteralType(typeNode as ts.LiteralTypeNode, depth);
 
@@ -87,6 +87,10 @@ export function parseType(
     case ts.SyntaxKind.TupleType:
       return handleTupleType(typeNode as ts.TupleTypeNode, depth);
 
+    // Intersection: T1 & T2
+    case ts.SyntaxKind.IntersectionType:
+      return handleIntersectionType(typeNode as ts.IntersectionTypeNode, depth)
+      
     // Direct Arrays: T[] => string[], num[], (str | num)[]
     case ts.SyntaxKind.ArrayType:
       return handleDirectArrayType(typeNode as ts.ArrayTypeNode, depth);

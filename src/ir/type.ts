@@ -53,6 +53,7 @@ export enum TypeKind {
   Void = "void",
   Any = "any",
   Unknown = "unknown",
+  Never = "never",
 
   // Complex types
   Array = "array",

@@ -1,3 +1,5 @@
+import { IRLiteral } from "./literal";
+
 /**
  * IR structure for TypeScript .d.ts types to generate Dart bindings
  */
@@ -27,7 +29,7 @@ export interface IRType {
   elementType?: IRType;
 
   // Object/Interface structure: { name: string; age: number }
-  properties?: IRProperty[];
+  objectLiteral?: IRLiteral;
 
   // Function types: (x: string, y?: number) => boolean
   parameters?: IRParameter[];
@@ -65,6 +67,8 @@ export enum TypeKind {
   NumberLiteral = "numberLiteral",
   BooleanLiteral = "booleanLiteral",
 
+  TypeLiteral = "typeLiteral",
+  
   // References
   TypeReference = "typeReference",
 }

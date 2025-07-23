@@ -12,7 +12,7 @@
 
 **dart_bindgen is currently in active development and should be considered beta software.**
 
-This `v0.1.0` release is a "Developer Preview" intended for early adopters and contributors. While it is capable of processing complex libraries, please be aware that:
+This `v0.2.0` release is a "Developer Preview" intended for early adopters and contributors. While it is capable of processing complex libraries, please be aware that:
 
 * **APIs are not stable:** The generated code and CLI usage may change in future `0.x` releases.
 * **Bugs are expected:** You will likely encounter issues, especially with complex or esoteric TypeScript types.

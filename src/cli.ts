@@ -5,9 +5,6 @@
  * https://www.apache.org/licenses/LICENSE-2.0
  */
 
-import "./main";
-import "./type";
-
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import fg from "fast-glob";

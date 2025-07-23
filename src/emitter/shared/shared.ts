@@ -1,12 +1,13 @@
 import { IRParameter } from "../../ir/function";
 import { TypeNode, SyntaxKind, Node } from "ts-morph";
-import { resolveDartType } from "../../type";
+import { emitType } from "../../type/emitter/old/emit";
+import { parseType } from "../../type/parser/type";
 
 export function returnTypeAliasName(typeNode?: TypeNode): string {
   if (typeNode == undefined) return "";
   let res = getTypeAliasName(typeNode);
   if (res == null) {
-    return resolveDartType(typeNode.getType());
+    return emitType(parseType(typeNode));
   } else {
     return res;
   }
@@ -53,34 +54,44 @@ function getTypeAliasName(typeNode: TypeNode): string | null {
 }
 
 export function formatParameterList(params: IRParameter[]): string {
-  return params
-    .map((p) => {
-      let type: string;
+  const requiredParams: string[] = [];
+  const optionalParams: string[] = [];
 
-      // Check if we have typeBefore and can extract a type alias name
-      if (p.typeBefore) {
-        const typeAliasName = getTypeAliasName(p.typeBefore);
-        if (typeAliasName) {
-          type = typeAliasName;
-        } else {
-          type = p.typeAfter || "dynamic";
-        }
+  params.forEach((p) => {
+    let type: string;
+    // Check if we have typeBefore and can extract a type alias name
+    if (p.typeBefore) {
+      const typeAliasName = getTypeAliasName(p.typeBefore);
+      if (typeAliasName) {
+        type = typeAliasName;
       } else {
-        type = p.typeAfter || "dynamic";
+        type = emitType(p.typeAfter) || "dynamic";
       }
+    } else {
+      type = emitType(p.typeAfter) || "dynamic";
+    }
 
-      if (p.isOptional) {
-        type += "?";
-      }
+    let result = `${type} ${p.name}`;
+    if (p.isRest) {
+      // Dart doesn't support rest parameters, so mark for review
+      result = `/* rest */ ${result}`;
+    }
 
-      let result = `${type} ${p.name}`;
+    if (p.isOptional) {
+      optionalParams.push(result);
+    } else {
+      requiredParams.push(result);
+    }
+  });
 
-      if (p.isRest) {
-        // Dart doesn't support rest parameters, so mark for review
-        result = `/* rest */ ${result}`;
-      }
+  // Combine required and optional parameters
+  const parts: string[] = [];
+  if (requiredParams.length > 0) {
+    parts.push(requiredParams.join(", "));
+  }
+  if (optionalParams.length > 0) {
+    parts.push("[" + optionalParams.join(", ") + "]");
+  }
 
-      return result;
-    })
-    .join(", ");
+  return parts.join(", ");
 }

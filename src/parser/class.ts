@@ -8,7 +8,7 @@ import {
   IRSetAccessor,
 } from "../ir/interface";
 import { IRParameter } from "../ir/function";
-import { resolveDartType } from "../type";
+import { parseType } from "../type/parser/type";
 
 export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
   let name = classDecl.getName() || "";
@@ -22,7 +22,7 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
   for (let prop of classDecl.getProperties()) {
     let name = prop.getName();
     let typeBefore = prop.getTypeNode();
-    let typeAfter = resolveDartType(prop.getType());
+    let typeAfter = parseType(prop.getTypeNode());
     let isReadonly = prop.isReadonly();
     let isOptional = prop.hasQuestionToken();
     let isStatic = prop.isStatic();
@@ -42,7 +42,7 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
   for (let method of classDecl.getMethods()) {
     let name = method.getName();
     let parameters: IRParameter[] = [];
-    let returnType = resolveDartType(method.getReturnType());
+    let returnType = parseType(method.getReturnTypeNode());
     let returnTypeNode = method.getReturnTypeNode();
     let isOptional = method.hasQuestionToken();
     let isStatic = method.isStatic();
@@ -53,7 +53,7 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
 
       let name = param.getName();
       let typeBefore = param.getTypeNode();
-      let typeAfter = resolveDartType(param.getType());
+      let typeAfter = parseType(param.getTypeNode());
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
@@ -90,7 +90,7 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
 
       let name = param.getName();
       let typeBefore = param.getTypeNode();
-      let typeAfter = resolveDartType(param.getType());
+      let typeAfter = parseType(param.getTypeNode());
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
@@ -112,7 +112,7 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
   for (let ga of classDecl.getGetAccessors()) {
     let name = ga.getName();
     let typeBefore = ga.getReturnTypeNode();
-    let typeAfter = resolveDartType(ga.getReturnType());
+    let typeAfter = parseType(ga.getReturnTypeNode());
     let isStatic = ga.isStatic();
 
     getAccessors.push({
@@ -134,7 +134,7 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
       parameter: {
         name: param.getName(),
         typeBefore: param.getTypeNode(),
-        typeAfter: resolveDartType(param.getType()),
+        typeAfter: parseType(param.getTypeNode()),
         isOptional: param.hasQuestionToken(),
         isRest: param.isRestParameter(),
       },

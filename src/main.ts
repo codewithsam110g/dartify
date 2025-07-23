@@ -6,7 +6,7 @@
 
 import * as ts from "ts-morph";
 import { readFile, writeFile, mkdir, appendFile } from "fs/promises";
-import { TypeScriptToDartParser, createParser } from "./type.js";
+import { TypeScriptToDartParser, createParser } from "./legacy/type";
 import { resolve, basename, extname, join, dirname } from "path";
 import * as parser from "./parser/index.js";
 import * as emitter from "./emitter/old/index.js";

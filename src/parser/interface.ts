@@ -8,7 +8,7 @@ import {
   IRSetAccessor,
 } from "../ir/interface";
 import { IRParameter } from "../ir/function";
-import { resolveDartType } from "../type";
+import { parseType } from "../type/parser/type";
 
 export function parseInterface(
   interfaceDecl: ts.InterfaceDeclaration,
@@ -21,7 +21,7 @@ export function parseInterface(
   for (let prop of interfaceDecl.getProperties()) {
     let name = prop.getName();
     let typeBefore = prop.getTypeNode();
-    let typeAfter = resolveDartType(prop.getType());
+    let typeAfter = parseType(prop.getTypeNode());
     let isReadonly = prop.isReadonly();
     let isOptional = prop.hasQuestionToken();
 
@@ -40,7 +40,7 @@ export function parseInterface(
   for (let method of interfaceDecl.getMethods()) {
     let name = method.getName();
     let parameters: IRParameter[] = [];
-    let returnType = resolveDartType(method.getType());
+    let returnType = parseType(method.getReturnTypeNode());
     let returnTypeNode = method.getReturnTypeNode();
     let isOptional = method.hasQuestionToken();
 
@@ -50,7 +50,7 @@ export function parseInterface(
 
       let name = param.getName();
       let typeBefore = param.getTypeNode();
-      let typeAfter = resolveDartType(param.getType());
+      let typeAfter = parseType(param.getTypeNode());
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
@@ -75,7 +75,7 @@ export function parseInterface(
   let constructors: IRMethod[] = [];
   for (let constructor of interfaceDecl.getConstructSignatures()) {
     let parameters: IRParameter[] = [];
-    let returnType = resolveDartType(constructor.getType());
+    let returnType = parseType(constructor.getReturnTypeNode());
     let returnTypeNode = constructor.getReturnTypeNode();
 
     for (let param of constructor.getParameters()) {
@@ -84,7 +84,7 @@ export function parseInterface(
 
       let name = param.getName();
       let typeBefore = param.getTypeNode();
-      let typeAfter = resolveDartType(param.getType());
+      let typeAfter = parseType(param.getTypeNode());
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
@@ -110,7 +110,7 @@ export function parseInterface(
   for (let ga of interfaceDecl.getGetAccessors()) {
     let name = ga.getName();
     let typeBefore = ga.getReturnTypeNode();
-    let typeAfter = resolveDartType(ga.getReturnType());
+    let typeAfter = parseType(ga.getReturnTypeNode());
 
     getAccessors.push({
       name,
@@ -130,7 +130,7 @@ export function parseInterface(
       parameter: {
         name: param.getName(),
         typeBefore: param.getTypeNode(),
-        typeAfter: resolveDartType(param.getType()),
+        typeAfter: parseType(param.getTypeNode()),
         isOptional: param.hasQuestionToken(),
         isRest: param.isRestParameter(),
       },
@@ -141,8 +141,8 @@ export function parseInterface(
   // IndexSignatures
   let indexSignatures: IRIndexSignatures[] = [];
   for (let indexSig of interfaceDecl.getIndexSignatures()) {
-    let keyType = resolveDartType(indexSig.getKeyType());
-    let valueType = resolveDartType(indexSig.getReturnType());
+    let keyType = parseType(indexSig.getKeyTypeNode());
+    let valueType = parseType(indexSig.getReturnTypeNode());
     let isReadonly = indexSig.isReadonly();
     indexSignatures.push({
       keyType,

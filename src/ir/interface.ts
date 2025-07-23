@@ -1,5 +1,6 @@
 import * as ts from "ts-morph";
 import { IRParameter } from "./function";
+import { IRType } from "./type";
 
 export interface IRInterface {
   name: string;
@@ -15,7 +16,7 @@ export interface IRInterface {
 export interface IRProperties {
   name: string;
   typeBefore?: ts.TypeNode;
-  typeAfter: string;
+  typeAfter: IRType;
   isOptional: boolean;
   isReadonly: boolean;
   isStatic: boolean;
@@ -24,7 +25,7 @@ export interface IRProperties {
 export interface IRMethod {
   name: string;
   parameters: IRParameter[];
-  returnType: string;
+  returnType: IRType;
   returnTypeNode?: ts.TypeNode;
   isOptional: boolean;
   isStatic: boolean;
@@ -33,7 +34,7 @@ export interface IRMethod {
 export interface IRGetAccessor {
   name: string;
   typeBefore?: ts.TypeNode;
-  typeAfter: string;
+  typeAfter: IRType;
   isStatic: boolean;
 }
 
@@ -44,7 +45,7 @@ export interface IRSetAccessor {
 }
 
 export interface IRIndexSignatures {
-  keyType: string;
-  valueType: string;
+  keyType: IRType;
+  valueType: IRType;
   isReadonly: boolean;
 }

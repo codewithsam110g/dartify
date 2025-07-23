@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import { IRInterface } from "../../ir/interface";
 import { formatParameterList,returnTypeAliasName } from "../shared/shared";
+import { emitType } from "../../type/emitter/old/emit";
 
 export function emitInterface(
   irInterface: IRInterface,
@@ -30,10 +31,10 @@ export function emitInterface(
   // Properties
   irInterface.properties.forEach((prop) => {
     if (prop.isReadonly) {
-      dartParts.push(`  external ${prop.typeAfter} get ${prop.name};`);
+      dartParts.push(`  external ${emitType(prop.typeAfter)} get ${prop.name};`);
     } else {
-      dartParts.push(`  external ${prop.typeAfter} get ${prop.name};`);
-      dartParts.push(`  external set ${prop.name}(${prop.typeAfter} value);`);
+      dartParts.push(`  external ${emitType(prop.typeAfter)} get ${prop.name};`);
+      dartParts.push(`  external set ${prop.name}(${emitType(prop.typeAfter)} value);`);
     }
   });
 

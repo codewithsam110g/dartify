@@ -5,6 +5,7 @@ import { IRMethod } from "../../ir/interface";
 import { stripQuotes } from "../../utils/utils";
 
 import { formatParameterList,returnTypeAliasName } from "../shared/shared";
+import { emitType } from "../../type/emitter/old/emit";
 
 export function emitClass(
   irClass: IRClass,
@@ -30,19 +31,19 @@ export function emitClass(
   irClass.properties.forEach((prop) => {
     if (prop.isReadonly) {
       if (prop.isStatic) {
-        dartParts.push(`  external static ${prop.typeAfter} get ${prop.name};`);
+        dartParts.push(`  external static ${emitType(prop.typeAfter)} get ${prop.name};`);
       } else {
-        dartParts.push(`  external ${prop.typeAfter} get ${prop.name};`);
+        dartParts.push(`  external ${emitType(prop.typeAfter)} get ${prop.name};`);
       }
     } else {
       if (prop.isStatic) {
-        dartParts.push(`  external static ${prop.typeAfter} get ${prop.name};`);
+        dartParts.push(`  external static ${emitType(prop.typeAfter)} get ${prop.name};`);
         dartParts.push(
-          `  external static set ${prop.name}(${prop.typeAfter} value);`,
+          `  external static set ${prop.name}(${emitType(prop.typeAfter)} value);`,
         );
       } else {
-        dartParts.push(`  external ${prop.typeAfter} get ${prop.name};`);
-        dartParts.push(`  external set ${prop.name}(${prop.typeAfter} value);`);
+        dartParts.push(`  external ${emitType(prop.typeAfter)} get ${prop.name};`);
+        dartParts.push(`  external set ${prop.name}(${emitType(prop.typeAfter)} value);`);
       }
     }
   });

@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
-import { resolveDartType } from "../type";
 import { IRVariable } from "../ir/variable";
+import { parseType } from "../type/parser/type";
 export function parseVariableStmt(varStmt: ts.VariableStatement): IRVariable[] {
   let varDecls = varStmt.getDeclarationList();
   let res: IRVariable[] = [];
@@ -10,7 +10,7 @@ export function parseVariableStmt(varStmt: ts.VariableStatement): IRVariable[] {
   for (let varDecl of varDecls.getDeclarations()) {
     let name = varDecl.getName();
     let typeBefore = varDecl.getTypeNode();
-    let typeAfter = resolveDartType(varDecl.getType());
+    let typeAfter = parseType(varDecl.getTypeNode());
     res.push({
       name: name,
       typeBefore: typeBefore,

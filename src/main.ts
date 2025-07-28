@@ -5,8 +5,7 @@
  */
 
 import * as ts from "ts-morph";
-import { readFile, writeFile, mkdir, appendFile } from "fs/promises";
-import { TypeScriptToDartParser, createParser } from "./legacy/type";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import { resolve, basename, extname, join, dirname } from "path";
 import * as parser from "./parser/index.js";
 import * as emitter from "./emitter/old/index.js";
@@ -53,32 +52,30 @@ export class TranspileException extends Error {
 
 export interface TranspilerOptions {
   files: string[];
-  outDir: string;
+  outDir?: string;
   debug?: boolean;
 }
 
 interface FileTranspileResult {
   filePath: string;
-  outputPath: string;
+  outputPath?: string;
   errors: TranspileException[];
+  content: string;
 }
 
 export class Transpiler {
   private readonly files: string[];
-  private readonly outDir: string;
+  private readonly outDir: string | undefined;
   private readonly debug: boolean;
   private project: ts.Project;
-  private typeParser: TypeScriptToDartParser;
   private modulePrefix: string = "";
   private currentFile: string = "";
-  private currentOutputPath: string = "";
 
   constructor(options: TranspilerOptions) {
     this.files = options.files;
     this.outDir = options.outDir;
     this.debug = options.debug ?? false;
     this.project = new ts.Project();
-    this.typeParser = createParser();
 
     if (!Array.isArray(this.files) || this.files.length === 0) {
       throw new TranspileException(
@@ -99,6 +96,28 @@ export class Transpiler {
         results.push(result);
       }
 
+      // Handle output based on outDir
+      const shouldPrintToStdout = !this.outDir || this.outDir.trim() === "";
+
+      if (shouldPrintToStdout) {
+        // Print all content to stdout
+        for (const result of results) {
+          console.log(result.content);
+        }
+      } else {
+        // Write to individual files
+        for (const result of results) {
+          if (result.content && result.outputPath) {
+            // Ensure output directory exists
+            const dir = dirname(result.outputPath);
+            await mkdir(dir, { recursive: true });
+
+            await writeFile(result.outputPath, result.content);
+            console.log(`Generated Dart file: ${result.outputPath}`);
+          }
+        }
+      }
+
       // Report any errors
       const allErrors = results.flatMap((r) => r.errors);
       if (allErrors.length > 0) {
@@ -107,13 +126,6 @@ export class Transpiler {
         );
         allErrors.forEach((error) => console.warn(error.toString()));
       }
-
-      // Log generated files
-      results.forEach((result) => {
-        if (result.outputPath) {
-          console.log(`Generated Dart file: ${result.outputPath}`);
-        }
-      });
     } catch (error) {
       if (error instanceof TranspileException) {
         throw error;
@@ -128,25 +140,26 @@ export class Transpiler {
   private async transpileFile(filePath: string): Promise<FileTranspileResult> {
     this.currentFile = filePath;
 
-    // Calculate output path - handle .d.ts files correctly
-    const fileName = this.getDartFileName(filePath);
-    const outputPath = join(this.outDir, fileName);
-    this.currentOutputPath = outputPath;
+    // Calculate output path only if outDir is provided
+    const shouldPrintToStdout = !this.outDir || this.outDir.trim() === "";
+    const outputPath = shouldPrintToStdout
+      ? undefined
+      : join(this.outDir!, this.getDartFileName(filePath));
 
     const result: FileTranspileResult = {
       filePath,
       outputPath,
       errors: [],
+      content: "",
     };
 
     try {
-      // Ensure output directory exists
-      const dir = dirname(outputPath);
-      await mkdir(dir, { recursive: true });
+      // Collect all output strings
+      const outputStrings: string[] = [];
 
-      // Create the file with header
+      // Add header
       const header = this.generateDartFileHeader(filePath);
-      await writeFile(outputPath, header);
+      outputStrings.push(header);
 
       // Read and create source file
       const content = await readFile(filePath, "utf-8");
@@ -154,16 +167,13 @@ export class Transpiler {
         overwrite: true,
       });
 
-      // Initialize parser for this file
-      this.typeParser = createParser({
-        project: this.project,
-        sourceFile: sourceFile,
-      });
-
       // Process all statements
       for (const statement of sourceFile.getStatements()) {
         try {
-          await this.processStatement(statement);
+          const emittedCode = await this.processStatement(statement);
+          if (emittedCode) {
+            outputStrings.push(emittedCode);
+          }
         } catch (error) {
           const transpileError =
             error instanceof TranspileException
@@ -176,6 +186,9 @@ export class Transpiler {
           result.errors.push(transpileError);
         }
       }
+
+      // Join all strings with newlines
+      result.content = outputStrings.join("\n");
     } catch (error) {
       const transpileError =
         error instanceof TranspileException
@@ -213,35 +226,36 @@ export class Transpiler {
     return nameWithoutExt + ".dart";
   }
 
-  private async processStatement(statement: ts.Statement): Promise<void> {
+  private async processStatement(statement: ts.Statement): Promise<string> {
     switch (statement.getKind()) {
       case ts.SyntaxKind.InterfaceDeclaration:
-        this.processInterfaceDeclaration(statement as ts.InterfaceDeclaration);
-        break;
+        return this.processInterfaceDeclaration(
+          statement as ts.InterfaceDeclaration,
+        );
 
       case ts.SyntaxKind.TypeAliasDeclaration:
-        this.processTypeAliasDeclaration(statement as ts.TypeAliasDeclaration);
-        break;
+        return this.processTypeAliasDeclaration(
+          statement as ts.TypeAliasDeclaration,
+        );
 
       case ts.SyntaxKind.ClassDeclaration:
-        this.processClassDeclaration(statement as ts.ClassDeclaration);
-        break;
+        return this.processClassDeclaration(statement as ts.ClassDeclaration);
 
       case ts.SyntaxKind.FunctionDeclaration:
-        this.processFunctionDeclaration(statement as ts.FunctionDeclaration);
-        break;
+        return this.processFunctionDeclaration(
+          statement as ts.FunctionDeclaration,
+        );
 
       case ts.SyntaxKind.VariableStatement:
-        this.processVariableStatement(statement as ts.VariableStatement);
-        break;
+        return this.processVariableStatement(statement as ts.VariableStatement);
 
       case ts.SyntaxKind.EnumDeclaration:
-        this.processEnumDeclaration(statement as ts.EnumDeclaration);
-        break;
+        return this.processEnumDeclaration(statement as ts.EnumDeclaration);
 
       case ts.SyntaxKind.ModuleDeclaration:
-        await this.processModuleDeclaration(statement as ts.ModuleDeclaration);
-        break;
+        return await this.processModuleDeclaration(
+          statement as ts.ModuleDeclaration,
+        );
 
       default:
         throw new TranspileException(
@@ -254,77 +268,60 @@ export class Transpiler {
     }
   }
 
-  private processInterfaceDeclaration(node: ts.InterfaceDeclaration): void {
+  private processInterfaceDeclaration(node: ts.InterfaceDeclaration): string {
     const parsedInterface = parser.parseInterface(node);
-    emitter.emitInterface(
+    return emitter.emitInterface(
       parsedInterface,
       this.modulePrefix,
-      this.currentOutputPath,
       this.debug,
     );
   }
 
-  private processTypeAliasDeclaration(node: ts.TypeAliasDeclaration): void {
+  private processTypeAliasDeclaration(node: ts.TypeAliasDeclaration): string {
     const parsedTypeAlias = parser.parseTypeAlias(node);
-    emitter.emitTypeAlias(
+    return emitter.emitTypeAlias(
       parsedTypeAlias,
       this.modulePrefix,
-      this.currentOutputPath,
       this.debug,
     );
   }
 
-  private processClassDeclaration(node: ts.ClassDeclaration): void {
+  private processClassDeclaration(node: ts.ClassDeclaration): string {
     const parsedClass = parser.parseClass(node);
-    emitter.emitClass(
-      parsedClass,
-      this.modulePrefix,
-      this.currentOutputPath,
-      this.debug,
-    );
+    return emitter.emitClass(parsedClass, this.modulePrefix, this.debug);
   }
 
-  private processFunctionDeclaration(node: ts.FunctionDeclaration): void {
+  private processFunctionDeclaration(node: ts.FunctionDeclaration): string {
     const parsedFunction = parser.parseFunction(node);
-    emitter.emitFunction(
-      parsedFunction,
-      this.modulePrefix,
-      this.currentOutputPath,
-      this.debug,
-    );
+    return emitter.emitFunction(parsedFunction, this.modulePrefix, this.debug);
   }
 
-  private processVariableStatement(node: ts.VariableStatement): void {
+  private processVariableStatement(node: ts.VariableStatement): string {
     const parsedVariables = parser.parseVariableStmt(node);
+    const varEmits: string[] = [];
     for (const variable of parsedVariables) {
-      emitter.emitVariable(
-        variable,
-        this.modulePrefix,
-        this.currentOutputPath,
-        this.debug,
-      );
+      const res = emitter.emitVariable(variable, this.modulePrefix, this.debug);
+      varEmits.push(res);
     }
+    return varEmits.join("\n");
   }
 
-  private processEnumDeclaration(node: ts.EnumDeclaration): void {
+  private processEnumDeclaration(node: ts.EnumDeclaration): string {
     const parsedEnum = parser.parseEnum(node);
-    emitter.emitEnum(
-      parsedEnum,
-      this.modulePrefix,
-      this.currentOutputPath,
-      this.debug,
-    );
+    return emitter.emitEnum(parsedEnum, this.modulePrefix, this.debug);
   }
 
   private async processModuleDeclaration(
     node: ts.ModuleDeclaration,
-  ): Promise<void> {
+  ): Promise<string> {
     const moduleName = node.getName();
     const previousPrefix = this.modulePrefix;
 
+    // Collect all module output
+    const moduleOutputs: string[] = [];
+
     // Add module processing comment
-    const moduleComment = `\n// Start module: ${moduleName}\n`;
-    await appendFile(this.currentOutputPath, moduleComment);
+    moduleOutputs.push(`\n// Start module: ${moduleName}`);
 
     // Add current module name with trailing dot to the prefix
     this.modulePrefix = this.modulePrefix + moduleName + ".";
@@ -335,39 +332,52 @@ export class Transpiler {
       for (const statement of statements) {
         switch (statement.getKind()) {
           case ts.SyntaxKind.InterfaceDeclaration:
-            this.processInterfaceDeclaration(
+            const interfaceResult = this.processInterfaceDeclaration(
               statement as ts.InterfaceDeclaration,
             );
+            moduleOutputs.push(interfaceResult);
             break;
 
           case ts.SyntaxKind.TypeAliasDeclaration:
-            this.processTypeAliasDeclaration(
+            const typeAliasResult = this.processTypeAliasDeclaration(
               statement as ts.TypeAliasDeclaration,
             );
+            moduleOutputs.push(typeAliasResult);
             break;
 
           case ts.SyntaxKind.ClassDeclaration:
-            this.processClassDeclaration(statement as ts.ClassDeclaration);
+            const classResult = this.processClassDeclaration(
+              statement as ts.ClassDeclaration,
+            );
+            moduleOutputs.push(classResult);
             break;
 
           case ts.SyntaxKind.FunctionDeclaration:
-            this.processFunctionDeclaration(
+            const functionResult = this.processFunctionDeclaration(
               statement as ts.FunctionDeclaration,
             );
+            moduleOutputs.push(functionResult);
             break;
 
           case ts.SyntaxKind.VariableStatement:
-            this.processVariableStatement(statement as ts.VariableStatement);
+            const variableResult = this.processVariableStatement(
+              statement as ts.VariableStatement,
+            );
+            moduleOutputs.push(variableResult);
             break;
 
           case ts.SyntaxKind.EnumDeclaration:
-            this.processEnumDeclaration(statement as ts.EnumDeclaration);
+            const enumResult = this.processEnumDeclaration(
+              statement as ts.EnumDeclaration,
+            );
+            moduleOutputs.push(enumResult);
             break;
 
           case ts.SyntaxKind.ModuleDeclaration:
-            await this.processModuleDeclaration(
+            const nestedModuleResult = await this.processModuleDeclaration(
               statement as ts.ModuleDeclaration,
             );
+            moduleOutputs.push(nestedModuleResult);
             break;
 
           default:
@@ -381,13 +391,12 @@ export class Transpiler {
         }
       }
     } finally {
-      await appendFile(
-        this.currentOutputPath,
-        `\n// End module: ${moduleName}\n\n`,
-      );
+      moduleOutputs.push(`\n// End module: ${moduleName}\n`);
       // Restore the previous prefix when exiting the module
       this.modulePrefix = previousPrefix;
     }
+
+    return moduleOutputs.join("\n");
   }
 
   private generateDartFileHeader(filePath: string): string {

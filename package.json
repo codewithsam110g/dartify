@@ -1,6 +1,6 @@
 {
   "name": "dart_bindgen",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A modern, type-safe code generator to create Dart JS-interop bindings from TypeScript .d.ts files.",
   "main": "dist/cli.js",
   "bin": {
@@ -16,6 +16,7 @@
   "scripts": {
     "dev": "tsx src/cli.ts",
     "build": "tsup src/cli.ts --format esm --target node20 --out-dir dist --clean",
+    "test": "vitest",
     "test:cli": "pnpm build && node dist/cli.js --files ./path/to/test.d.ts --outDir ./output",
     "clean": "rm -rf dist output",
     "prepublishOnly": "pnpm build"
@@ -46,6 +47,7 @@
     "@types/yargs": "^17.0.33",
     "tsup": "^8.5.0",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }

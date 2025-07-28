@@ -1,5 +1,3 @@
-import * as fs from "fs";
-
 import { IRClass } from "../../ir/class";
 import { IRMethod } from "../../ir/interface";
 import { stripQuotes } from "../../utils/utils";
@@ -10,9 +8,8 @@ import { emitType } from "../../type/emitter/old/emit";
 export function emitClass(
   irClass: IRClass,
   prefix: string,
-  filePath: string,
   debug: boolean = false,
-) {
+):string{
   let dartParts: string[] = [];
   const internalVal = stripQuotes(`${prefix}${irClass.name}`);
   const jsAnnotation = `@JS("${internalVal}")`;
@@ -110,8 +107,8 @@ export function emitClass(
       dartParts.push(`  external set ${setter.name}(${formatParameterList([setter.parameter])});`);
     }
   });
-  dartParts.push("}\n");
-  fs.appendFileSync(filePath, dartParts.join("\n"), "utf-8");
+  dartParts.push("}");
+  return dartParts.join("\n");
 }
 
 function getOverloadFuncs(funcs: IRMethod[]): Map<String, IRMethod[]> {

@@ -14,8 +14,8 @@ import { Transpiler, TranspilerOptions } from "./main";
 
 interface CliOptions {
   defFiles: string[];
-  output: string;
-  verbose: boolean;
+  output?: string;
+  enableLogs: boolean;
   dryRun: boolean;
 }
 
@@ -32,12 +32,11 @@ const argv = yargs(hideBin(process.argv))
     alias: "o",
     type: "string",
     describe: "Output directory",
-    default: "./output",
   })
-  .option("verbose", {
-    alias: "v",
+  .option("enable-logs", {
+    alias: "l",
     type: "boolean",
-    describe: "Verbose output",
+    describe: "Enable verbose logging",
     default: false,
   })
   .option("dry-run", {
@@ -51,13 +50,13 @@ const argv = yargs(hideBin(process.argv))
     "Multiple patterns with custom output",
   )
   .example(
-    'dart_bindgen --def-files "types/**/*.d.ts" --verbose',
-    "Verbose processing of types directory",
+    'dart_bindgen --def-files "types/**/*.d.ts" --enable-logs',
+    "Enable Logging and Writing IR files to Disk",
   )
   .help()
   .alias("help", "h")
-  .version("1.0.0")
-  .alias("version", "V")
+  .version("v0.3")
+  .alias("version", "v")
   .parseSync() as CliOptions;
 
 async function main(options: CliOptions): Promise<void> {
@@ -73,7 +72,7 @@ async function main(options: CliOptions): Promise<void> {
 
     const dtsFiles = files.filter((file) => file.endsWith(".d.ts"));
 
-    if (options.verbose) {
+    if (options.enableLogs) {
       console.log(`Patterns: ${options.defFiles.join(", ")}`);
       console.log(`Found ${dtsFiles.length} .d.ts files`);
     }
@@ -89,7 +88,7 @@ async function main(options: CliOptions): Promise<void> {
           await fsPromises.access(file, fsConstants.R_OK);
           return file;
         } catch {
-          if (options.verbose) console.warn(`Cannot read: ${file}`);
+          if (options.enableLogs) console.warn(`Cannot read: ${file}`);
           return null;
         }
       }),
@@ -97,7 +96,7 @@ async function main(options: CliOptions): Promise<void> {
 
     const readableFiles = validFiles.filter((f): f is string => Boolean(f));
 
-    if (options.verbose || options.dryRun) {
+    if (options.enableLogs || options.dryRun) {
       console.log("\nFiles to process:");
       readableFiles.forEach((file, i) => {
         const relative = path.relative(process.cwd(), file);
@@ -132,7 +131,7 @@ async function processFiles(
   let transpilerOptions: TranspilerOptions = {
     files: files,
     outDir: options.output,
-    debug: options.verbose,
+    debug: options.enableLogs,
   };
   let transpiler: Transpiler = new Transpiler(transpilerOptions);
   await transpiler.transpile();

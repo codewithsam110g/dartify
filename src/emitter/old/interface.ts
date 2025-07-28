@@ -1,12 +1,10 @@
-import * as fs from "fs";
 import { IRInterface } from "../../ir/interface";
-import { formatParameterList,returnTypeAliasName } from "../shared/shared";
+import { formatParameterList, returnTypeAliasName } from "../shared/shared";
 import { emitType } from "../../type/emitter/old/emit";
 
 export function emitInterface(
   irInterface: IRInterface,
   prefix: string,
-  filePath: string,
   debug: boolean = false,
 ) {
   const dartParts: string[] = [];
@@ -31,10 +29,16 @@ export function emitInterface(
   // Properties
   irInterface.properties.forEach((prop) => {
     if (prop.isReadonly) {
-      dartParts.push(`  external ${emitType(prop.typeAfter)} get ${prop.name};`);
+      dartParts.push(
+        `  external ${emitType(prop.typeAfter)} get ${prop.name};`,
+      );
     } else {
-      dartParts.push(`  external ${emitType(prop.typeAfter)} get ${prop.name};`);
-      dartParts.push(`  external set ${prop.name}(${emitType(prop.typeAfter)} value);`);
+      dartParts.push(
+        `  external ${emitType(prop.typeAfter)} get ${prop.name};`,
+      );
+      dartParts.push(
+        `  external set ${prop.name}(${emitType(prop.typeAfter)} value);`,
+      );
     }
   });
 
@@ -47,12 +51,16 @@ export function emitInterface(
 
   // Getters
   irInterface.getAccessors.forEach((getter) => {
-    dartParts.push(`  external ${returnTypeAliasName(getter.typeBefore)} get ${getter.name};`);
+    dartParts.push(
+      `  external ${returnTypeAliasName(getter.typeBefore)} get ${getter.name};`,
+    );
   });
 
   // Setters
   irInterface.setAccessors.forEach((setter) => {
-    dartParts.push(`  external set ${setter.name}(${formatParameterList([setter.parameter])});`);
+    dartParts.push(
+      `  external set ${setter.name}(${formatParameterList([setter.parameter])});`,
+    );
   });
 
   // Index signatures
@@ -62,7 +70,6 @@ export function emitInterface(
     dartParts.push("  external void operator []=(Object key, dynamic value);");
   }
 
-  dartParts.push("}\n");
-
-  fs.appendFileSync(filePath, dartParts.join("\n"), "utf-8");
+  dartParts.push("}");
+  return dartParts.join("\n");
 }

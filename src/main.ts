@@ -56,6 +56,16 @@ export interface TranspilerOptions {
   debug?: boolean;
 }
 
+export interface StringTranspileOptions {
+  fileName?: string;
+  debug?: boolean;
+}
+
+export interface StringTranspileResult {
+  content: string;
+  errors: TranspileException[];
+}
+
 interface FileTranspileResult {
   filePath: string;
   outputPath?: string;
@@ -83,6 +93,80 @@ export class Transpiler {
         "INVALID_FILES",
       );
     }
+  }
+
+  /**
+   * Static method to transpile TypeScript content from a string directly
+   * Useful for testing and scenarios where you don't have physical files
+   */
+  public static async transpileFromString(
+    content: string,
+    options: StringTranspileOptions = {},
+  ): Promise<StringTranspileResult> {
+    const fileName = options.fileName || "virtual.d.ts";
+    const debug = options.debug ?? false;
+
+    // Create a temporary project for this operation
+    const project = new ts.Project();
+
+    // Create a virtual source file
+    const sourceFile = project.createSourceFile(fileName, content, {
+      overwrite: true,
+    });
+
+    const result: StringTranspileResult = {
+      content: "",
+      errors: [],
+    };
+
+    try {
+      // Create a temporary transpiler instance for processing
+      const tempTranspiler = new Transpiler({ files: [fileName], debug });
+      tempTranspiler.project = project;
+      tempTranspiler.currentFile = fileName;
+
+      // Collect all output strings
+      const outputStrings: string[] = [];
+
+      // Add header
+      const header = tempTranspiler.generateDartFileHeader(fileName);
+      outputStrings.push(header);
+
+      // Process all statements
+      for (const statement of sourceFile.getStatements()) {
+        try {
+          const emittedCode = await tempTranspiler.processStatement(statement);
+          if (emittedCode) {
+            outputStrings.push(emittedCode);
+          }
+        } catch (error) {
+          const transpileError =
+            error instanceof TranspileException
+              ? error
+              : new TranspileException(
+                  `Error processing statement: ${error instanceof Error ? error.message : String(error)}`,
+                  "STATEMENT_ERROR",
+                  fileName,
+                );
+          result.errors.push(transpileError);
+        }
+      }
+
+      // Join all strings with newlines
+      result.content = outputStrings.join("\n");
+    } catch (error) {
+      const transpileError =
+        error instanceof TranspileException
+          ? error
+          : new TranspileException(
+              `Failed to process content: ${error instanceof Error ? error.message : String(error)}`,
+              "CONTENT_PROCESS_ERROR",
+              fileName,
+            );
+      result.errors.push(transpileError);
+    }
+
+    return result;
   }
 
   public async transpile(): Promise<void> {

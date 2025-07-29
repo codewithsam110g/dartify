@@ -1,0 +1,386 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Type Parser Snapshot Test > Array - Array<T> 1`] = `
+{
+  "genericArgs": [
+    {
+      "genericArgs": [],
+      "isNullable": false,
+      "kind": "typeReference",
+      "name": "String",
+    },
+  ],
+  "isNullable": false,
+  "kind": "typeReference",
+  "name": "Array",
+}
+`;
+
+exports[`Type Parser Snapshot Test > Array - T[] 1`] = `
+{
+  "elementType": {
+    "isNullable": false,
+    "kind": "string",
+    "name": "string",
+  },
+  "isNullable": false,
+  "kind": "array",
+  "name": "array",
+}
+`;
+
+exports[`Type Parser Snapshot Test > Complex Array T 1`] = `
+{
+  "elementType": {
+    "isNullable": false,
+    "kind": "union",
+    "name": "union",
+    "unionTypes": [
+      {
+        "isNullable": false,
+        "kind": "string",
+        "name": "string",
+      },
+      {
+        "isNullable": false,
+        "kind": "number",
+        "name": "number",
+      },
+    ],
+  },
+  "isNullable": false,
+  "kind": "array",
+  "name": "array",
+}
+`;
+
+exports[`Type Parser Snapshot Test > Complex Union - A | B | undef 1`] = `
+{
+  "isNullable": true,
+  "kind": "union",
+  "name": "union",
+  "unionTypes": [
+    {
+      "isNullable": false,
+      "kind": "string",
+      "name": "string",
+    },
+    {
+      "isNullable": false,
+      "kind": "number",
+      "name": "number",
+    },
+  ],
+}
+`;
+
+exports[`Type Parser Snapshot Test > Complex Union - A | B 1`] = `
+{
+  "isNullable": false,
+  "kind": "union",
+  "name": "union",
+  "unionTypes": [
+    {
+      "isNullable": false,
+      "kind": "string",
+      "name": "string",
+    },
+    {
+      "isNullable": false,
+      "kind": "number",
+      "name": "number",
+    },
+  ],
+}
+`;
+
+exports[`Type Parser Snapshot Test > Functions - Optional Parameter 1`] = `
+{
+  "isNullable": false,
+  "kind": "function",
+  "name": "function",
+  "parameters": [
+    {
+      "isOptional": false,
+      "isRestParameter": false,
+      "name": "a",
+      "type": {
+        "isNullable": false,
+        "kind": "string",
+        "name": "string",
+      },
+    },
+    {
+      "isOptional": false,
+      "isRestParameter": false,
+      "name": "b",
+      "type": {
+        "isNullable": false,
+        "kind": "number",
+        "name": "number",
+      },
+    },
+  ],
+  "returnType": {
+    "isNullable": false,
+    "kind": "void",
+    "name": "void",
+  },
+}
+`;
+
+exports[`Type Parser Snapshot Test > Functions - Params: 1, no return 1`] = `
+{
+  "isNullable": false,
+  "kind": "function",
+  "name": "function",
+  "parameters": [
+    {
+      "isOptional": false,
+      "isRestParameter": false,
+      "name": "a",
+      "type": {
+        "isNullable": false,
+        "kind": "string",
+        "name": "string",
+      },
+    },
+  ],
+  "returnType": {
+    "isNullable": false,
+    "kind": "void",
+    "name": "void",
+  },
+}
+`;
+
+exports[`Type Parser Snapshot Test > Functions - Params: 1, return 1`] = `
+{
+  "isNullable": false,
+  "kind": "function",
+  "name": "function",
+  "parameters": [
+    {
+      "isOptional": false,
+      "isRestParameter": false,
+      "name": "a",
+      "type": {
+        "isNullable": false,
+        "kind": "string",
+        "name": "string",
+      },
+    },
+  ],
+  "returnType": {
+    "isNullable": false,
+    "kind": "number",
+    "name": "number",
+  },
+}
+`;
+
+exports[`Type Parser Snapshot Test > Functions - Rest Parameter 1`] = `
+{
+  "isNullable": false,
+  "kind": "function",
+  "name": "function",
+  "parameters": [
+    {
+      "isOptional": false,
+      "isRestParameter": false,
+      "name": "a",
+      "type": {
+        "isNullable": false,
+        "kind": "string",
+        "name": "string",
+      },
+    },
+    {
+      "isOptional": true,
+      "isRestParameter": true,
+      "name": "args",
+      "type": {
+        "elementType": {
+          "isNullable": false,
+          "kind": "number",
+          "name": "number",
+        },
+        "isNullable": false,
+        "kind": "array",
+        "name": "array",
+      },
+    },
+  ],
+  "returnType": {
+    "isNullable": false,
+    "kind": "number",
+    "name": "number",
+  },
+}
+`;
+
+exports[`Type Parser Snapshot Test > Generics - Map<K, V> 1`] = `
+{
+  "genericArgs": [
+    {
+      "isNullable": false,
+      "kind": "string",
+      "name": "string",
+    },
+    {
+      "isNullable": false,
+      "kind": "number",
+      "name": "number",
+    },
+  ],
+  "isNullable": false,
+  "kind": "typeReference",
+  "name": "Map",
+}
+`;
+
+exports[`Type Parser Snapshot Test > Generics - Promise<T> 1`] = `
+{
+  "genericArgs": [
+    {
+      "isNullable": false,
+      "kind": "string",
+      "name": "string",
+    },
+  ],
+  "isNullable": false,
+  "kind": "typeReference",
+  "name": "Promise",
+}
+`;
+
+exports[`Type Parser Snapshot Test > Primitives - Bool 1`] = `
+{
+  "isNullable": false,
+  "kind": "boolean",
+  "name": "boolean",
+}
+`;
+
+exports[`Type Parser Snapshot Test > Primitives - Number 1`] = `
+{
+  "isNullable": false,
+  "kind": "number",
+  "name": "number",
+}
+`;
+
+exports[`Type Parser Snapshot Test > Primitives - String 1`] = `
+{
+  "isNullable": false,
+  "kind": "string",
+  "name": "string",
+}
+`;
+
+exports[`Type Parser Snapshot Test > Primitives - void 1`] = `
+{
+  "isNullable": false,
+  "kind": "void",
+  "name": "void",
+}
+`;
+
+exports[`Type Parser Snapshot Test > Type References - basic 1`] = `
+{
+  "genericArgs": [],
+  "isNullable": false,
+  "kind": "typeReference",
+  "name": "HTMLElement",
+}
+`;
+
+exports[`Type Parser Snapshot Test > Union - String? 1 1`] = `
+{
+  "isNullable": true,
+  "kind": "union",
+  "name": "union",
+  "unionTypes": [
+    {
+      "isNullable": false,
+      "kind": "string",
+      "name": "string",
+    },
+  ],
+}
+`;
+
+exports[`Type Parser Snapshot Test > Union - String? 2 1`] = `
+{
+  "isNullable": true,
+  "kind": "union",
+  "name": "union",
+  "unionTypes": [
+    {
+      "isNullable": false,
+      "kind": "string",
+      "name": "string",
+    },
+  ],
+}
+`;
+
+exports[`Type Parser Snapshot Test > Union - String? 3 1`] = `
+{
+  "isNullable": true,
+  "kind": "union",
+  "name": "union",
+  "unionTypes": [
+    {
+      "isNullable": false,
+      "kind": "string",
+      "name": "string",
+    },
+  ],
+}
+`;
+
+exports[`Type Parser Snapshot Test > tuple - [A, A, A] 1`] = `
+{
+  "isNullable": false,
+  "kind": "tuple",
+  "name": "tuple",
+  "tupleTypes": [
+    {
+      "isNullable": false,
+      "kind": "string",
+      "name": "string",
+    },
+    {
+      "isNullable": false,
+      "kind": "string",
+      "name": "string",
+    },
+    {
+      "isNullable": false,
+      "kind": "string",
+      "name": "string",
+    },
+  ],
+}
+`;
+
+exports[`Type Parser Snapshot Test > tuple - [A, B] 1`] = `
+{
+  "isNullable": false,
+  "kind": "tuple",
+  "name": "tuple",
+  "tupleTypes": [
+    {
+      "isNullable": false,
+      "kind": "string",
+      "name": "string",
+    },
+    {
+      "isNullable": false,
+      "kind": "number",
+      "name": "number",
+    },
+  ],
+}
+`;

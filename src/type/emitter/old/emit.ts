@@ -1,64 +1,74 @@
 import { IRType, TypeKind } from "../../../ir/type";
 
 export function emitType(type: IRType): string {
+  // 1. Calculate the base Dart type string, assuming it's non-nullable for now.
+  let baseType: string;
+
   switch (type.kind) {
     // Primitives
-    case TypeKind.Undefined:
+    case TypeKind.Any:
     case TypeKind.Unknown:
     case TypeKind.Never:
-    case TypeKind.Any:
-      return "dynamic";
-    case TypeKind.String:
-      return "String";
-    case TypeKind.Number:
-      return "num";
-    case TypeKind.BigInt:
-      return "BigInt";
-    case TypeKind.Boolean:
-      return "bool";
+    case TypeKind.Undefined:
+      baseType = "dynamic";
+      break;
 
-    // Literals
+    case TypeKind.String:
     case TypeKind.StringLiteral:
-      return "String";
+      baseType = "String";
+      break;
+
+    case TypeKind.Number:
     case TypeKind.NumberLiteral:
-      return "num";
+      baseType = "num";
+      break;
+
+    case TypeKind.BigInt:
+      baseType = "BigInt";
+      break;
+
+    case TypeKind.Boolean:
     case TypeKind.BooleanLiteral:
-      return "bool";
+      baseType = "bool";
+      break;
+
+    case TypeKind.Void:
+      baseType = "void";
+      break;
 
     // Array
     case TypeKind.Array:
-      return "List<" + emitType(type.elementType!) + ">";
+      baseType = "List<" + emitType(type.elementType!) + ">";
+      break;
 
-    // TypeReference
+    // TypeReference (Generics)
     case TypeKind.TypeReference: {
-      if (type.genericArgs!.length > 0) {
-        let internalString: string[] = [];
-        type.genericArgs!.forEach((e) => {
-          internalString.push(emitType(e));
-        });
-        if (type.name == "Array") {
-          return "List<" + internalString.join(",") + ">";
-        } else if (type.name == "Promise") {
-          return "Future<" + internalString.join(",") + ">";
-        } else {
-          return type.name + "<" + internalString.join(",") + ">";
-        }
+      let typeName = type.name;
+      if (typeName === "Array") typeName = "List";
+      if (typeName === "Promise") typeName = "Future";
+      if (typeName === "Date") typeName = "DateTime";
+
+      if (type.genericArgs && type.genericArgs.length > 0) {
+        const args = type.genericArgs.map(emitType).join(", ");
+        baseType = `${typeName}<${args}>`;
       } else {
-        if (type.name == "Date") {
-          return "DateTime";
-        }
-        return type.name;
+        baseType = typeName;
       }
+      break;
     }
 
-    // Unions
+    // Unions (Now correctly assumes null has been filtered out by the parser)
     case TypeKind.Union: {
-      if (type.unionTypes!.length > 1) {
+      const uniqueNames = [
+        ...new Set(type.unionTypes!.map((e) => emitType(e))),
+      ];
+
+      if (uniqueNames.length > 1) {
         return (
           "dynamic " +
-          "/*" +
+          "/* " +
           type.unionTypes!.map((e) => emitType(e)).join("|") +
-          "*/"
+          " */"
         );
       } else {
         if (type.isNullable) {
@@ -71,39 +81,64 @@ export function emitType(type: IRType): string {
 
     // Tuples
     case TypeKind.Tuple: {
-      const elementSet = new Set(type.tupleTypes!.map((e) => emitType(e)));
+      const elementTypes = type.tupleTypes!.map(emitType);
+      const uniqueTypes = new Set(elementTypes);
 
-      if (elementSet.size == 0) {
-        return "List<dynamic>";
-      } else if (elementSet.size == 1) {
-        return "List<" + [...elementSet][0] + ">";
+      if (uniqueTypes.size === 0) {
+        baseType = "List<dynamic>";
+      } else if (uniqueTypes.size === 1) {
+        baseType = `List<${[...uniqueTypes][0]}>`;
       } else {
-        return "List<dynamic>";
+        baseType = `List<dynamic>`;
       }
+      break;
     }
 
     // Function
     case TypeKind.Function: {
       const retType = emitType(type.returnType!);
-      const parameters: string[] = [];
+      const requiredParams: string[] = [];
+      const optionalParams: string[] = [];
+
       type.parameters!.forEach((param) => {
         let mainString = emitType(param.type);
-        if (mainString == "dynamic") {
-          return "dynamic";
+
+        if (mainString === "dynamic") {
+          mainString = "dynamic"; // ensure dynamic stays in place
         }
+
         if (param.isOptional) {
-          mainString = mainString + "?";
+          optionalParams.push(mainString);
+        } else {
+          requiredParams.push(mainString);
         }
-        if (param.isRestParameter) {
-          // It is already processed as T[] from parser
-          mainString = mainString.slice(0, -1);
-        }
-        parameters.push(mainString);
       });
-      return retType + " Function(" + parameters.join(", ") + ")";
+
+      let paramString = requiredParams.join(", ");
+      if (optionalParams.length > 0) {
+        if (paramString.length > 0) {
+          paramString += ", ";
+        }
+        paramString += `[${optionalParams.join(", ")}]`;
+      }
+
+      baseType = `${retType} Function(${paramString})`;
+      break;
     }
 
+    // Default fallback for Intersection, unhandled TypeLiterals, etc.
     default:
-      return "dynamic";
+      baseType = "dynamic";
+      break;
   }
+
+  // 2. The Final Check: Apply the top-level nullability modifier.
+  // This handles cases like `(string | null)[]` -> `List<String?>`
+  // or `Promise<string | null>` -> `Future<String?>`.
+  // And most importantly, simple `string | null` -> `String?`.
+  if (type.isNullable && baseType !== "dynamic" && baseType !== "void") {
+    return `${baseType}?`;
+  }
+
+  return baseType;
 }

@@ -548,7 +548,23 @@ exports[`AST Parsers to IR > parseTypeAlias() > should parse a type alias for a 
 {
   "kind": "typeAlias",
   "name": "StringOrNumber",
-  "typeAfter": "Object",
+  "typeAfter": {
+    "isNullable": false,
+    "kind": "union",
+    "name": "union",
+    "unionTypes": [
+      {
+        "isNullable": false,
+        "kind": "string",
+        "name": "string",
+      },
+      {
+        "isNullable": false,
+        "kind": "number",
+        "name": "number",
+      },
+    ],
+  },
   "typeBefore": UnionTypeNode {
     "__sourceFile": SourceFile {
       "__sourceFile": [Circular],

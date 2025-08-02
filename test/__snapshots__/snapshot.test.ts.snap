@@ -9,7 +9,7 @@ library axios;
 import 'package:js/js.dart';
 
 
-typedef AxiosHeaderValue = Object;
+typedef AxiosHeaderValue = dynamic /* AxiosHeaders|String|List<String>|num|bool */;
 @JS()
 @anonymous
 abstract class RawAxiosHeaders{}
@@ -17,8 +17,8 @@ extension RawAxiosHeadersExtension on RawAxiosHeaders {
   external dynamic operator [](Object key);
   external void operator []=(Object key, dynamic value);
 }
-typedef MethodsHeaders = dynamic?;
-typedef AxiosHeaderMatcher = Object;
+typedef MethodsHeaders = Partial<dynamic>;
+typedef AxiosHeaderMatcher = dynamic /* String|RegExp|bool Function(AxiosHeaders, String, String) */;
 typedef AxiosHeaderParser = dynamic Function(AxiosHeaders, AxiosHeaderValue, String);
 @JS("AxiosHeaders")
 class AxiosHeaders {
@@ -82,12 +82,12 @@ class AxiosHeaders {
   external IterableIterator [Symbol.iterator]();
 }
 typedef CommonRequestHeadersList = String;
-typedef ContentType = Object;
-typedef RawAxiosRequestHeaders = dynamic?;
+typedef ContentType = dynamic /* AxiosHeaderValue|String|String|String|String|String|String */;
+typedef RawAxiosRequestHeaders = Partial<dynamic>;
 typedef AxiosRequestHeaders = dynamic;
 typedef CommonResponseHeadersList = String;
 typedef RawCommonResponseHeaders = dynamic;
-typedef RawAxiosResponseHeaders = dynamic?;
+typedef RawAxiosResponseHeaders = Partial<dynamic>;
 typedef AxiosResponseHeaders = dynamic;
 @JS()
 @anonymous
@@ -273,8 +273,8 @@ extension ParamsSerializerOptionsExtension on ParamsSerializerOptions {
   external CustomParamsSerializer get serialize;
   external set serialize(CustomParamsSerializer value);
 }
-typedef MaxUploadRate = double;
-typedef MaxDownloadRate = double;
+typedef MaxUploadRate = num;
+typedef MaxDownloadRate = num;
 typedef BrowserProgressEvent = dynamic;
 @JS()
 @anonymous
@@ -301,10 +301,10 @@ extension AxiosProgressEventExtension on AxiosProgressEvent {
   external bool get lengthComputable;
   external set lengthComputable(bool value);
 }
-typedef Milliseconds = double;
-typedef AxiosAdapterName = Object;
-typedef AxiosAdapterConfig = Object;
-typedef AddressFamily = double?;
+typedef Milliseconds = num;
+typedef AxiosAdapterName = dynamic /* String|String|String|dynamic */;
+typedef AxiosAdapterConfig = dynamic /* AxiosAdapter|AxiosAdapterName */;
+typedef AddressFamily = num?;
 @JS()
 @anonymous
 abstract class LookupAddressEntry{}
@@ -314,7 +314,7 @@ extension LookupAddressEntryExtension on LookupAddressEntry {
   external AddressFamily get family;
   external set family(AddressFamily value);
 }
-typedef LookupAddress = Object;
+typedef LookupAddress = dynamic /* String|LookupAddressEntry */;
 @JS()
 @anonymous
 abstract class AxiosRequestConfig{}
@@ -564,8 +564,8 @@ extension AxiosInterceptorOptionsExtension on AxiosInterceptorOptions {
   external bool Function(InternalAxiosRequestConfig) get runWhen;
   external set runWhen(bool Function(InternalAxiosRequestConfig) value);
 }
-typedef AxiosRequestInterceptorUse = double Function(Object, Object, AxiosInterceptorOptions);
-typedef AxiosResponseInterceptorUse = double Function(Object, Object);
+typedef AxiosRequestInterceptorUse = num Function([dynamic /* T|Future<T> */ Function(T)?, dynamic Function(dynamic)?, AxiosInterceptorOptions]);
+typedef AxiosResponseInterceptorUse = num Function([dynamic /* T|Future<T> */ Function(T)?, dynamic Function(dynamic)?]);
 @JS()
 @anonymous
 abstract class AxiosInterceptorManager{}
@@ -684,7 +684,7 @@ library event;
 import 'package:js/js.dart';
 
 
-typedef Listener = void Function(List<dynamic>);
+typedef Listener = void Function([List<dynamic>]);
 @JS("EventEmitter")
 class EventEmitter {
   external static num get defaultMaxListeners;
@@ -844,11 +844,11 @@ external String containmentOverlapping;
 @JS("h3.POLYGON_TO_CELLS_FLAGS.containmentOverlappingBbox")
 external String containmentOverlappingBbox;
 typedef H3Index = String;
-typedef H3IndexInput = Object;
-typedef CoordIJ = Map<String, dynamic>;
-typedef H3Error = Map<String, dynamic>;
-typedef CoordPair = List<double>;
-typedef SplitLong = List<double>;"
+typedef H3IndexInput = dynamic /* String|List<num> */;
+typedef CoordIJ = dynamic;
+typedef H3Error = dynamic;
+typedef CoordPair = List<num>;
+typedef SplitLong = List<num>;"
 `;
 
 exports[`TypeScript Definition Files Snapshot Tests > should transpile hard_types.d.ts correctly > hard_types.dart 1`] = `
@@ -873,12 +873,12 @@ extension ResultExtension on Result {
 }
 @JS("getListOfStrings")
 external Promise getListOfStrings();
-typedef StringMap = Map<String, V>;
+typedef StringMap = Record<String, V>;
 @JS("getComplexMap")
 external Promise getComplexMap();
-typedef StringOrNumber = Object;
-typedef ID = Object;
-typedef Shape = Map<String, dynamic>;
+typedef StringOrNumber = dynamic /* String|num */;
+typedef ID = dynamic /* String|num */;
+typedef Shape = dynamic;
 @JS()
 @anonymous
 abstract class HasId{}
@@ -896,10 +896,10 @@ extension HasNameExtension on HasName {
 typedef UserName = dynamic;
 @JS("processUserName")
 external void processUserName(UserName user);
-typedef StringToNumber = double;
+typedef StringToNumber = dynamic;
 @JS("useConditionalType")
 external StringToNumber useConditionalType(T input);
-typedef DeepReadonly = Map<String, dynamic>;
+typedef DeepReadonly = dynamic;
 @JS()
 @anonymous
 abstract class Config{}
@@ -910,7 +910,7 @@ extension ConfigExtension on Config {
   external set port(num value);
 }
 typedef ReadonlyConfig = DeepReadonly<Config>;
-typedef ConfigKey = String;
+typedef ConfigKey = dynamic;
 @JS("getConfigValue")
 external dynamic getConfigValue(ConfigKey key);
 @JS()
@@ -938,7 +938,7 @@ extension TreeNodeExtension on TreeNode {
   external List<TreeNode> get children;
   external set children(List<TreeNode> value);
 }
-typedef JsonValue = Object;
+typedef JsonValue = dynamic /* String|num|bool|List<JsonValue>|dynamic */;
 @JS("parseJson")
 external JsonValue parseJson(String input);"
 `;
@@ -1126,8 +1126,8 @@ extension LatLngLiteralExtension on LatLngLiteral {
   external num get alt;
   external set alt(num value);
 }
-typedef LatLngTuple = List<double>;
-typedef LatLngExpression = Object;
+typedef LatLngTuple = List<dynamic>;
+typedef LatLngExpression = dynamic /* LatLng|LatLngLiteral|LatLngTuple */;
 @JS("latLng")
 external LatLng latLng(dynamic /* LatLngTuple|List<num>|LatLngLiteral|dynamic */ coords);
 @JS("LatLngBounds")
@@ -1153,10 +1153,10 @@ class LatLngBounds {
   external bool isValid();
 }
 typedef LatLngBoundsLiteral = List<LatLngTuple>;
-typedef LatLngBoundsExpression = Object;
+typedef LatLngBoundsExpression = dynamic /* LatLngBounds|LatLngBoundsLiteral */;
 @JS("latLngBounds")
 external LatLngBounds latLngBounds(List<LatLngExpression> latlngs);
-typedef PointTuple = List<double>;
+typedef PointTuple = List<num>;
 @JS("Point")
 class Point {
   external factory Point(num x, num y, [bool round]);
@@ -1187,7 +1187,7 @@ extension CoordsExtension on Coords {
   external num get z;
   external set z(num value);
 }
-typedef PointExpression = Object;
+typedef PointExpression = dynamic /* Point|PointTuple */;
 @JS("point")
 external Point point(dynamic /* PointTuple|dynamic */ coords);
 typedef BoundsLiteral = List<PointTuple>;
@@ -1216,7 +1216,7 @@ class Bounds {
   external Bounds pad(num bufferRatio);
   external bool equals(BoundsExpression otherBounds);
 }
-typedef BoundsExpression = Object;
+typedef BoundsExpression = dynamic /* Bounds|BoundsLiteral */;
 @JS("bounds")
 external Bounds bounds(dynamic /* List<Point>|BoundsLiteral */ points);
 typedef LeafletEventHandlerFn = void Function(LeafletEvent);
@@ -1919,7 +1919,7 @@ extension GridLayerOptionsExtension on GridLayerOptions {
   external num? get keepBuffer;
   external set keepBuffer(num? value);
 }
-typedef DoneCallback = void Function(Exception, HTMLElement);
+typedef DoneCallback = void Function([Error, HTMLElement]);
 @JS()
 @anonymous
 abstract class InternalTiles{}
@@ -2320,7 +2320,7 @@ class FeatureGroup {
 }
 @JS("featureGroup")
 external FeatureGroup featureGroup([List<Layer> layers, LayerOptions options]);
-typedef StyleFunction = PathOptions Function(Feature<GeometryObject, P>);
+typedef StyleFunction = PathOptions Function([geojson.Feature<geojson.GeometryObject, P>]);
 @JS()
 @anonymous
 abstract class GeoJSONOptions{}
@@ -2354,7 +2354,7 @@ class GeoJSON {
 external GeoJSON geoJSON([dynamic /* geojson.GeoJsonObject|List<geojson.GeoJsonObject> */ geojson, GeoJSONOptions<P, G>? options]);
 @JS("geoJson")
 external GeoJSON geoJson([dynamic /* geojson.GeoJsonObject|List<geojson.GeoJsonObject> */ geojson, GeoJSONOptions<P, G>? options]);
-typedef Zoom = Object;
+typedef Zoom = dynamic /* bool|String */;
 @JS()
 @anonymous
 abstract class MapOptions{}
@@ -2616,7 +2616,7 @@ extension PopupOptionsExtension on PopupOptions {
   external bool? get closeOnEscapeKey;
   external set closeOnEscapeKey(bool? value);
 }
-typedef Content = Object;
+typedef Content = dynamic /* String|HTMLElement */;
 @JS("Popup")
 class Popup {
   external factory Popup(LatLngExpression latlng, [TooltipOptions options]);
@@ -2891,7 +2891,7 @@ extension ZoomAnimEventExtension on ZoomAnimEvent {
   external set noUpdate(bool value);
 }
 typedef EventHandlerFn = void Function(Event);
-typedef PropagableEvent = Object;
+typedef PropagableEvent = dynamic /* LeafletMouseEvent|LeafletKeyboardEvent|LeafletEvent|Event */;
 @JS("DomEvent.on")
 external dynamic on(HTMLElement el, dynamic eventMap, [dynamic context]);
 @JS("DomEvent.off")
@@ -7611,7 +7611,7 @@ extension WriteParamsExtension on WriteParams {
 }
 @JS("NodeFilter")
 external dynamic NodeFilter;
-typedef XPathNSResolver = Object;
+typedef XPathNSResolver = dynamic /* String? Function(String?)|dynamic */;
 @JS()
 @anonymous
 abstract class ANGLE_instanced_arrays{}
@@ -12366,12 +12366,12 @@ extension WebAssemblyInstantiatedSourceExtension on WebAssemblyInstantiatedSourc
 }
 typedef ImportExportKind = String;
 typedef TableKind = String;
-typedef ExportValue = Object;
-typedef Exports = Map<String, ExportValue>;
-typedef ImportValue = Object;
-typedef Imports = Map<String, ModuleImports>;
-typedef ModuleImports = Map<String, ImportValue>;
-typedef ValueType = String;
+typedef ExportValue = dynamic /* Function|Global|Memory|Table */;
+typedef Exports = Record<String, ExportValue>;
+typedef ImportValue = dynamic /* ExportValue|num */;
+typedef Imports = Record<String, ModuleImports>;
+typedef ModuleImports = Record<String, ImportValue>;
+typedef ValueType = dynamic;
 @JS("WebAssembly.compile")
 external Promise compile(BufferSource bytes);
 @JS("WebAssembly.compileStreaming")
@@ -13532,81 +13532,81 @@ external Storage sessionStorage;
 external void addEventListener(String type, EventListenerOrEventListenerObject listener, [dynamic /* bool|AddEventListenerOptions */ options]);
 @JS("removeEventListener")
 external void removeEventListener(String type, EventListenerOrEventListenerObject listener, [dynamic /* bool|EventListenerOptions */ options]);
-typedef AlgorithmIdentifier = Object;
-typedef AllowSharedBufferSource = Object;
-typedef AutoFill = Object;
-typedef AutoFillField = Object;
-typedef AutoFillSection = String;
+typedef AlgorithmIdentifier = dynamic /* Algorithm|String */;
+typedef AllowSharedBufferSource = dynamic /* ArrayBuffer|ArrayBufferView */;
+typedef AutoFill = dynamic /* AutoFillBase|dynamic */;
+typedef AutoFillField = dynamic /* AutoFillNormalField|dynamic */;
+typedef AutoFillSection = dynamic;
 typedef Base64URLString = String;
 typedef BigInteger = Uint8Array;
-typedef BlobPart = Object;
-typedef BodyInit = Object;
-typedef BufferSource = Object;
-typedef COSEAlgorithmIdentifier = double;
-typedef CSSKeywordish = Object;
-typedef CSSNumberish = Object;
-typedef CSSPerspectiveValue = Object;
-typedef CSSUnparsedSegment = Object;
-typedef CanvasImageSource = Object;
-typedef ClipboardItemData = Future<Object>;
+typedef BlobPart = dynamic /* BufferSource|Blob|String */;
+typedef BodyInit = dynamic /* ReadableStream|XMLHttpRequestBodyInit */;
+typedef BufferSource = dynamic /* ArrayBufferView|ArrayBuffer */;
+typedef COSEAlgorithmIdentifier = num;
+typedef CSSKeywordish = dynamic /* String|CSSKeywordValue */;
+typedef CSSNumberish = dynamic /* num|CSSNumericValue */;
+typedef CSSPerspectiveValue = dynamic /* CSSNumericValue|CSSKeywordish */;
+typedef CSSUnparsedSegment = dynamic /* String|CSSVariableReferenceValue */;
+typedef CanvasImageSource = dynamic /* HTMLOrSVGImageElement|HTMLVideoElement|HTMLCanvasElement|ImageBitmap|OffscreenCanvas|VideoFrame */;
+typedef ClipboardItemData = Future<dynamic /* String|Blob */>;
 typedef ClipboardItems = List<ClipboardItem>;
-typedef ConstrainBoolean = Object;
-typedef ConstrainDOMString = Object;
-typedef ConstrainDouble = Object;
-typedef ConstrainULong = Object;
-typedef DOMHighResTimeStamp = double;
-typedef EpochTimeStamp = double;
-typedef EventListenerOrEventListenerObject = Object;
-typedef FileSystemWriteChunkType = Object;
-typedef Float32List = Object;
-typedef FormDataEntryValue = Object;
-typedef GLbitfield = double;
+typedef ConstrainBoolean = dynamic /* bool|ConstrainBooleanParameters */;
+typedef ConstrainDOMString = dynamic /* String|List<String>|ConstrainDOMStringParameters */;
+typedef ConstrainDouble = dynamic /* num|ConstrainDoubleRange */;
+typedef ConstrainULong = dynamic /* num|ConstrainULongRange */;
+typedef DOMHighResTimeStamp = num;
+typedef EpochTimeStamp = num;
+typedef EventListenerOrEventListenerObject = dynamic /* EventListener|EventListenerObject */;
+typedef FileSystemWriteChunkType = dynamic /* BufferSource|Blob|String|WriteParams */;
+typedef Float32List = dynamic /* Float32Array|List<GLfloat> */;
+typedef FormDataEntryValue = dynamic /* File|String */;
+typedef GLbitfield = num;
 typedef GLboolean = bool;
-typedef GLclampf = double;
-typedef GLenum = double;
-typedef GLfloat = double;
-typedef GLint = double;
-typedef GLint64 = double;
-typedef GLintptr = double;
-typedef GLsizei = double;
-typedef GLsizeiptr = double;
-typedef GLuint = double;
-typedef GLuint64 = double;
-typedef HTMLOrSVGImageElement = Object;
-typedef HTMLOrSVGScriptElement = Object;
+typedef GLclampf = num;
+typedef GLenum = num;
+typedef GLfloat = num;
+typedef GLint = num;
+typedef GLint64 = num;
+typedef GLintptr = num;
+typedef GLsizei = num;
+typedef GLsizeiptr = num;
+typedef GLuint = num;
+typedef GLuint64 = num;
+typedef HTMLOrSVGImageElement = dynamic /* HTMLImageElement|SVGImageElement */;
+typedef HTMLOrSVGScriptElement = dynamic /* HTMLScriptElement|SVGScriptElement */;
 typedef HashAlgorithmIdentifier = AlgorithmIdentifier;
-typedef HeadersInit = Object;
-typedef IDBValidKey = Object;
-typedef ImageBitmapSource = Object;
-typedef ImageBufferSource = Object;
-typedef Int32List = Object;
-typedef LineAndPositionSetting = Object;
-typedef MediaProvider = Object;
-typedef MessageEventSource = Object;
+typedef HeadersInit = dynamic /* List<List<String>>|Record<String, String>|Headers */;
+typedef IDBValidKey = dynamic /* num|String|DateTime|BufferSource|List<IDBValidKey> */;
+typedef ImageBitmapSource = dynamic /* CanvasImageSource|Blob|ImageData */;
+typedef ImageBufferSource = dynamic /* AllowSharedBufferSource|ReadableStream */;
+typedef Int32List = dynamic /* Int32Array|List<GLint> */;
+typedef LineAndPositionSetting = dynamic /* num|AutoKeyword */;
+typedef MediaProvider = dynamic /* MediaStream|MediaSource|Blob */;
+typedef MessageEventSource = dynamic /* WindowProxy|MessagePort|ServiceWorker */;
 typedef MutationRecordType = String;
 typedef NamedCurve = String;
-typedef OffscreenRenderingContext = Object;
-typedef OnBeforeUnloadEventHandler = Object;
-typedef OnErrorEventHandler = Object;
-typedef OptionalPostfixToken = String;
-typedef OptionalPrefixToken = String;
+typedef OffscreenRenderingContext = dynamic /* OffscreenCanvasRenderingContext2D|ImageBitmapRenderingContext|WebGLRenderingContext|WebGL2RenderingContext */;
+typedef OnBeforeUnloadEventHandler = OnBeforeUnloadEventHandlerNonNull?;
+typedef OnErrorEventHandler = OnErrorEventHandlerNonNull?;
+typedef OptionalPostfixToken = dynamic /* dynamic|String */;
+typedef OptionalPrefixToken = dynamic /* dynamic|String */;
 typedef PerformanceEntryList = List<PerformanceEntry>;
-typedef PublicKeyCredentialClientCapabilities = Map<String, bool>;
+typedef PublicKeyCredentialClientCapabilities = Record<String, bool>;
 typedef PublicKeyCredentialJSON = dynamic;
 typedef RTCRtpTransform = RTCRtpScriptTransform;
-typedef ReadableStreamController = Object;
-typedef ReadableStreamReadResult = Object;
-typedef ReadableStreamReader = Object;
-typedef RenderingContext = Object;
+typedef ReadableStreamController = dynamic /* ReadableStreamDefaultController<T>|ReadableByteStreamController */;
+typedef ReadableStreamReadResult = dynamic /* ReadableStreamReadValueResult<T>|ReadableStreamReadDoneResult<T> */;
+typedef ReadableStreamReader = dynamic /* ReadableStreamDefaultReader<T>|ReadableStreamBYOBReader */;
+typedef RenderingContext = dynamic /* CanvasRenderingContext2D|ImageBitmapRenderingContext|WebGLRenderingContext|WebGL2RenderingContext */;
 typedef ReportList = List<Report>;
-typedef RequestInfo = Object;
-typedef TexImageSource = Object;
-typedef TimerHandler = Object;
-typedef Transferable = Object;
-typedef Uint32List = Object;
-typedef VibratePattern = Object;
+typedef RequestInfo = dynamic /* Request|String */;
+typedef TexImageSource = dynamic /* ImageBitmap|ImageData|HTMLImageElement|HTMLCanvasElement|HTMLVideoElement|OffscreenCanvas|VideoFrame */;
+typedef TimerHandler = dynamic /* String|Function */;
+typedef Transferable = dynamic /* OffscreenCanvas|ImageBitmap|MessagePort|MediaSourceHandle|ReadableStream|WritableStream|TransformStream|AudioData|VideoFrame|RTCDataChannel|ArrayBuffer */;
+typedef Uint32List = dynamic /* Uint32Array|List<GLuint> */;
+typedef VibratePattern = dynamic /* num|List<num> */;
 typedef WindowProxy = Window;
-typedef XMLHttpRequestBodyInit = Object;
+typedef XMLHttpRequestBodyInit = dynamic /* Blob|BufferSource|FormData|URLSearchParams|String */;
 typedef AlignSetting = String;
 typedef AlphaOption = String;
 typedef AnimationPlayState = String;
@@ -13908,12 +13908,12 @@ external Future<List<Map<String, num>>> tripleNested;
 external dynamic /* String|num */ overloadedFunc(dynamic /* String|num */ x);
 @JS("createElement")
 external HTMLElement createElement(String tag);
-typedef StringOrNumber = double;
+typedef StringOrNumber = dynamic;
 @JS("conditionalResult")
 external StringOrNumber<String> conditionalResult;
 @JS("conditionalResult2")
 external StringOrNumber<DateTime> conditionalResult2;
-typedef ElementType = U;
+typedef ElementType = dynamic;
 @JS("inferResult")
 external ElementType<List<String>> inferResult;
 @JS("inferResult2")

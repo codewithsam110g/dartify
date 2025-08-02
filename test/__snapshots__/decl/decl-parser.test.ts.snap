@@ -7,6 +7,7 @@ exports[`AST Parsers to IR > parseClass() > should parse a simple class with pro
   "getAccessors": [],
   "implements": [],
   "isAbstract": false,
+  "kind": "class",
   "methods": [],
   "name": "ApiClient",
   "properties": [
@@ -85,6 +86,7 @@ exports[`AST Parsers to IR > parseClass() > should parse a simple class with pro
 
 exports[`AST Parsers to IR > parseEnum() > should parse a numeric enum 1`] = `
 {
+  "kind": "enum",
   "members": [
     {
       "name": "Up",
@@ -109,6 +111,7 @@ exports[`AST Parsers to IR > parseEnum() > should parse a numeric enum 1`] = `
 
 exports[`AST Parsers to IR > parseFunction() > should parse a function declaration with parameters 1`] = `
 {
+  "kind": "function",
   "name": "getUser",
   "parameters": [
     {
@@ -249,6 +252,7 @@ exports[`AST Parsers to IR > parseInterface() > should parse a simple interface 
   "extends": [],
   "getAccessors": [],
   "indexSignatures": [],
+  "kind": "interface",
   "methods": [],
   "name": "User",
   "properties": [
@@ -397,6 +401,7 @@ exports[`AST Parsers to IR > parseInterface() > should parse an interface with o
   "extends": [],
   "getAccessors": [],
   "indexSignatures": [],
+  "kind": "interface",
   "methods": [],
   "name": "Config",
   "properties": [
@@ -541,6 +546,7 @@ exports[`AST Parsers to IR > parseInterface() > should parse an interface with o
 
 exports[`AST Parsers to IR > parseTypeAlias() > should parse a type alias for a union type 1`] = `
 {
+  "kind": "typeAlias",
   "name": "StringOrNumber",
   "typeAfter": "Object",
   "typeBefore": UnionTypeNode {
@@ -607,6 +613,7 @@ exports[`AST Parsers to IR > parseVariableStmt() > should parse a variable state
   {
     "isConst": true,
     "isReadonly": false,
+    "kind": "variable",
     "name": "PI",
     "typeAfter": {
       "isNullable": false,

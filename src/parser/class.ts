@@ -9,6 +9,7 @@ import {
 } from "../ir/interface";
 import { IRParameter } from "../ir/function";
 import { parseType } from "../type/parser/type";
+import { IRDeclKind } from "../ir";
 
 export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
   let name = classDecl.getName() || "";
@@ -144,6 +145,7 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
 
 
   return {
+    kind: IRDeclKind.Class,
     name,
     extends: extenders,
     implements: implementers,

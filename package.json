@@ -1,6 +1,6 @@
 {
   "name": "dart_bindgen",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A modern, type-safe code generator to create Dart JS-interop bindings from TypeScript .d.ts files.",
   "main": "dist/cli.js",
   "bin": {

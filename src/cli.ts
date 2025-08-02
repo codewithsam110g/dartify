@@ -10,7 +10,7 @@ import { hideBin } from "yargs/helpers";
 import fg from "fast-glob";
 import { promises as fsPromises, constants as fsConstants } from "fs";
 import path from "path";
-import { Transpiler, TranspilerOptions } from "./main";
+import { Transpiler, TranspilerOptions } from "./transpiler";
 
 interface CliOptions {
   defFiles: string[];

@@ -1,7 +1,7 @@
-export { IRClass, IRConstructor } from "./class";
-export { IRFunction, IRParameter } from "./function";
-export { IREnum } from "./enum";
-export {
+export type { IRClass, IRConstructor } from "./class";
+export type { IRFunction, IRParameter } from "./function";
+export type { IREnum } from "./enum";
+export type {
   IRInterface,
   IRGetAccessor,
   IRIndexSignatures,
@@ -9,5 +9,7 @@ export {
   IRProperties,
   IRSetAccessor,
 } from "./interface";
-export { IRVariable } from "./variable";
-export { IRTypeAlias } from "./typealias";
+export type { IRVariable } from "./variable";
+export type { IRTypeAlias } from "./typealias";
+export type { IRDeclaration } from "./declaration";
+export { IRDeclKind } from "./declaration";

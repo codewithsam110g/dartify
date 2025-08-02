@@ -1,3 +1,4 @@
+import { IRDeclaration, IRDeclKind } from "./declaration";
 import { IRParameter } from "./function";
 import {
   IRMethod,
@@ -6,7 +7,8 @@ import {
   IRSetAccessor,
 } from "./interface";
 
-export interface IRClass {
+export interface IRClass extends IRDeclaration{
+  kind: IRDeclKind.Class;
   name: string;
   extends?: string;
   implements: string[];

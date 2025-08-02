@@ -1,4 +1,4 @@
-import { Transpiler } from "../src/main";
+import { Transpiler } from "../src/transpiler";
 import { expect, test } from "vitest";
 
 test("simple test", async () => {

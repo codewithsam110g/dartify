@@ -1,5 +1,5 @@
 // test/snapshot.test.ts
-import { Transpiler } from "../src/main";
+import { Transpiler } from "../src/transpiler";
 import { expect, test, describe } from "vitest";
 import { readFileSync, readdirSync } from "fs";
 import { join, basename } from "path";

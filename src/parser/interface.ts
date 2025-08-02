@@ -9,6 +9,7 @@ import {
 } from "../ir/interface";
 import { IRParameter } from "../ir/function";
 import { parseType } from "../type/parser/type";
+import { IRDeclKind } from "../ir";
 
 export function parseInterface(
   interfaceDecl: ts.InterfaceDeclaration,
@@ -152,6 +153,7 @@ export function parseInterface(
   }
 
   return {
+    kind: IRDeclKind.Interface,
     name,
     extends: extenders,
     properties,

@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { IRFunction, IRParameter } from "../ir/function";
 import { parseType } from "../type/parser/type";
+import { IRDeclKind } from "../ir";
 export function parseFunction(funcDecl: ts.FunctionDeclaration): IRFunction {
   let name = funcDecl.getName() ?? "anonFunc";
   let returnType = parseType(funcDecl.getReturnTypeNode());
@@ -24,6 +25,7 @@ export function parseFunction(funcDecl: ts.FunctionDeclaration): IRFunction {
     });
   }
   return {
+    kind: IRDeclKind.Function,
     name: name,
     returnType: returnType,
     returnTypeNode: returnTypeNode,

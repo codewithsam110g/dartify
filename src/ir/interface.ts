@@ -1,8 +1,10 @@
 import * as ts from "ts-morph";
 import { IRParameter } from "./function";
 import { IRType } from "./type";
+import { IRDeclaration,IRDeclKind } from "./declaration";
 
-export interface IRInterface {
+export interface IRInterface extends IRDeclaration {
+  kind: IRDeclKind.Interface;
   name: string;
   extends: string[];
   properties: IRProperties[];

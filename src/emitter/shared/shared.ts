@@ -2,55 +2,10 @@ import { IRParameter } from "../../ir/function";
 import { TypeNode, SyntaxKind, Node } from "ts-morph";
 import { emitType } from "../../type/emitter/old/emit";
 import { parseType } from "../../type/parser/type";
+import { IRType } from "../../ir/type";
 
-export function returnTypeAliasName(typeNode?: TypeNode): string {
-  if (typeNode == undefined) return "";
-  let res = getTypeAliasName(typeNode);
-  if (res == null) {
-    return emitType(parseType(typeNode));
-  } else {
-    return res;
-  }
-}
-
-function getTypeAliasName(typeNode: TypeNode): string | null {
-  // Handle direct type references (e.g., MyType)
-  if (typeNode.getKind() === SyntaxKind.TypeReference) {
-    const typeRef = typeNode.asKindOrThrow(SyntaxKind.TypeReference);
-    const typeName = typeRef.getTypeName();
-
-    if (Node.isIdentifier(typeName)) {
-      const typeNameText = typeName.getText();
-
-      // Handle Array<T> syntax
-      if (typeNameText === "Array") {
-        const typeArgs = typeRef.getTypeArguments();
-        if (typeArgs && typeArgs.length > 0) {
-          const firstTypeArg = typeArgs[0];
-          const innerTypeName = getTypeAliasName(firstTypeArg);
-          if (innerTypeName) {
-            return `List<${innerTypeName}>`;
-          }
-        }
-      }
-
-      return typeNameText;
-    } else if (Node.isQualifiedName(typeName)) {
-      return typeName.getRight().getText();
-    }
-  }
-
-  // Handle array types (e.g., MyType[])
-  if (typeNode.getKind() === SyntaxKind.ArrayType) {
-    const arrayType = typeNode.asKindOrThrow(SyntaxKind.ArrayType);
-    const elementType = arrayType.getElementTypeNode();
-    const elementTypeName = getTypeAliasName(elementType);
-    if (elementTypeName) {
-      return `List<${elementTypeName}>`;
-    }
-  }
-
-  return null;
+export function returnTypeAliasName(irType: IRType): string {
+  return emitType(irType);
 }
 
 export function formatParameterList(params: IRParameter[]): string {
@@ -60,16 +15,7 @@ export function formatParameterList(params: IRParameter[]): string {
   params.forEach((p) => {
     let type: string;
     // Check if we have typeBefore and can extract a type alias name
-    if (p.typeBefore) {
-      const typeAliasName = getTypeAliasName(p.typeBefore);
-      if (typeAliasName) {
-        type = typeAliasName;
-      } else {
-        type = emitType(p.typeAfter) || "dynamic";
-      }
-    } else {
-      type = emitType(p.typeAfter) || "dynamic";
-    }
+    type = emitType(p.type);
 
     let result = `${type} ${p.name}`;
     if (p.isRest) {
@@ -94,4 +40,21 @@ export function formatParameterList(params: IRParameter[]): string {
   }
 
   return parts.join(", ");
+}
+
+// For factory constructors of hoisted types
+export function formatNamedParameters(params: IRParameter[]): string {
+  if (params.length === 0) {
+    return ""; // Return empty parens for no-arg factories
+  }
+
+  const paramStrings = params
+    .map((p) => {
+      const typeStr = emitType(p.type);
+      const prefix = p.isOptional ? "" : "required ";
+      return `${prefix}${typeStr} ${p.name}`;
+    })
+    .join(", ");
+
+  return `{${paramStrings}}`;
 }

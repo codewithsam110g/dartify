@@ -9,5 +9,5 @@ export function emitVariable(
 ): string {
   const internalVal = stripQuotes(`${prefix}${irVariable.name}`);
   const jsAnnotation = `@JS("${internalVal}")`;
-  return `${jsAnnotation}\nexternal ${emitType(irVariable.typeAfter)} ${irVariable.name};`;
+  return `${jsAnnotation}\nexternal ${emitType(irVariable.type)} ${irVariable.name};`;
 }

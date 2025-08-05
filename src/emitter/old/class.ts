@@ -28,19 +28,19 @@ export function emitClass(
   irClass.properties.forEach((prop) => {
     if (prop.isReadonly) {
       if (prop.isStatic) {
-        dartParts.push(`  external static ${emitType(prop.typeAfter)} get ${prop.name};`);
+        dartParts.push(`  external static ${emitType(prop.type)} get ${prop.name};`);
       } else {
-        dartParts.push(`  external ${emitType(prop.typeAfter)} get ${prop.name};`);
+        dartParts.push(`  external ${emitType(prop.type)} get ${prop.name};`);
       }
     } else {
       if (prop.isStatic) {
-        dartParts.push(`  external static ${emitType(prop.typeAfter)} get ${prop.name};`);
+        dartParts.push(`  external static ${emitType(prop.type)} get ${prop.name};`);
         dartParts.push(
-          `  external static set ${prop.name}(${emitType(prop.typeAfter)} value);`,
+          `  external static set ${prop.name}(${emitType(prop.type)} value);`,
         );
       } else {
-        dartParts.push(`  external ${emitType(prop.typeAfter)} get ${prop.name};`);
-        dartParts.push(`  external set ${prop.name}(${emitType(prop.typeAfter)} value);`);
+        dartParts.push(`  external ${emitType(prop.type)} get ${prop.name};`);
+        dartParts.push(`  external set ${prop.name}(${emitType(prop.type)} value);`);
       }
     }
   });
@@ -53,11 +53,11 @@ export function emitClass(
       if (func_arr.length == 1) {
         if (func.isStatic) {
           dartParts.push(
-            `  external static ${returnTypeAliasName(func.returnTypeNode)} ${func.name}(${formatParameterList(func.parameters)});`,
+            `  external static ${returnTypeAliasName(func.returnType)} ${func.name}(${formatParameterList(func.parameters)});`,
           );
         } else {
           dartParts.push(
-            `  external ${returnTypeAliasName(func.returnTypeNode)} ${func.name}(${formatParameterList(func.parameters)});`,
+            `  external ${returnTypeAliasName(func.returnType)} ${func.name}(${formatParameterList(func.parameters)});`,
           );
         }
       } else {
@@ -67,12 +67,12 @@ export function emitClass(
         if (func.isStatic) {
           dartParts.push(`  @JS("${func_name}")`);
           dartParts.push(
-            `  external static ${returnTypeAliasName(func.returnTypeNode)} ${name}(${formatParameterList(func.parameters)});`,
+            `  external static ${returnTypeAliasName(func.returnType)} ${name}(${formatParameterList(func.parameters)});`,
           );
         } else {
           dartParts.push(`  @JS("${func_name}")`);
           dartParts.push(
-            `  external ${returnTypeAliasName(func.returnTypeNode)} ${name}(${formatParameterList(func.parameters)});`,
+            `  external ${returnTypeAliasName(func.returnType)} ${name}(${formatParameterList(func.parameters)});`,
           );
         }
       }
@@ -90,10 +90,10 @@ export function emitClass(
   irClass.getAccessors.forEach((getter) => {
     if (getter.isStatic) {
       dartParts.push(
-        `  external static ${returnTypeAliasName(getter.typeBefore)} get ${getter.name};`,
+        `  external static ${returnTypeAliasName(getter.type)} get ${getter.name};`,
       );
     } else {
-      dartParts.push(`  external ${returnTypeAliasName(getter.typeBefore)} get ${getter.name};`);
+      dartParts.push(`  external ${returnTypeAliasName(getter.type)} get ${getter.name};`);
     }
   });
 

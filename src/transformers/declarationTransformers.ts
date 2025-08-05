@@ -43,9 +43,31 @@ export class DeclarationTransformer {
     hoistedMap: Map<string, IRInterface>,
     errors: TranspileException[],
   ) {
-    
-  }
+    // Add all hoisted interfaces to the declaration map
+    for (const [key, irInterface] of hoistedMap.entries()) {
+      try {
+        // Check if key already exists to avoid conflicts
+        if (declarationMap.has(key)) {
+          errors.push(
+            new TranspileException(
+              `Declaration conflict: Interface '${key}' already exists in declaration map and the value:${JSON.stringify(declarationMap.get(key))}`,
+            ),
+          );
+          continue;
+        }
 
+        // Add the interface to the declaration map
+        // Since IRInterface extends IRDeclaration, this is valid
+        declarationMap.set(key, irInterface);
+      } catch (error) {
+        errors.push(
+          new TranspileException(
+            `Failed to apply interface '${key}' to declaration map: ${error}`,
+          ),
+        );
+      }
+    }
+  }
   public setDebug(debug: boolean): void {
     this.debug = debug;
   }

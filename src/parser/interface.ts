@@ -21,15 +21,13 @@ export function parseInterface(
   let properties: IRProperties[] = [];
   for (let prop of interfaceDecl.getProperties()) {
     let name = prop.getName();
-    let typeBefore = prop.getTypeNode();
-    let typeAfter = parseType(prop.getTypeNode());
+    let type = parseType(prop.getTypeNode());
     let isReadonly = prop.isReadonly();
     let isOptional = prop.hasQuestionToken();
 
     properties.push({
       name,
-      typeBefore,
-      typeAfter,
+      type,
       isReadonly,
       isOptional,
       isStatic: false,
@@ -50,14 +48,12 @@ export function parseInterface(
       if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
 
       let name = param.getName();
-      let typeBefore = param.getTypeNode();
-      let typeAfter = parseType(param.getTypeNode());
+      let type = parseType(param.getTypeNode());
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
         name: name,
-        typeBefore: typeBefore,
-        typeAfter: typeAfter,
+        type: type,
         isOptional: isOptional,
         isRest: isRest,
       });
@@ -66,7 +62,6 @@ export function parseInterface(
       name,
       parameters,
       returnType,
-      returnTypeNode,
       isOptional,
       isStatic: false,
     });
@@ -84,14 +79,12 @@ export function parseInterface(
       if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
 
       let name = param.getName();
-      let typeBefore = param.getTypeNode();
-      let typeAfter = parseType(param.getTypeNode());
+      let type = parseType(param.getTypeNode());
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
         name: name,
-        typeBefore: typeBefore,
-        typeAfter: typeAfter,
+        type: type,
         isOptional: isOptional,
         isRest: isRest,
       });
@@ -100,7 +93,6 @@ export function parseInterface(
       name: "constructor",
       parameters,
       returnType,
-      returnTypeNode,
       isOptional: false,
       isStatic: false,
     });
@@ -110,13 +102,11 @@ export function parseInterface(
   let getAccessors: IRGetAccessor[] = [];
   for (let ga of interfaceDecl.getGetAccessors()) {
     let name = ga.getName();
-    let typeBefore = ga.getReturnTypeNode();
-    let typeAfter = parseType(ga.getReturnTypeNode());
+    let type = parseType(ga.getReturnTypeNode());
 
     getAccessors.push({
       name,
-      typeBefore,
-      typeAfter,
+      type,
       isStatic: false,
     });
   }
@@ -130,8 +120,7 @@ export function parseInterface(
       name: name,
       parameter: {
         name: param.getName(),
-        typeBefore: param.getTypeNode(),
-        typeAfter: parseType(param.getTypeNode()),
+        type: parseType(param.getTypeNode()),
         isOptional: param.hasQuestionToken(),
         isRest: param.isRestParameter(),
       },

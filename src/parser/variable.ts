@@ -10,13 +10,11 @@ export function parseVariableStmt(varStmt: ts.VariableStatement): IRVariable[] {
   let isReadonly = varDecls.hasModifier(ts.SyntaxKind.ReadonlyKeyword);
   for (let varDecl of varDecls.getDeclarations()) {
     let name = varDecl.getName();
-    let typeBefore = varDecl.getTypeNode();
     let typeAfter = parseType(varDecl.getTypeNode());
     res.push({
       kind: IRDeclKind.Variable,
       name: name,
-      typeBefore: typeBefore,
-      typeAfter: typeAfter,
+      type: typeAfter,
       isReadonly: isReadonly,
       isConst: isConst,
     });

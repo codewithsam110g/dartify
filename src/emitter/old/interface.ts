@@ -1,5 +1,9 @@
 import { IRInterface } from "../../ir/interface";
-import { formatParameterList, returnTypeAliasName } from "../shared/shared";
+import {
+  formatParameterList,
+  formatNamedParameters,
+  returnTypeAliasName,
+} from "../shared/shared";
 import { emitType } from "../../type/emitter/old/emit";
 
 export function emitInterface(
@@ -16,7 +20,7 @@ export function emitInterface(
   if (irInterface.constructors.length > 0) {
     dartParts.push(`class ${irInterface.name}{`);
     dartParts.push(
-      `  external factory ${irInterface.name}(${formatParameterList(irInterface.constructors[0].parameters)});`,
+      `  external factory ${irInterface.name}(${formatNamedParameters(irInterface.constructors[0].parameters)});`,
     );
     dartParts.push("}");
   } else {
@@ -29,15 +33,11 @@ export function emitInterface(
   // Properties
   irInterface.properties.forEach((prop) => {
     if (prop.isReadonly) {
-      dartParts.push(
-        `  external ${emitType(prop.typeAfter)} get ${prop.name};`,
-      );
+      dartParts.push(`  external ${emitType(prop.type)} get ${prop.name};`);
     } else {
+      dartParts.push(`  external ${emitType(prop.type)} get ${prop.name};`);
       dartParts.push(
-        `  external ${emitType(prop.typeAfter)} get ${prop.name};`,
-      );
-      dartParts.push(
-        `  external set ${prop.name}(${emitType(prop.typeAfter)} value);`,
+        `  external set ${prop.name}(${emitType(prop.type)} value);`,
       );
     }
   });
@@ -45,14 +45,14 @@ export function emitInterface(
   // Methods
   irInterface.methods.forEach((method) => {
     dartParts.push(
-      `  external ${returnTypeAliasName(method.returnTypeNode)} ${method.name}(${formatParameterList(method.parameters)});`,
+      `  external ${returnTypeAliasName(method.returnType)} ${method.name}(${formatParameterList(method.parameters)});`,
     );
   });
 
   // Getters
   irInterface.getAccessors.forEach((getter) => {
     dartParts.push(
-      `  external ${returnTypeAliasName(getter.typeBefore)} get ${getter.name};`,
+      `  external ${returnTypeAliasName(getter.type)} get ${getter.name};`,
     );
   });
 

@@ -25,7 +25,7 @@ import {
   EmissionPassProcessor,
   EmissionPassResult,
 } from "./passes/emissionPass";
-
+import { transpilerContext } from "./context";
 export class TranspileException extends Error {
   public readonly code: string;
   public readonly file?: string;
@@ -264,6 +264,7 @@ export class Transpiler {
     const errors: TranspileException[] = [];
 
     try {
+      transpilerContext.setParseLiterals(true);
       // PASS 1: Type Parsing - Extract all types from AST nodes
       if (this.debug) console.log("Pass 1: Type parsing...");
       const typePassResult = await this.typePassProcessor.processFile(
@@ -271,6 +272,7 @@ export class Transpiler {
         this.modulePrefix,
       );
       errors.push(...typePassResult.errors);
+      transpilerContext.setParseLiterals(false);
 
       // PASS 2: Type Transformations - Apply type hoisting
       if (this.debug) console.log("Pass 2: Type transformations...");

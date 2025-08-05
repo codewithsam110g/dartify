@@ -12,14 +12,12 @@ export function parseFunction(funcDecl: ts.FunctionDeclaration): IRFunction {
     if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
 
     let name = param.getName();
-    let typeBefore = param.getTypeNode();
-    let typeAfter = parseType(param.getTypeNode());
+    let type = parseType(param.getTypeNode());
     let isOptional = param.isOptional();
     let isRest = param.isRestParameter();
     params.push({
       name: name,
-      typeBefore: typeBefore,
-      typeAfter: typeAfter,
+      type: type,
       isOptional: isOptional,
       isRest: isRest,
     });
@@ -28,7 +26,6 @@ export function parseFunction(funcDecl: ts.FunctionDeclaration): IRFunction {
     kind: IRDeclKind.Function,
     name: name,
     returnType: returnType,
-    returnTypeNode: returnTypeNode,
     parameters: params,
   };
 }

@@ -9,6 +9,8 @@ import {
   IRSetAccessor,
 } from "../../ir/literal";
 
+import { transpilerContext } from "../../context";
+
 export function handleTypeLiterals(
   node: ts.TypeLiteralNode,
   depth: number,
@@ -139,7 +141,7 @@ export function handleTypeLiterals(
     });
   }
 
-  return {
+  let val = {
     kind: TypeKind.TypeLiteral,
     name: TypeKind.TypeLiteral,
     isNullable: false,
@@ -152,4 +154,35 @@ export function handleTypeLiterals(
       indexSignatures,
     },
   };
+
+  let parseLiterals = transpilerContext.getParseLiterals();
+  let count = transpilerContext.getAnonInterfaceCount();
+
+  // Check if we've already hoisted this literal
+  let existingName = transpilerContext.getHoistedLiteral(JSON.stringify(val));
+
+  let res;
+  if (existingName) {
+    // Reuse existing name
+    res = {
+      kind: TypeKind.TypeReference,
+      name: existingName,
+      isNullable: false,
+    };
+  } else {
+    // Create new name and hoist it
+    let newName = `AnonInterface$${count}`;
+    res = {
+      kind: TypeKind.TypeReference,
+      name: newName,
+      isNullable: false,
+    };
+    transpilerContext.setHoistedLiteral(JSON.stringify(val), newName);
+    transpilerContext.setAnonInterfaceCount(count + 1);
+  }
+
+  if (!parseLiterals) {
+    return res;
+  }
+  return val;
 }

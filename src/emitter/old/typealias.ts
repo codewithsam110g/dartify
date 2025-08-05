@@ -6,5 +6,5 @@ export function emitTypeAlias(
   prefix: string,
   debug = false,
 ):string {
-  return `typedef ${irTypeAlias.name} = ${emitType(irTypeAlias.typeAfter)};`;  
+  return `typedef ${irTypeAlias.name} = ${emitType(irTypeAlias.type)};`;  
 }

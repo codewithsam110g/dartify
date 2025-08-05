@@ -16,6 +16,7 @@ import { IRLiteral } from "../ir/literal";
 import { IRParameter as IRInterfaceParameter } from "../ir";
 import { IRType, TypeKind } from "../ir/type";
 import { TranspileException } from "../transpiler";
+import {transpilerContext} from "../context";
 
 export interface TypeTransformResult {
   hoistedMap: Map<string, IRInterface>;
@@ -62,8 +63,9 @@ export class TypeTransformer {
     try {
       for (const [key, irType] of typeMap) {
         if (irType.kind == TypeKind.TypeLiteral) {
-          const name = "_hoisted" + this.generateHoistedTypeName(irType);
-          map.set(key, convertLiteralToInterface(irType.objectLiteral!, name));
+          let string_key = JSON.stringify(irType);
+          let name = transpilerContext.getHoistedLiteral(string_key);
+          map.set(name??"_nullName_Report", convertLiteralToInterface(irType.objectLiteral!, name??"_nullName_Report"));
         }
       }
     } catch (error) {
@@ -77,34 +79,6 @@ export class TypeTransformer {
     return map;
   }
 
-  private getTypeSignature(irType: IRType): string {
-    // Generate a unique signature for the type
-    // This is a simplified version - you might want to make it more sophisticated
-    return JSON.stringify({
-      kind: irType.kind,
-      name: irType.name,
-      isNullable: irType.isNullable,
-      // Add other relevant properties for signature
-    });
-  }
-
-  private generateHoistedTypeName(irType: IRType): string {
-    // Generate a meaningful name for hoisted types
-    const kindName = irType.kind.toString();
-    const hash = this.simpleHash(this.getTypeSignature(irType));
-    return `${kindName}_${hash}`;
-  }
-
-  private simpleHash(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return Math.abs(hash).toString(36);
-  }
-
   public setDebug(debug: boolean): void {
     this.debug = debug;
   }
@@ -114,23 +88,59 @@ function convertLiteralToInterface(
   literal: IRLiteral,
   name: string,
 ): IRInterface {
+  // Convert properties first so we can use them for the constructor
+  const convertedProperties = literal.properties.map(
+    (prop): IRProperties => ({
+      name: prop.name,
+      type: prop.typeAfter || createDefaultType(), // Handle optional typeAfter
+      isOptional: prop.isOptional,
+      isReadonly: prop.isReadonly,
+      isStatic: prop.isStatic,
+    }),
+  );
+
+  // Create a constructor that takes all properties as parameters
+  const propertyConstructor: IRMethod = {
+    name: 'constructor',
+    parameters: convertedProperties.map(
+      (prop): IRInterfaceParameter => ({
+        name: prop.name,
+        type: prop.type,
+        isOptional: prop.isOptional,
+        isRest: false,
+      }),
+    ),
+    returnType: createDefaultType(), // Constructors typically return void or the class type
+    isOptional: false,
+    isStatic: false,
+  };
+
+  // Convert existing constructors
+  const existingConstructors = literal.constructors.map(
+    (ctor): IRMethod => ({
+      name: ctor.name,
+      parameters: ctor.parameters.map(
+        (param): IRInterfaceParameter => ({
+          name: param.name,
+          type: param.type,
+          isOptional: param.isOptional,
+          isRest: param.isRestParameter,
+        }),
+      ),
+      returnType: ctor.returnType || createDefaultType(),
+      isOptional: ctor.isOptional,
+      isStatic: ctor.isStatic,
+    }),
+  );
+
+  // Combine property constructor with existing constructors
+  const allConstructors = [propertyConstructor, ...existingConstructors];
+
   return {
     kind: IRDeclKind.Interface,
     name,
     extends: [], // Empty by default, can be populated later if needed
-
-    // Convert properties, handling the type differences
-    properties: literal.properties.map(
-      (prop): IRProperties => ({
-        name: prop.name,
-        typeBefore: undefined, // IRLiteral doesn't have typeBefore
-        typeAfter: prop.typeAfter || createDefaultType(), // Handle optional typeAfter
-        isOptional: prop.isOptional,
-        isReadonly: prop.isReadonly,
-        isStatic: prop.isStatic,
-      }),
-    ),
-
+    properties: convertedProperties,
     // Convert methods, handling the return type and parameter differences
     methods: literal.methods.map(
       (method): IRMethod => ({
@@ -138,64 +148,39 @@ function convertLiteralToInterface(
         parameters: method.parameters.map(
           (param): IRInterfaceParameter => ({
             name: param.name,
-            typeBefore: undefined,
-            typeAfter: param.type,
+            type: param.type,
             isOptional: param.isOptional,
             isRest: param.isRestParameter,
           }),
         ),
         returnType: method.returnType || createDefaultType(),
-        returnTypeNode: undefined,
         isOptional: method.isOptional,
         isStatic: method.isStatic,
       }),
     ),
-
-    // Constructors need parameter conversion as well
-    constructors: literal.constructors.map(
-      (ctor): IRMethod => ({
-        name: ctor.name,
-        parameters: ctor.parameters.map(
-          (param): IRInterfaceParameter => ({
-            name: param.name,
-            typeBefore: undefined,
-            typeAfter: param.type,
-            isOptional: param.isOptional,
-            isRest: param.isRestParameter,
-          }),
-        ),
-        returnType: ctor.returnType || createDefaultType(),
-        returnTypeNode: undefined,
-        isOptional: ctor.isOptional,
-        isStatic: ctor.isStatic,
-      }),
-    ),
-
+    // Use the combined constructors array
+    constructors: allConstructors,
     // Convert get accessors
     getAccessors: literal.getAccessors.map(
       (getter): IRGetAccessor => ({
         name: getter.name,
-        typeBefore: undefined, // IRLiteral doesn't have typeBefore
-        typeAfter: getter.typeAfter || createDefaultType(),
+        type: getter.typeAfter || createDefaultType(),
         isStatic: getter.isStatic,
       }),
     ),
-
     // Set accessors need parameter conversion
     setAccessors: literal.setAccessors.map(
       (setter): IRSetAccessor => ({
         name: setter.name,
         parameter: {
           name: setter.parameter.name,
-          typeBefore: undefined,
-          typeAfter: setter.parameter.type,
+          type: setter.parameter.type,
           isOptional: setter.parameter.isOptional,
           isRest: setter.parameter.isRestParameter,
         },
         isStatic: setter.isStatic,
       }),
     ),
-
     // Convert index signatures, handling optional types
     indexSignatures: literal.indexSignatures.map(
       (indexSig): IRIndexSignatures => ({

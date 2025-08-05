@@ -39,7 +39,7 @@ export class TypeParser {
     const cacheKey = `${typeNode.getText()}_depth_${depth}`;
 
     // Check cache first
-    if (this.cache.has(cacheKey)) {
+    if (this.cache.has(cacheKey) && typeNode.getKind() != ts.SyntaxKind.TypeLiteral) {
       return this.cache.get(cacheKey)!;
     }
 

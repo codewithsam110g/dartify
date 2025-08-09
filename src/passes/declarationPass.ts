@@ -9,7 +9,7 @@ import * as parser from "../parser/index";
 import { TranspileException } from "../transpiler";
 
 export interface DeclarationPassResult {
-  declarationMap: Map<string, IRDeclaration>;
+  declarationMap: Map<string, IRDeclaration[]>;
   errors: TranspileException[];
 }
 
@@ -18,7 +18,7 @@ export class DeclarationPassProcessor {
     sourceFile: ts.SourceFile,
     modulePrefix: string,
   ): Promise<DeclarationPassResult> {
-    const declarationMap = new Map<string, IRDeclaration>();
+    const declarationMap = new Map<string, IRDeclaration[]>();
     const errors: TranspileException[] = [];
 
     try {
@@ -46,7 +46,7 @@ export class DeclarationPassProcessor {
 
   private async walkStatements(
     statements: ts.Statement[],
-    declarationMap: Map<string, IRDeclaration>,
+    declarationMap: Map<string, IRDeclaration[]>,
     errors: TranspileException[],
     modulePrefix: string,
     filePath: string,
@@ -77,7 +77,7 @@ export class DeclarationPassProcessor {
 
   private async processStatementDeclaration(
     statement: ts.Statement,
-    declarationMap: Map<string, IRDeclaration>,
+    declarationMap: Map<string, IRDeclaration[]>,
     modulePrefix: string,
     filePath: string,
   ): Promise<void> {
@@ -152,96 +152,111 @@ export class DeclarationPassProcessor {
 
   private processInterfaceDeclaration(
     node: ts.InterfaceDeclaration,
-    declarationMap: Map<string, IRDeclaration>,
+    declarationMap: Map<string, IRDeclaration[]>,
     modulePrefix: string,
   ): void {
     const interfaceName = node.getName();
     const fullName = modulePrefix + interfaceName;
-
     const parsedInterface = parser.parseInterface(node);
-
-    declarationMap.set(fullName, parsedInterface);
+    
+    if (declarationMap.has(fullName)) {
+      declarationMap.get(fullName)!.push(parsedInterface);
+    } else {
+      declarationMap.set(fullName, [parsedInterface]);
+    }
   }
-
+  
   private processTypeAliasDeclaration(
     node: ts.TypeAliasDeclaration,
-    declarationMap: Map<string, IRDeclaration>,
+    declarationMap: Map<string, IRDeclaration[]>,
     modulePrefix: string,
   ): void {
     const aliasName = node.getName();
     const fullName = modulePrefix + aliasName;
-
     const parsedTypeAlias = parser.parseTypeAlias(node);
-
-    declarationMap.set(fullName, parsedTypeAlias);
+    
+    if (declarationMap.has(fullName)) {
+      declarationMap.get(fullName)!.push(parsedTypeAlias);
+    } else {
+      declarationMap.set(fullName, [parsedTypeAlias]);
+    }
   }
-
+  
   private processClassDeclaration(
     node: ts.ClassDeclaration,
-    declarationMap: Map<string, IRDeclaration>,
+    declarationMap: Map<string, IRDeclaration[]>,
     modulePrefix: string,
   ): void {
     const className = node.getName();
     if (!className) return;
-
     const fullName = modulePrefix + className;
-
     const parsedClass = parser.parseClass(node);
-
-    declarationMap.set(fullName, parsedClass);
+    
+    if (declarationMap.has(fullName)) {
+      declarationMap.get(fullName)!.push(parsedClass);
+    } else {
+      declarationMap.set(fullName, [parsedClass]);
+    }
   }
-
+  
   private processFunctionDeclaration(
     node: ts.FunctionDeclaration,
-    declarationMap: Map<string, IRDeclaration>,
+    declarationMap: Map<string, IRDeclaration[]>,
     modulePrefix: string,
   ): void {
     const functionName = node.getName();
     if (!functionName) return;
-
     const fullName = modulePrefix + functionName;
-
     const parsedFunction = parser.parseFunction(node);
-
-    declarationMap.set(fullName, parsedFunction);
+    
+    if (declarationMap.has(fullName)) {
+      declarationMap.get(fullName)!.push(parsedFunction);
+    } else {
+      declarationMap.set(fullName, [parsedFunction]);
+    }
   }
-
+  
   private processVariableStatement(
     node: ts.VariableStatement,
-    declarationMap: Map<string, IRDeclaration>,
+    declarationMap: Map<string, IRDeclaration[]>,
     modulePrefix: string,
   ): void {
     const parsedVariables = parser.parseVariableStmt(node);
-
     for (const variable of parsedVariables) {
       const fullName = modulePrefix + variable.name;
-
-      declarationMap.set(fullName, variable);
+      
+      if (declarationMap.has(fullName)) {
+        declarationMap.get(fullName)!.push(variable);
+      } else {
+        declarationMap.set(fullName, [variable]);
+      }
     }
   }
-
+  
   private processEnumDeclaration(
     node: ts.EnumDeclaration,
-    declarationMap: Map<string, IRDeclaration>,
+    declarationMap: Map<string, IRDeclaration[]>,
     modulePrefix: string,
   ): void {
     const enumName = node.getName();
     const fullName = modulePrefix + enumName;
-
     const parsedEnum = parser.parseEnum(node);
-
-    declarationMap.set(fullName, parsedEnum);
+    
+    if (declarationMap.has(fullName)) {
+      declarationMap.get(fullName)!.push(parsedEnum);
+    } else {
+      declarationMap.set(fullName, [parsedEnum]);
+    }
   }
-
+  
   private async processModuleDeclaration(
     node: ts.ModuleDeclaration,
-    declarationMap: Map<string, IRDeclaration>,
+    declarationMap: Map<string, IRDeclaration[]>,
     modulePrefix: string,
     filePath: string,
   ): Promise<void> {
     const moduleName = node.getName();
     const newModulePrefix = modulePrefix + moduleName + ".";
-
     const statements = node.getStatements();
     await this.walkStatements(
       statements,

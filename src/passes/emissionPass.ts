@@ -25,7 +25,7 @@ export class EmissionPassProcessor {
   private debug: boolean = false;
 
   public processDeclarations(
-    declarationMap: Map<string, IRDeclaration>,
+    declarationMap: Map<string, IRDeclaration[]>,
     header: string,
     debug: boolean = false,
   ): EmissionPassResult {
@@ -40,20 +40,22 @@ export class EmissionPassProcessor {
 
       // Process declarations in dependency order (already sorted from Pass 4)
       for (const [key, declaration] of declarationMap) {
-        try {
-          const emittedCode = this.emitDeclaration(declaration, key);
-          if (emittedCode) {
-            outputStrings.push(emittedCode);
+        for(let decl of declaration){
+          try {
+            const emittedCode = this.emitDeclaration(decl, key);
+            if (emittedCode) {
+              outputStrings.push(emittedCode);
+            }
+          } catch (error) {
+            const transpileError =
+              error instanceof TranspileException
+                ? error
+                : new TranspileException(
+                    `Error emitting declaration ${key}: ${error instanceof Error ? error.message : String(error)}`,
+                    "EMISSION_ERROR",
+                  );
+            errors.push(transpileError);
           }
-        } catch (error) {
-          const transpileError =
-            error instanceof TranspileException
-              ? error
-              : new TranspileException(
-                  `Error emitting declaration ${key}: ${error instanceof Error ? error.message : String(error)}`,
-                  "EMISSION_ERROR",
-                );
-          errors.push(transpileError);
         }
       }
     } catch (error) {

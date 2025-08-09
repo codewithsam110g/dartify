@@ -9,6 +9,7 @@ import {
   IREnum,
   IRVariable,
   IRTypeAlias,
+  IRDeclKind,
 } from "../../src/ir/index"; // Assuming a barrel export for IR types
 import { TypeKind, IRType } from "../../src/ir/type";
 import { createTypeNode } from "../test-helper";
@@ -17,11 +18,11 @@ describe("Declaration Emitter Unit Tests", () => {
   // 1. Variable Statement
   test("emitVariable: should emit a simple variable", () => {
     const ir: IRVariable = {
+      kind:IRDeclKind.Variable,
       name: "testVar",
       isConst: false,
       isReadonly: false,
-      typeBefore: undefined,
-      typeAfter: {
+      type: {
         kind: TypeKind.String,
         isNullable: false,
         name: "string",
@@ -37,11 +38,12 @@ describe("Declaration Emitter Unit Tests", () => {
   // 2. Function
   test("emitFunction: should emit a function with parameters", () => {
     const ir: IRFunction = {
+      kind: IRDeclKind.Function,
       name: "getUser",
       parameters: [
         {
           name: "id",
-          typeAfter: {
+          type: {
             kind: TypeKind.Number,
             name: "number",
             isNullable: false,
@@ -51,7 +53,7 @@ describe("Declaration Emitter Unit Tests", () => {
         },
         {
           name: "options",
-          typeAfter: {
+          type: {
             kind: TypeKind.TypeReference,
             name: "Options",
             isNullable: true,
@@ -60,7 +62,6 @@ describe("Declaration Emitter Unit Tests", () => {
           isRest: false,
         },
       ],
-      returnTypeNode: createTypeNode("User"),
       returnType: {
         kind: TypeKind.TypeReference,
         name: "User",
@@ -79,6 +80,7 @@ describe("Declaration Emitter Unit Tests", () => {
   // 3. Enum
   test("emitEnum: should emit a numeric enum", () => {
     const ir: IREnum = {
+      kind:IRDeclKind.Enum,
       name: "Direction",
       members: [
         { name: "Up" },
@@ -104,12 +106,13 @@ describe("Declaration Emitter Unit Tests", () => {
   // 4. Interface (as @anonymous class with extension)
   test("emitInterface: should emit an interface with properties and methods", () => {
     const ir: IRInterface = {
+      kind:IRDeclKind.Interface,
       name: "User",
       extends: ["Person"],
       properties: [
         {
           name: "id",
-          typeAfter: {
+          type: {
             kind: TypeKind.Number,
             name: "number",
             isNullable: false,
@@ -123,7 +126,6 @@ describe("Declaration Emitter Unit Tests", () => {
         {
           name: "getName",
           parameters: [],
-          returnTypeNode:createTypeNode("string"),
           returnType: {
             kind: TypeKind.String,
             name: "string",
@@ -146,6 +148,7 @@ describe("Declaration Emitter Unit Tests", () => {
       abstract class User{}
       extension UserExtension on User {
         external num get id;
+        @JS("getName")
         external String getName();
       }"
     `);
@@ -154,6 +157,7 @@ describe("Declaration Emitter Unit Tests", () => {
   // 5. Class
   test("emitClass: should emit a class with a constructor and static method", () => {
     const ir: IRClass = {
+      kind: IRDeclKind.Class,
       name: "ApiClient",
       extends: "BaseClient",
       implements: ["IClient"],
@@ -164,7 +168,7 @@ describe("Declaration Emitter Unit Tests", () => {
           parameters: [
             {
               name: "baseUrl",
-              typeAfter: {
+              type: {
                 kind: TypeKind.String,
                 name: "string",
                 isNullable: false,
@@ -179,7 +183,6 @@ describe("Declaration Emitter Unit Tests", () => {
         {
           name: "create",
           parameters: [],
-          returnTypeNode: createTypeNode("ApiClient"),
           returnType: {
             kind: TypeKind.TypeReference,
             name: "ApiClient",
@@ -199,7 +202,8 @@ describe("Declaration Emitter Unit Tests", () => {
       "@JS("ApiClient")
       class ApiClient {
         external factory ApiClient(String baseUrl);
-        external static ApiClient create();
+        @JS("create")
+        external ApiClient create();
       }"
     `);
   });
@@ -207,9 +211,13 @@ describe("Declaration Emitter Unit Tests", () => {
   // 6. Type Alias
   test("emitTypeAlias: should emit a typedef", () => {
     const ir: IRTypeAlias = {
+      kind:IRDeclKind.TypeAlias,
       name: "StringOrNumber",
-      typeAfter: "dynamic",
-      typeBefore: undefined,
+      type: {
+        kind:TypeKind.Any,
+        name: TypeKind.Any,
+        isNullable: false
+      },
     };
     const result = emitter.emitTypeAlias(ir, "");
     expect(result).toMatchInlineSnapshot(`"typedef StringOrNumber = dynamic;"`);

@@ -45,46 +45,47 @@ export function emitClass(
     }
   });
 
-  let overloadMethods = getOverloadFuncs(irClass.methods);
+  // let overloadMethods = getOverloadFuncs(irClass.methods);
 
-  for (let [func_name, func_arr] of overloadMethods.entries()) {
-    let count = 0;
-    for (let func of func_arr) {
-      if (func_arr.length == 1) {
-        if (func.isStatic) {
-          dartParts.push(
-            `  external static ${returnTypeAliasName(func.returnType)} ${func.name}(${formatParameterList(func.parameters)});`,
-          );
-        } else {
-          dartParts.push(
-            `  external ${returnTypeAliasName(func.returnType)} ${func.name}(${formatParameterList(func.parameters)});`,
-          );
-        }
-      } else {
-        count += 1;
-        let name = func_name + "_" + count;
-        // this.getParamTypeSuffix(func.functionDecl.getParameters());
-        if (func.isStatic) {
-          dartParts.push(`  @JS("${func_name}")`);
-          dartParts.push(
-            `  external static ${returnTypeAliasName(func.returnType)} ${name}(${formatParameterList(func.parameters)});`,
-          );
-        } else {
-          dartParts.push(`  @JS("${func_name}")`);
-          dartParts.push(
-            `  external ${returnTypeAliasName(func.returnType)} ${name}(${formatParameterList(func.parameters)});`,
-          );
-        }
-      }
-    }
-  }
+  // for (let [func_name, func_arr] of overloadMethods.entries()) {
+  //   let count = 0;
+  //   for (let func of func_arr) {
+  //     if (func_arr.length == 1) {
+  //       if (func.isStatic) {
+  //         dartParts.push(
+  //           `  external static ${returnTypeAliasName(func.returnType)} ${func.name}(${formatParameterList(func.parameters)});`,
+  //         );
+  //       } else {
+  //         dartParts.push(
+  //           `  external ${returnTypeAliasName(func.returnType)} ${func.name}(${formatParameterList(func.parameters)});`,
+  //         );
+  //       }
+  //     } else {
+  //       count += 1;
+  //       let name = func_name + "_" + count;
+  //       // this.getParamTypeSuffix(func.functionDecl.getParameters());
+  //       if (func.isStatic) {
+  //         dartParts.push(`  @JS("${func_name}")`);
+  //         dartParts.push(
+  //           `  external static ${returnTypeAliasName(func.returnType)} ${name}(${formatParameterList(func.parameters)});`,
+  //         );
+  //       } else {
+  //         dartParts.push(`  @JS("${func_name}")`);
+  //         dartParts.push(
+  //           `  external ${returnTypeAliasName(func.returnType)} ${name}(${formatParameterList(func.parameters)});`,
+  //         );
+  //       }
+  //     }
+  //   }
+  // }
 
-  // Methods
-  // irClass.methods.forEach((method) => {
-  //   dartParts.push(
-  //     `  external ${method.returnType} ${method.name}(${method.parameters});`,
-  //   );
-  // });
+  //Methods
+  irClass.methods.forEach((method) => {
+    dartParts.push(`  @JS("${method.name.split("_")[0]}")`);
+    dartParts.push(
+      `  external ${returnTypeAliasName(method.returnType)} ${method.name}(${formatParameterList(method.parameters)});`,
+    );
+  });
 
   // Getters
   irClass.getAccessors.forEach((getter) => {

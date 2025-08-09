@@ -11,5 +11,5 @@ export type {
 } from "./interface";
 export type { IRVariable } from "./variable";
 export type { IRTypeAlias } from "./typealias";
-export type { IRDeclaration } from "./declaration";
-export { IRDeclKind } from "./declaration";
+export type { IRDeclaration, IRDeclarationUnion } from "./declaration";
+export { IRDeclKind, deepCloneIRDeclaration } from "./declaration";

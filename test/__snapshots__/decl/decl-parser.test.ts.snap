@@ -16,66 +16,10 @@ exports[`AST Parsers to IR > parseClass() > should parse a simple class with pro
       "isReadonly": false,
       "isStatic": false,
       "name": "endpoint",
-      "typeAfter": {
+      "type": {
         "isNullable": false,
         "kind": "string",
         "name": "string",
-      },
-      "typeBefore": Expression {
-        "__sourceFile": SourceFile {
-          "__sourceFile": [Circular],
-          "_context": ProjectContext {
-            "compilerFactory": CompilerFactory {
-              "documentRegistry": DocumentRegistry {},
-            },
-            "directoryCoordinator": DirectoryCoordinator {},
-            "fileSystemWrapper": TransactionalFileSystem {},
-            "inProjectCoordinator": InProjectCoordinator {},
-            "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-            "logger": ConsoleLogger {},
-            "manipulationSettings": ManipulationSettingsContainer {
-              "_settings": {
-                "indentationText": "    ",
-                "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-                "newLineKind": 1,
-                "quoteKind": """,
-                "usePrefixAndSuffixTextForRename": false,
-                "useTrailingCommas": false,
-              },
-            },
-            "structurePrinterFactory": StructurePrinterFactory {
-              "_getFormatCodeSettings": [Function],
-            },
-          },
-          "_hasBom": undefined,
-          "_inProject": true,
-          "_referenceContainer": SourceFileReferenceContainer {},
-          "_wrappedChildCount": 1,
-        },
-        "_context": ProjectContext {
-          "compilerFactory": CompilerFactory {
-            "documentRegistry": DocumentRegistry {},
-          },
-          "directoryCoordinator": DirectoryCoordinator {},
-          "fileSystemWrapper": TransactionalFileSystem {},
-          "inProjectCoordinator": InProjectCoordinator {},
-          "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-          "logger": ConsoleLogger {},
-          "manipulationSettings": ManipulationSettingsContainer {
-            "_settings": {
-              "indentationText": "    ",
-              "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-              "newLineKind": 1,
-              "quoteKind": """,
-              "usePrefixAndSuffixTextForRename": false,
-              "useTrailingCommas": false,
-            },
-          },
-          "structurePrinterFactory": StructurePrinterFactory {
-            "_getFormatCodeSettings": [Function],
-          },
-        },
-        "_wrappedChildCount": 0,
       },
     },
   ],
@@ -118,66 +62,10 @@ exports[`AST Parsers to IR > parseFunction() > should parse a function declarati
       "isOptional": false,
       "isRest": false,
       "name": "id",
-      "typeAfter": {
+      "type": {
         "isNullable": false,
         "kind": "number",
         "name": "number",
-      },
-      "typeBefore": Expression {
-        "__sourceFile": SourceFile {
-          "__sourceFile": [Circular],
-          "_context": ProjectContext {
-            "compilerFactory": CompilerFactory {
-              "documentRegistry": DocumentRegistry {},
-            },
-            "directoryCoordinator": DirectoryCoordinator {},
-            "fileSystemWrapper": TransactionalFileSystem {},
-            "inProjectCoordinator": InProjectCoordinator {},
-            "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-            "logger": ConsoleLogger {},
-            "manipulationSettings": ManipulationSettingsContainer {
-              "_settings": {
-                "indentationText": "    ",
-                "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-                "newLineKind": 1,
-                "quoteKind": """,
-                "usePrefixAndSuffixTextForRename": false,
-                "useTrailingCommas": false,
-              },
-            },
-            "structurePrinterFactory": StructurePrinterFactory {
-              "_getFormatCodeSettings": [Function],
-            },
-          },
-          "_hasBom": undefined,
-          "_inProject": true,
-          "_referenceContainer": SourceFileReferenceContainer {},
-          "_wrappedChildCount": 1,
-        },
-        "_context": ProjectContext {
-          "compilerFactory": CompilerFactory {
-            "documentRegistry": DocumentRegistry {},
-          },
-          "directoryCoordinator": DirectoryCoordinator {},
-          "fileSystemWrapper": TransactionalFileSystem {},
-          "inProjectCoordinator": InProjectCoordinator {},
-          "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-          "logger": ConsoleLogger {},
-          "manipulationSettings": ManipulationSettingsContainer {
-            "_settings": {
-              "indentationText": "    ",
-              "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-              "newLineKind": 1,
-              "quoteKind": """,
-              "usePrefixAndSuffixTextForRename": false,
-              "useTrailingCommas": false,
-            },
-          },
-          "structurePrinterFactory": StructurePrinterFactory {
-            "_getFormatCodeSettings": [Function],
-          },
-        },
-        "_wrappedChildCount": 0,
       },
     },
   ],
@@ -186,62 +74,6 @@ exports[`AST Parsers to IR > parseFunction() > should parse a function declarati
     "isNullable": false,
     "kind": "typeReference",
     "name": "User",
-  },
-  "returnTypeNode": TypeReferenceNode {
-    "__sourceFile": SourceFile {
-      "__sourceFile": [Circular],
-      "_context": ProjectContext {
-        "compilerFactory": CompilerFactory {
-          "documentRegistry": DocumentRegistry {},
-        },
-        "directoryCoordinator": DirectoryCoordinator {},
-        "fileSystemWrapper": TransactionalFileSystem {},
-        "inProjectCoordinator": InProjectCoordinator {},
-        "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-        "logger": ConsoleLogger {},
-        "manipulationSettings": ManipulationSettingsContainer {
-          "_settings": {
-            "indentationText": "    ",
-            "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-            "newLineKind": 1,
-            "quoteKind": """,
-            "usePrefixAndSuffixTextForRename": false,
-            "useTrailingCommas": false,
-          },
-        },
-        "structurePrinterFactory": StructurePrinterFactory {
-          "_getFormatCodeSettings": [Function],
-        },
-      },
-      "_hasBom": undefined,
-      "_inProject": true,
-      "_referenceContainer": SourceFileReferenceContainer {},
-      "_wrappedChildCount": 1,
-    },
-    "_context": ProjectContext {
-      "compilerFactory": CompilerFactory {
-        "documentRegistry": DocumentRegistry {},
-      },
-      "directoryCoordinator": DirectoryCoordinator {},
-      "fileSystemWrapper": TransactionalFileSystem {},
-      "inProjectCoordinator": InProjectCoordinator {},
-      "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-      "logger": ConsoleLogger {},
-      "manipulationSettings": ManipulationSettingsContainer {
-        "_settings": {
-          "indentationText": "    ",
-          "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-          "newLineKind": 1,
-          "quoteKind": """,
-          "usePrefixAndSuffixTextForRename": false,
-          "useTrailingCommas": false,
-        },
-      },
-      "structurePrinterFactory": StructurePrinterFactory {
-        "_getFormatCodeSettings": [Function],
-      },
-    },
-    "_wrappedChildCount": 1,
   },
 }
 `;
@@ -261,66 +93,10 @@ exports[`AST Parsers to IR > parseInterface() > should parse a simple interface 
       "isReadonly": false,
       "isStatic": false,
       "name": "id",
-      "typeAfter": {
+      "type": {
         "isNullable": false,
         "kind": "number",
         "name": "number",
-      },
-      "typeBefore": Expression {
-        "__sourceFile": SourceFile {
-          "__sourceFile": [Circular],
-          "_context": ProjectContext {
-            "compilerFactory": CompilerFactory {
-              "documentRegistry": DocumentRegistry {},
-            },
-            "directoryCoordinator": DirectoryCoordinator {},
-            "fileSystemWrapper": TransactionalFileSystem {},
-            "inProjectCoordinator": InProjectCoordinator {},
-            "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-            "logger": ConsoleLogger {},
-            "manipulationSettings": ManipulationSettingsContainer {
-              "_settings": {
-                "indentationText": "    ",
-                "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-                "newLineKind": 1,
-                "quoteKind": """,
-                "usePrefixAndSuffixTextForRename": false,
-                "useTrailingCommas": false,
-              },
-            },
-            "structurePrinterFactory": StructurePrinterFactory {
-              "_getFormatCodeSettings": [Function],
-            },
-          },
-          "_hasBom": undefined,
-          "_inProject": true,
-          "_referenceContainer": SourceFileReferenceContainer {},
-          "_wrappedChildCount": 1,
-        },
-        "_context": ProjectContext {
-          "compilerFactory": CompilerFactory {
-            "documentRegistry": DocumentRegistry {},
-          },
-          "directoryCoordinator": DirectoryCoordinator {},
-          "fileSystemWrapper": TransactionalFileSystem {},
-          "inProjectCoordinator": InProjectCoordinator {},
-          "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-          "logger": ConsoleLogger {},
-          "manipulationSettings": ManipulationSettingsContainer {
-            "_settings": {
-              "indentationText": "    ",
-              "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-              "newLineKind": 1,
-              "quoteKind": """,
-              "usePrefixAndSuffixTextForRename": false,
-              "useTrailingCommas": false,
-            },
-          },
-          "structurePrinterFactory": StructurePrinterFactory {
-            "_getFormatCodeSettings": [Function],
-          },
-        },
-        "_wrappedChildCount": 0,
       },
     },
     {
@@ -328,66 +104,10 @@ exports[`AST Parsers to IR > parseInterface() > should parse a simple interface 
       "isReadonly": false,
       "isStatic": false,
       "name": "name",
-      "typeAfter": {
+      "type": {
         "isNullable": false,
         "kind": "string",
         "name": "string",
-      },
-      "typeBefore": Expression {
-        "__sourceFile": SourceFile {
-          "__sourceFile": [Circular],
-          "_context": ProjectContext {
-            "compilerFactory": CompilerFactory {
-              "documentRegistry": DocumentRegistry {},
-            },
-            "directoryCoordinator": DirectoryCoordinator {},
-            "fileSystemWrapper": TransactionalFileSystem {},
-            "inProjectCoordinator": InProjectCoordinator {},
-            "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-            "logger": ConsoleLogger {},
-            "manipulationSettings": ManipulationSettingsContainer {
-              "_settings": {
-                "indentationText": "    ",
-                "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-                "newLineKind": 1,
-                "quoteKind": """,
-                "usePrefixAndSuffixTextForRename": false,
-                "useTrailingCommas": false,
-              },
-            },
-            "structurePrinterFactory": StructurePrinterFactory {
-              "_getFormatCodeSettings": [Function],
-            },
-          },
-          "_hasBom": undefined,
-          "_inProject": true,
-          "_referenceContainer": SourceFileReferenceContainer {},
-          "_wrappedChildCount": 1,
-        },
-        "_context": ProjectContext {
-          "compilerFactory": CompilerFactory {
-            "documentRegistry": DocumentRegistry {},
-          },
-          "directoryCoordinator": DirectoryCoordinator {},
-          "fileSystemWrapper": TransactionalFileSystem {},
-          "inProjectCoordinator": InProjectCoordinator {},
-          "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-          "logger": ConsoleLogger {},
-          "manipulationSettings": ManipulationSettingsContainer {
-            "_settings": {
-              "indentationText": "    ",
-              "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-              "newLineKind": 1,
-              "quoteKind": """,
-              "usePrefixAndSuffixTextForRename": false,
-              "useTrailingCommas": false,
-            },
-          },
-          "structurePrinterFactory": StructurePrinterFactory {
-            "_getFormatCodeSettings": [Function],
-          },
-        },
-        "_wrappedChildCount": 0,
       },
     },
   ],
@@ -410,66 +130,10 @@ exports[`AST Parsers to IR > parseInterface() > should parse an interface with o
       "isReadonly": true,
       "isStatic": false,
       "name": "host",
-      "typeAfter": {
+      "type": {
         "isNullable": false,
         "kind": "string",
         "name": "string",
-      },
-      "typeBefore": Expression {
-        "__sourceFile": SourceFile {
-          "__sourceFile": [Circular],
-          "_context": ProjectContext {
-            "compilerFactory": CompilerFactory {
-              "documentRegistry": DocumentRegistry {},
-            },
-            "directoryCoordinator": DirectoryCoordinator {},
-            "fileSystemWrapper": TransactionalFileSystem {},
-            "inProjectCoordinator": InProjectCoordinator {},
-            "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-            "logger": ConsoleLogger {},
-            "manipulationSettings": ManipulationSettingsContainer {
-              "_settings": {
-                "indentationText": "    ",
-                "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-                "newLineKind": 1,
-                "quoteKind": """,
-                "usePrefixAndSuffixTextForRename": false,
-                "useTrailingCommas": false,
-              },
-            },
-            "structurePrinterFactory": StructurePrinterFactory {
-              "_getFormatCodeSettings": [Function],
-            },
-          },
-          "_hasBom": undefined,
-          "_inProject": true,
-          "_referenceContainer": SourceFileReferenceContainer {},
-          "_wrappedChildCount": 1,
-        },
-        "_context": ProjectContext {
-          "compilerFactory": CompilerFactory {
-            "documentRegistry": DocumentRegistry {},
-          },
-          "directoryCoordinator": DirectoryCoordinator {},
-          "fileSystemWrapper": TransactionalFileSystem {},
-          "inProjectCoordinator": InProjectCoordinator {},
-          "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-          "logger": ConsoleLogger {},
-          "manipulationSettings": ManipulationSettingsContainer {
-            "_settings": {
-              "indentationText": "    ",
-              "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-              "newLineKind": 1,
-              "quoteKind": """,
-              "usePrefixAndSuffixTextForRename": false,
-              "useTrailingCommas": false,
-            },
-          },
-          "structurePrinterFactory": StructurePrinterFactory {
-            "_getFormatCodeSettings": [Function],
-          },
-        },
-        "_wrappedChildCount": 0,
       },
     },
     {
@@ -477,66 +141,10 @@ exports[`AST Parsers to IR > parseInterface() > should parse an interface with o
       "isReadonly": false,
       "isStatic": false,
       "name": "port",
-      "typeAfter": {
+      "type": {
         "isNullable": false,
         "kind": "number",
         "name": "number",
-      },
-      "typeBefore": Expression {
-        "__sourceFile": SourceFile {
-          "__sourceFile": [Circular],
-          "_context": ProjectContext {
-            "compilerFactory": CompilerFactory {
-              "documentRegistry": DocumentRegistry {},
-            },
-            "directoryCoordinator": DirectoryCoordinator {},
-            "fileSystemWrapper": TransactionalFileSystem {},
-            "inProjectCoordinator": InProjectCoordinator {},
-            "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-            "logger": ConsoleLogger {},
-            "manipulationSettings": ManipulationSettingsContainer {
-              "_settings": {
-                "indentationText": "    ",
-                "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-                "newLineKind": 1,
-                "quoteKind": """,
-                "usePrefixAndSuffixTextForRename": false,
-                "useTrailingCommas": false,
-              },
-            },
-            "structurePrinterFactory": StructurePrinterFactory {
-              "_getFormatCodeSettings": [Function],
-            },
-          },
-          "_hasBom": undefined,
-          "_inProject": true,
-          "_referenceContainer": SourceFileReferenceContainer {},
-          "_wrappedChildCount": 1,
-        },
-        "_context": ProjectContext {
-          "compilerFactory": CompilerFactory {
-            "documentRegistry": DocumentRegistry {},
-          },
-          "directoryCoordinator": DirectoryCoordinator {},
-          "fileSystemWrapper": TransactionalFileSystem {},
-          "inProjectCoordinator": InProjectCoordinator {},
-          "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-          "logger": ConsoleLogger {},
-          "manipulationSettings": ManipulationSettingsContainer {
-            "_settings": {
-              "indentationText": "    ",
-              "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-              "newLineKind": 1,
-              "quoteKind": """,
-              "usePrefixAndSuffixTextForRename": false,
-              "useTrailingCommas": false,
-            },
-          },
-          "structurePrinterFactory": StructurePrinterFactory {
-            "_getFormatCodeSettings": [Function],
-          },
-        },
-        "_wrappedChildCount": 0,
       },
     },
   ],
@@ -548,7 +156,7 @@ exports[`AST Parsers to IR > parseTypeAlias() > should parse a type alias for a 
 {
   "kind": "typeAlias",
   "name": "StringOrNumber",
-  "typeAfter": {
+  "type": {
     "isNullable": false,
     "kind": "union",
     "name": "union",
@@ -565,62 +173,6 @@ exports[`AST Parsers to IR > parseTypeAlias() > should parse a type alias for a 
       },
     ],
   },
-  "typeBefore": UnionTypeNode {
-    "__sourceFile": SourceFile {
-      "__sourceFile": [Circular],
-      "_context": ProjectContext {
-        "compilerFactory": CompilerFactory {
-          "documentRegistry": DocumentRegistry {},
-        },
-        "directoryCoordinator": DirectoryCoordinator {},
-        "fileSystemWrapper": TransactionalFileSystem {},
-        "inProjectCoordinator": InProjectCoordinator {},
-        "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-        "logger": ConsoleLogger {},
-        "manipulationSettings": ManipulationSettingsContainer {
-          "_settings": {
-            "indentationText": "    ",
-            "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-            "newLineKind": 1,
-            "quoteKind": """,
-            "usePrefixAndSuffixTextForRename": false,
-            "useTrailingCommas": false,
-          },
-        },
-        "structurePrinterFactory": StructurePrinterFactory {
-          "_getFormatCodeSettings": [Function],
-        },
-      },
-      "_hasBom": undefined,
-      "_inProject": true,
-      "_referenceContainer": SourceFileReferenceContainer {},
-      "_wrappedChildCount": 1,
-    },
-    "_context": ProjectContext {
-      "compilerFactory": CompilerFactory {
-        "documentRegistry": DocumentRegistry {},
-      },
-      "directoryCoordinator": DirectoryCoordinator {},
-      "fileSystemWrapper": TransactionalFileSystem {},
-      "inProjectCoordinator": InProjectCoordinator {},
-      "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-      "logger": ConsoleLogger {},
-      "manipulationSettings": ManipulationSettingsContainer {
-        "_settings": {
-          "indentationText": "    ",
-          "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-          "newLineKind": 1,
-          "quoteKind": """,
-          "usePrefixAndSuffixTextForRename": false,
-          "useTrailingCommas": false,
-        },
-      },
-      "structurePrinterFactory": StructurePrinterFactory {
-        "_getFormatCodeSettings": [Function],
-      },
-    },
-    "_wrappedChildCount": 2,
-  },
 }
 `;
 
@@ -631,67 +183,11 @@ exports[`AST Parsers to IR > parseVariableStmt() > should parse a variable state
     "isReadonly": false,
     "kind": "variable",
     "name": "PI",
-    "typeAfter": {
+    "type": {
       "isNullable": false,
       "kind": "numberLiteral",
       "literalValue": 3.14159,
       "name": "double",
-    },
-    "typeBefore": LiteralTypeNode {
-      "__sourceFile": SourceFile {
-        "__sourceFile": [Circular],
-        "_context": ProjectContext {
-          "compilerFactory": CompilerFactory {
-            "documentRegistry": DocumentRegistry {},
-          },
-          "directoryCoordinator": DirectoryCoordinator {},
-          "fileSystemWrapper": TransactionalFileSystem {},
-          "inProjectCoordinator": InProjectCoordinator {},
-          "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-          "logger": ConsoleLogger {},
-          "manipulationSettings": ManipulationSettingsContainer {
-            "_settings": {
-              "indentationText": "    ",
-              "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-              "newLineKind": 1,
-              "quoteKind": """,
-              "usePrefixAndSuffixTextForRename": false,
-              "useTrailingCommas": false,
-            },
-          },
-          "structurePrinterFactory": StructurePrinterFactory {
-            "_getFormatCodeSettings": [Function],
-          },
-        },
-        "_hasBom": undefined,
-        "_inProject": true,
-        "_referenceContainer": SourceFileReferenceContainer {},
-        "_wrappedChildCount": 1,
-      },
-      "_context": ProjectContext {
-        "compilerFactory": CompilerFactory {
-          "documentRegistry": DocumentRegistry {},
-        },
-        "directoryCoordinator": DirectoryCoordinator {},
-        "fileSystemWrapper": TransactionalFileSystem {},
-        "inProjectCoordinator": InProjectCoordinator {},
-        "lazyReferenceCoordinator": LazyReferenceCoordinator {},
-        "logger": ConsoleLogger {},
-        "manipulationSettings": ManipulationSettingsContainer {
-          "_settings": {
-            "indentationText": "    ",
-            "insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-            "newLineKind": 1,
-            "quoteKind": """,
-            "usePrefixAndSuffixTextForRename": false,
-            "useTrailingCommas": false,
-          },
-        },
-        "structurePrinterFactory": StructurePrinterFactory {
-          "_getFormatCodeSettings": [Function],
-        },
-      },
-      "_wrappedChildCount": 1,
     },
   },
 ]

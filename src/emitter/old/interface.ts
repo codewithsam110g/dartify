@@ -44,6 +44,7 @@ export function emitInterface(
 
   // Methods
   irInterface.methods.forEach((method) => {
+    dartParts.push(`  @JS("${method.name.split("_")[0]}")`);
     dartParts.push(
       `  external ${returnTypeAliasName(method.returnType)} ${method.name}(${formatParameterList(method.parameters)});`,
     );

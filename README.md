@@ -12,28 +12,26 @@
 
 **`dart_bindgen` is currently in active development and should be considered beta software.**
 
-This `v0.3.0` release represents a major step forward in stability and performance, with a full testing framework now in place. However, please be aware that:
+This `v0.4.0` "Intelligence" release is a massive step forward, introducing a true compiler pipeline capable of understanding complex TypeScript patterns. However, please be aware that:
 
-*   **APIs are not yet stable:** The generated code and CLI usage may change in future `0.x` releases as we move towards a stable v1.0.
-*   **Bugs are expected:** While core functionality is well-tested, you may encounter issues with complex or esoteric TypeScript types.
-*   **Features are incomplete:** Many items on our roadmap, such as a transformer pipeline for function overloads, are not yet implemented.
+*   **APIs are not yet stable:** The generated code and CLI usage may change as we approach v1.0.
+*   **Bugs are expected:** While core features are well-tested, you may encounter issues with the new transformer logic or esoteric TypeScript types.
+*   **Features are incomplete:** Declaration augmentation and multi-file project analysis are still on the roadmap.
 
-Your feedback, bug reports, and contributions during this phase are invaluable. Thank you for being an early part of the journey!
-
----
-
-## Why dart_bindgen?
-
-For Dart developers working with the web, generating bindings for JavaScript libraries is a common challenge. The official `js_facade_gen` was a foundational tool, but it's a product of its time. Modern TypeScript libraries often cause it to fall back to using `dynamic`, forcing developers to sacrifice the type safety that is a core strength of Dart.
-
-**`dart_bindgen` is a complete, modern rewrite designed to solve this problem.**
-
-*   **Type-Safe by Default:** A primary focus on generating truly type-safe Dart code for `package:js`, avoiding `dynamic` wherever possible.
-*   **Blazingly Fast:** A multi-stage compiler architecture, refined for performance, can process massive libraries like `lib.dom.d.ts` in about a second.
-*   **Robust & Hardened:** The entire pipeline is now covered by a comprehensive suite of unit and snapshot tests, ensuring reliability and preventing regressions.
-*   **Modern Architecture:** Uses a `parser -> IR -> emitter` pipeline for accurate and maintainable code generation, built on the excellent [`ts-morph`](https://ts-morph.com/) library.
+Your feedback, bug reports, and contributions are more valuable than ever. Thank you for being part of the journey!
 
 ---
+
+## Why `dart_bindgen`?
+
+For Dart developers working with the web, the official `js_facade_gen` was foundational but is now deprecated. It struggles with modern TypeScript, often falling back to `dynamic` and sacrificing Dart's core strength: type safety.
+
+**`dart_bindgen` is a complete, modern successor designed for the future of Dart on the web.**
+
+*   **Intelligent & Type-Safe:** Goes beyond simple translation. It understands complex patterns like **anonymous object types** and **function overloads**, generating strong, idiomatic Dart code where other tools produce `dynamic`.
+*   **Blazingly Fast:** A new 5-pass compiler architecture with intelligent caching processes massive libraries like `lib.dom.d.ts` in under 3 seconds.
+*   **Robust & Hardened:** The entire pipeline is covered by a comprehensive suite of unit and snapshot tests, ensuring reliability and preventing regressions.
+*   **Modern Architecture:** Uses a `Parser -> IR -> Transformer -> Emitter` pipeline for accurate and maintainable code generation, built on the excellent [`ts-morph`](https://ts-morph.com/) library.
 
 ---
 
@@ -54,7 +52,7 @@ npm install -g dart_bindgen
 The CLI is designed to be simple and flexible, accepting one or more glob patterns to find your `.d.ts` files.
 
 **CLI Options**
-```
+```bash
 Usage: dart_bindgen [options]
 
 Options:
@@ -75,7 +73,7 @@ dart_bindgen -d "**/*.d.ts"
 # Process files from multiple specific locations and output them to a 'generated' folder
 dart_bindgen -d "src/types/**/*.d.ts" -d "vendor/lib.d.ts" -o ./generated
 
-# Run with verbose logging to see detailed processing steps
+# Run with verbose logging to see the new 5-pass pipeline in action
 dart_bindgen -d "path/to/my-lib.d.ts" --enable-logs
 
 # See which files would be processed without actually generating any code
@@ -94,18 +92,18 @@ Rather than patching a decade-old system, `dart_bindgen` was created to be the t
 
 ## Roadmap & Contribution
 
-This project is in its early stages, with a long and exciting roadmap ahead. With the v0.3.0 "Hardening Release" complete, the focus now shifts to semantic intelligence.
+With the v0.4.0 "Intelligence" release complete, the focus is now on polishing the single-file experience and preparing for multi-file project support.
 
-**Next Up (v0.4.0 - The "Semantic" Release):**
-*   **Transformer Pipeline:** Introducing a new stage to intelligently modify the IR before emission.
-*   **Function Overload Resolution:** Merging multiple function declarations into uniquely named Dart functions.
-*   **Declaration Augmentation:** Handling complex TS patterns like merging interfaces and namespaces.
-*   **`TypeLiteral` Hoisting:** Automatically converting inline object types into reusable `@anonymous` classes.
+**Next Up (v0.5.0 - The "Final Polish" Release):**
+*   **Declaration Augmentation:** Handling complex TS patterns like merging `interface` and `var` declarations.
+*   **`this` Type Resolution:** Correctly handling fluent APIs that return `this`.
+*   **Dart Keyword Escaping:** Safely renaming TS identifiers that conflict with Dart's reserved words.
 
 **Long Term:**
+*   (v0.6) Full support for multi-file projects with automatic imports.
+*   (v0.7) Integration with `package:web` to use existing browser types.
 *   (v1.0) A stable, feature-complete generator for `package:js`.
-*   (v2.0) A new emitter for Dart's modern `package:js_interop` static JS types.
-*   And much more!
+*   (v2.0) A new emitter for Dart's modern `dart:js_interop` static types.
 
 You can help! This is a solo-developer project, and community involvement is vital.
 

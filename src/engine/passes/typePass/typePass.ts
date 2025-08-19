@@ -57,7 +57,12 @@ export class TypePassProcessor {
     }
     if (transpilerContext.getIsLogging()) {
       let logger = new Logger("typePass.ir", "./logs", LogLevel.DEBUG);
-      logger.clearLogFile();
+      const line = "═".repeat(
+        transpilerContext.getCurrentFileName().length + 22,
+      );
+      logger.info(
+        `\n\n${line}\n  📄 Current File: ${transpilerContext.getCurrentFileName()}\n${line}\n`,
+      );
       logger.log(
         LogLevel.DEBUG,
         "Pass: 1 -> TypePass",

@@ -4,12 +4,14 @@ class TranspilerContext {
   private hoistedLiterals: Map<string, string>;
   private anonInterfaceCount: number;
   private isLogging: boolean;
+  private currentFileName: string;
 
   private constructor() {
     this.parseLiterals = true;
     this.isLogging = false;
     this.anonInterfaceCount = 0;
     this.hoistedLiterals = new Map<string, string>();
+    this.currentFileName = "";
   }
 
   public static getInstance(): TranspilerContext {
@@ -40,6 +42,13 @@ class TranspilerContext {
   }
   public setAnonInterfaceCount(val: number) {
     this.anonInterfaceCount = val;
+  }
+
+  public getCurrentFileName(): string {
+    return this.currentFileName;
+  }
+  public setCurrentFileName(val: string) {
+    this.currentFileName = val;
   }
 
   // Full access to hoistedLiterals map

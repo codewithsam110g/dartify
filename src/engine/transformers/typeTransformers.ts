@@ -30,7 +30,12 @@ export class TypeTransformer {
   public transform(typeMap: Map<string, IRType>): TypeTransformResult {
     if (transpilerContext.getIsLogging()) {
       let logger = new Logger("typeTransformer.ir", "./logs", LogLevel.DEBUG);
-      logger.clearLogFile();
+      const line = "═".repeat(
+        transpilerContext.getCurrentFileName().length + 22,
+      );
+      logger.info(
+        `\n\n${line}\n  📄 Current File: ${transpilerContext.getCurrentFileName()}\n${line}\n`,
+      );
       logger.log(
         LogLevel.DEBUG,
         "Pass: 2 -> TypeTransformer",
@@ -94,7 +99,11 @@ export class TypeTransformer {
           );
           map.set(name ?? "_nullName_Report", val);
 
-          let logger = new Logger("typeTransformer.ir", "./logs", LogLevel.DEBUG);
+          let logger = new Logger(
+            "typeTransformer.ir",
+            "./logs",
+            LogLevel.DEBUG,
+          );
 
           logger.debug("Before: " + `${key}: ${JSON.stringify(irType)}`);
           logger.debug(

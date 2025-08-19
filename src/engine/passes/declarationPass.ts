@@ -44,7 +44,12 @@ export class DeclarationPassProcessor {
     }
     if (transpilerContext.getIsLogging()) {
       let logger = new Logger("declarationPass.ir", "./logs", LogLevel.DEBUG);
-      logger.clearLogFile();
+      const line = "═".repeat(
+        transpilerContext.getCurrentFileName().length + 22,
+      );
+      logger.info(
+        `\n\n${line}\n  📄 Current File: ${transpilerContext.getCurrentFileName()}\n${line}\n`,
+      );
       logger.log(
         LogLevel.DEBUG,
         "Pass: 3 -> Declaration Pass",
@@ -56,8 +61,8 @@ export class DeclarationPassProcessor {
           for (let val of value) {
             logger.debug(`${key}: ${count++}: ${JSON.stringify(val)}`);
           }
-        }else{
-          logger.debug(`${key}: ${JSON.stringify(value[0])}`);          
+        } else {
+          logger.debug(`${key}: ${JSON.stringify(value[0])}`);
         }
       }
       if (errors.length > 0) {

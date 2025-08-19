@@ -5,22 +5,14 @@
  */
 
 import * as ts from "ts-morph";
-import { readFile, writeFile, mkdir } from "fs/promises";
-import { basename, extname, join, dirname } from "path";
+import { readFile, writeFile, mkdir, rm } from "fs/promises";
+import { resolve, basename, extname, join, dirname } from "path";
 import { TypeParser } from "@typeParser/type";
 import { TypePassProcessor } from "@passes/typePass/typePass";
-import {
-  TypeTransformer,
-} from "@transformers/typeTransformers";
-import {
-  DeclarationPassProcessor,
-} from "@passes/declarationPass";
-import {
-  DeclarationTransformer,
-} from "@transformers/declarationTransformers";
-import {
-  EmissionPassProcessor,
-} from "@passes/emissionPass";
+import { TypeTransformer } from "@transformers/typeTransformers";
+import { DeclarationPassProcessor } from "@passes/declarationPass";
+import { DeclarationTransformer } from "@transformers/declarationTransformers";
+import { EmissionPassProcessor } from "@passes/emissionPass";
 import { transpilerContext } from "./context";
 import { Logger, LogLevel, LogPayload } from "./log";
 
@@ -108,9 +100,9 @@ export class Transpiler {
     this.outDir = options.outDir;
     this.debug = options.debug ?? false;
     this.project = new ts.Project();
-    
+
     transpilerContext.setIsLogging(this.debug);
-    
+
     if (!Array.isArray(this.files) || this.files.length === 0) {
       throw new TranspileException(
         "Files array cannot be empty",
@@ -176,6 +168,20 @@ export class Transpiler {
 
       const results: FileTranspileResult[] = [];
 
+      if (transpilerContext.getIsLogging()) {
+        const folderPath = resolve(process.cwd(), "logs");
+
+        try {
+          // remove folder and its contents if it exists
+          await rm(folderPath, { recursive: true, force: true });
+        } catch {
+          // ignore if doesn't exist
+        }
+
+        // recreate empty folder
+        await mkdir(folderPath, { recursive: true });
+      }
+
       for (const file of this.files) {
         const result = await this.transpileFile(file);
         results.push(result);
@@ -238,7 +244,7 @@ export class Transpiler {
       const sourceFile = this.project.createSourceFile(filePath, content, {
         overwrite: true,
       });
-
+      transpilerContext.setCurrentFileName(this.currentFile);
       const fileResult = await this.processFileMultiPass(sourceFile);
       result.content = fileResult.content;
       result.errors.push(...fileResult.errors);
@@ -290,7 +296,8 @@ export class Transpiler {
       errors.push(...declarationPassResult.errors);
 
       // PASS 4: Declaration Transformations - Apply transformations on declarations
-      if (this.debug) Logger.stdout.info("Pass 4: Declaration transformations...");
+      if (this.debug)
+        Logger.stdout.info("Pass 4: Declaration transformations...");
       const declarationTransformResult = this.declarationTransformer.transform(
         declarationPassResult.declarationMap,
         typeTransformResult.hoistedMap,

@@ -1,12 +1,13 @@
-import { IRType } from "./ir/type";
-
 class TranspilerContext {
   private static instance: TranspilerContext;
   private parseLiterals: boolean;
   private hoistedLiterals: Map<string, string>;
   private anonInterfaceCount: number;
+  private isLogging: boolean;
+
   private constructor() {
     this.parseLiterals = true;
+    this.isLogging = false;
     this.anonInterfaceCount = 0;
     this.hoistedLiterals = new Map<string, string>();
   }
@@ -24,6 +25,14 @@ class TranspilerContext {
 
   public getParseLiterals(): boolean {
     return this.parseLiterals;
+  }
+
+  public getIsLogging(): boolean {
+    return this.isLogging;
+  }
+
+  public setIsLogging(val: boolean) {
+    this.isLogging = val;
   }
 
   public getAnonInterfaceCount(): number {

@@ -11,3 +11,6 @@ output/
 # Temp stuff
 src/emitter/new
 src/utils/debug.ts
+
+# ir and logs
+logs/

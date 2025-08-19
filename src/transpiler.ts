@@ -6,26 +6,24 @@
 
 import * as ts from "ts-morph";
 import { readFile, writeFile, mkdir } from "fs/promises";
-import { resolve, basename, extname, join, dirname } from "path";
-import { TypeParser } from "./type/parser/type";
-import { TypePassProcessor, TypePassResult } from "./passes/typePass/typePass";
+import { basename, extname, join, dirname } from "path";
+import { TypeParser } from "@typeParser/type";
+import { TypePassProcessor } from "@passes/typePass/typePass";
 import {
   TypeTransformer,
-  TypeTransformResult,
-} from "./transformers/typeTransformers";
+} from "@transformers/typeTransformers";
 import {
   DeclarationPassProcessor,
-  DeclarationPassResult,
-} from "./passes/declarationPass";
+} from "@passes/declarationPass";
 import {
   DeclarationTransformer,
-  DeclarationTransformResult,
-} from "./transformers/declarationTransformers";
+} from "@transformers/declarationTransformers";
 import {
   EmissionPassProcessor,
-  EmissionPassResult,
-} from "./passes/emissionPass";
+} from "@passes/emissionPass";
 import { transpilerContext } from "./context";
+import { Logger, LogLevel, LogPayload } from "./log";
+
 export class TranspileException extends Error {
   public readonly code: string;
   public readonly file?: string;
@@ -110,7 +108,9 @@ export class Transpiler {
     this.outDir = options.outDir;
     this.debug = options.debug ?? false;
     this.project = new ts.Project();
-
+    
+    transpilerContext.setIsLogging(this.debug);
+    
     if (!Array.isArray(this.files) || this.files.length === 0) {
       throw new TranspileException(
         "Files array cannot be empty",
@@ -262,11 +262,10 @@ export class Transpiler {
     errors: TranspileException[];
   }> {
     const errors: TranspileException[] = [];
-
     try {
       transpilerContext.setParseLiterals(true);
       // PASS 1: Type Parsing - Extract all types from AST nodes
-      if (this.debug) console.log("Pass 1: Type parsing...");
+      if (this.debug) Logger.stdout.info("Pass 1: Type parsing...");
       const typePassResult = await this.typePassProcessor.processFile(
         sourceFile,
         this.modulePrefix,
@@ -275,14 +274,14 @@ export class Transpiler {
       transpilerContext.setParseLiterals(false);
 
       // PASS 2: Type Transformations - Apply type hoisting
-      if (this.debug) console.log("Pass 2: Type transformations...");
+      if (this.debug) Logger.stdout.info("Pass 2: Type transformations...");
       const typeTransformResult = this.typeTransformer.transform(
         typePassResult.typeMap,
       );
       errors.push(...typeTransformResult.errors);
 
       // PASS 3: Declaration Parsing - Parse actual declarations using transformed types
-      if (this.debug) console.log("Pass 3: Declaration parsing...");
+      if (this.debug) Logger.stdout.info("Pass 3: Declaration parsing...");
       const declarationPassResult =
         await this.declarationPassProcessor.processFile(
           sourceFile,
@@ -291,7 +290,7 @@ export class Transpiler {
       errors.push(...declarationPassResult.errors);
 
       // PASS 4: Declaration Transformations - Apply transformations on declarations
-      if (this.debug) console.log("Pass 4: Declaration transformations...");
+      if (this.debug) Logger.stdout.info("Pass 4: Declaration transformations...");
       const declarationTransformResult = this.declarationTransformer.transform(
         declarationPassResult.declarationMap,
         typeTransformResult.hoistedMap,
@@ -299,7 +298,7 @@ export class Transpiler {
       errors.push(...declarationTransformResult.errors);
 
       // PASS 5: Code Emission - Generate final Dart code
-      if (this.debug) console.log("Pass 5: Code emission...");
+      if (this.debug) Logger.stdout.info("Pass 5: Code emission...");
       const emissionResult = this.emissionPassProcessor.processDeclarations(
         declarationTransformResult.declarationMap,
         this.generateDartFileHeader(sourceFile.getFilePath()),

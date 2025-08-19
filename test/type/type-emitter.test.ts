@@ -1,7 +1,7 @@
 // in tests/emitter.test.ts
 
 import { describe, it, expect } from "vitest";
-import { emitType } from "../../src/type/emitter/old/emit"; // Using the correct path
+import { emitType } from "../../src/engine/emitter/old/type/emit"; // Using the correct path
 import { IRType, TypeKind, IRParameter } from "../../src/ir/type"; // Using the correct path
 
 describe("Type Emitter", () => {

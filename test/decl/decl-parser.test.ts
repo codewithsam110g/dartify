@@ -12,7 +12,7 @@ import {
   parseInterface,
   parseVariableStmt,
   parseEnum,
-} from "../../src/parser";
+} from "../../src/engine/parser";
 
 describe("AST Parsers to IR", () => {
   // 1. Testing parseInterface

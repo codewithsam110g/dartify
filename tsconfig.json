@@ -11,7 +11,23 @@
     "noEmit": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@ir/*": ["src/ir/*"],
+      "@engine/*": ["src/engine/*"],
+      "@emitter/*": ["src/engine/emitter/*"],
+      "@parser/*": ["src/engine/parser/*"],
+      "@passes/*": ["src/engine/passes/*"],
+      "@transformers/*": ["src/engine/transformers/*"],
+      "@utils/*": ["src/utils/*"],
+      "@legacy/*": ["src/legacy/*"],
+
+      // Type system
+      "@typeParser/*": ["src/engine/parser/type/*"],
+      "@typeEmitter/*": ["src/engine/emitter/old/type/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }

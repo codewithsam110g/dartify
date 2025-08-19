@@ -6,8 +6,8 @@
 
 import * as ts from "ts-morph";
 import { readFile, writeFile, mkdir } from "fs/promises";
-import { TypeScriptToDartParser, createParser } from "../type";
-import { resolve, basename, extname, join, dirname } from "path";
+import { TypeScriptToDartParser, createParser } from "./type";
+import { basename, extname, join, dirname } from "path";
 
 export class TranspileException extends Error {
   public readonly code: string;

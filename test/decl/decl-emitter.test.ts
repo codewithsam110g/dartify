@@ -1,7 +1,7 @@
 // in tests/emitter.test.ts
 
 import { describe, test, expect } from "vitest";
-import * as emitter from "../../src/emitter/old/index";
+import * as emitter from "../../src/engine/emitter/old/index";
 import {
   IRClass,
   IRInterface,

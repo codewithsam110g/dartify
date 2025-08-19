@@ -1,6 +1,6 @@
 import { expect, test, describe } from "vitest";
 import { createTypeNode } from "../test-helper";
-import { parseType } from "../../src/type/parser/type";
+import { parseType } from "../../src/engine/parser/type/type";
 describe("Type Parser Snapshot Test", () => {
   test("Primitives - String", () => {
     const node = createTypeNode("string");

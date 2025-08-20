@@ -12,7 +12,7 @@
 
 **`dart_bindgen` is currently in active development and should be considered beta software.**
 
-This `v0.4.0` "Intelligence" release is a massive step forward, introducing a true compiler pipeline capable of understanding complex TypeScript patterns. However, please be aware that:
+This `v0.5.0` "Stability" release is a stability update giving a major bug fix and Adding Important Per run based Logs that output Full IR. However, please be aware that:
 
 *   **APIs are not yet stable:** The generated code and CLI usage may change as we approach v1.0.
 *   **Bugs are expected:** While core features are well-tested, you may encounter issues with the new transformer logic or esoteric TypeScript types.
@@ -92,18 +92,19 @@ Rather than patching a decade-old system, `dart_bindgen` was created to be the t
 
 ## Roadmap & Contribution
 
-With the v0.4.0 "Intelligence" release complete, the focus is now on polishing the single-file experience and preparing for multi-file project support.
+With the v0.5.0 "Observability & Order" release complete, the focus is on finishing core single-file features and fixing regressions before moving to multi-file project support.
 
-**Next Up (v0.5.0 - The "Final Polish" Release):**
-*   **Declaration Augmentation:** Handling complex TS patterns like merging `interface` and `var` declarations.
-*   **`this` Type Resolution:** Correctly handling fluent APIs that return `this`.
-*   **Dart Keyword Escaping:** Safely renaming TS identifiers that conflict with Dart's reserved words.
+**Next Up (v0.6.0 - The "Intelligence, Part II" Release):**
+* **Declaration Augmentation:** Correctly merge declarations like `interface` + `var`.
+* **Nested Type Hoisting:** Fix hoisting for complex types within unions, arrays, and generics.
+* **Regression Fixes:** Resolve outstanding issues from the v0.4 intelligence pass.
 
 **Long Term:**
-*   (v0.6) Full support for multi-file projects with automatic imports.
-*   (v0.7) Integration with `package:web` to use existing browser types.
-*   (v1.0) A stable, feature-complete generator for `package:js`.
-*   (v2.0) A new emitter for Dart's modern `dart:js_interop` static types.
+* **(v0.7)** Handle final edge cases like `this` type resolution and Dart keyword escaping.
+* **(v0.8)** Full support for multi-file projects with automatic imports.
+* **(v0.9)** Integration with `package:web` to use existing browser types.
+* **(v1.0)** A stable, feature-complete generator for `package:js`.
+* **(v2.0)** A new emitter for Dart's modern `dart:js_interop` static types.
 
 You can help! This is a solo-developer project, and community involvement is vital.
 

@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2025-08-20
+
+### Features
+- **Logging**: New and Per run based Logging system for Full IR Dump between 5 stages. Integrated with `-l` cli flag
+
+### Fixes
+- **Data Loss for Hyrbid Augementation**: Fixed a critical data and ir loss issue from v0.4, where any combination of declaration statements not having same key and having function tag, are ignored
+
+### Internal
+- **Reorganization**: Reorganized entire `src/` folder to be more clean and correct pathing
+- **Prefixed Imports**: Now entire codebase uses `import @smth/` like imports instead of relative imports.
+
+
 ## [0.4.0] - 2025-08-10
 
 ### 🚀 Features

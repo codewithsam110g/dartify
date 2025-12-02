@@ -9,7 +9,7 @@ import { readFile, writeFile, mkdir, rm } from "fs/promises";
 import { resolve, basename, extname, join, dirname } from "path";
 import { TypeParser } from "@typeParser/type";
 import { TypePassProcessor } from "@passes/typePass/typePass";
-import { TypeTransformer } from "@transformers/typeTransformers";
+import { TypeTransformer } from "@transformers/typeTransformer";
 import { DeclarationPassProcessor } from "@passes/declarationPass";
 import { DeclarationTransformer } from "@transformers/declarationTransformers";
 import { EmissionPassProcessor } from "@passes/emissionPass";
@@ -152,10 +152,10 @@ export class Transpiler {
         error instanceof TranspileException
           ? error
           : new TranspileException(
-              `Failed to process content: ${error instanceof Error ? error.message : String(error)}`,
-              "CONTENT_PROCESS_ERROR",
-              fileName,
-            );
+            `Failed to process content: ${error instanceof Error ? error.message : String(error)}`,
+            "CONTENT_PROCESS_ERROR",
+            fileName,
+          );
       result.errors.push(transpileError);
     }
 
@@ -253,10 +253,10 @@ export class Transpiler {
         error instanceof TranspileException
           ? error
           : new TranspileException(
-              `Failed to process file: ${error instanceof Error ? error.message : String(error)}`,
-              "FILE_PROCESS_ERROR",
-              filePath,
-            );
+            `Failed to process file: ${error instanceof Error ? error.message : String(error)}`,
+            "FILE_PROCESS_ERROR",
+            filePath,
+          );
       result.errors.push(transpileError);
     }
 
@@ -269,7 +269,6 @@ export class Transpiler {
   }> {
     const errors: TranspileException[] = [];
     try {
-      transpilerContext.setParseLiterals(true);
       // PASS 1: Type Parsing - Extract all types from AST nodes
       if (this.debug) Logger.stdout.info("Pass 1: Type parsing...");
       const typePassResult = await this.typePassProcessor.processFile(
@@ -277,17 +276,9 @@ export class Transpiler {
         this.modulePrefix,
       );
       errors.push(...typePassResult.errors);
-      transpilerContext.setParseLiterals(false);
 
-      // PASS 2: Type Transformations - Apply type hoisting
-      if (this.debug) Logger.stdout.info("Pass 2: Type transformations...");
-      const typeTransformResult = this.typeTransformer.transform(
-        typePassResult.typeMap,
-      );
-      errors.push(...typeTransformResult.errors);
-
-      // PASS 3: Declaration Parsing - Parse actual declarations using transformed types
-      if (this.debug) Logger.stdout.info("Pass 3: Declaration parsing...");
+      // PASS 2: Declaration Parsing - Parse actual declarations using transformed types
+      if (this.debug) Logger.stdout.info("Pass 2: Declaration parsing...");
       const declarationPassResult =
         await this.declarationPassProcessor.processFile(
           sourceFile,
@@ -295,19 +286,26 @@ export class Transpiler {
         );
       errors.push(...declarationPassResult.errors);
 
-      // PASS 4: Declaration Transformations - Apply transformations on declarations
-      if (this.debug)
-        Logger.stdout.info("Pass 4: Declaration transformations...");
-      const declarationTransformResult = this.declarationTransformer.transform(
-        declarationPassResult.declarationMap,
-        typeTransformResult.hoistedMap,
+      // PASS 3: Type Transformations - Apply type hoisting
+      if (this.debug) Logger.stdout.info("Pass 3: Type transformations...");
+      const typeTransformResult = this.typeTransformer.transform(
+        declarationPassResult.declarationMap
       );
-      errors.push(...declarationTransformResult.errors);
+      errors.push(...typeTransformResult.errors);
+      
+      
+      // PASS 4: Declaration Transformations - Apply transformations on declarations
+      // if (this.debug)
+      //   Logger.stdout.info("Pass 4: Declaration transformations...");
+      // const declarationTransformResult = this.declarationTransformer.transform(
+      //   typeTransformResult.transformedMap,
+      // );
+      // errors.push(...declarationTransformResult.errors);
 
       // PASS 5: Code Emission - Generate final Dart code
       if (this.debug) Logger.stdout.info("Pass 5: Code emission...");
       const emissionResult = this.emissionPassProcessor.processDeclarations(
-        declarationTransformResult.declarationMap,
+        typeTransformResult.transformedMap,
         this.generateDartFileHeader(sourceFile.getFilePath()),
         this.debug,
       );
@@ -322,10 +320,10 @@ export class Transpiler {
         error instanceof TranspileException
           ? error
           : new TranspileException(
-              `Multi-pass processing failed: ${error instanceof Error ? error.message : String(error)}`,
-              "MULTIPASS_ERROR",
-              this.currentFile,
-            );
+            `Multi-pass processing failed: ${error instanceof Error ? error.message : String(error)}`,
+            "MULTIPASS_ERROR",
+            this.currentFile,
+          );
       errors.push(transpileError);
 
       return {

@@ -9,8 +9,6 @@ import {
   IRSetAccessor,
 } from "@ir/literal";
 
-import { transpilerContext } from "@/context";
-
 export function handleTypeLiterals(
   node: ts.TypeLiteralNode,
   depth: number,
@@ -20,13 +18,13 @@ export function handleTypeLiterals(
   for (let prop of node.getProperties()) {
     let name = prop.getName();
     let typeBefore = prop.getTypeNode();
-    let typeAfter = parseType(prop.getTypeNode());
+    let type = parseType(prop.getTypeNode());
     let isReadonly = prop.isReadonly();
     let isOptional = prop.hasQuestionToken();
 
     properties.push({
       name,
-      typeAfter,
+      type,
       isReadonly,
       isOptional,
       isStatic: false,
@@ -102,11 +100,11 @@ export function handleTypeLiterals(
   for (let ga of node.getGetAccessors()) {
     let name = ga.getName();
     let typeBefore = ga.getReturnTypeNode();
-    let typeAfter = parseType(ga.getReturnTypeNode());
+    let type = parseType(ga.getReturnTypeNode());
 
     getAccessors.push({
       name,
-      typeAfter,
+      type,
       isStatic: false,
     });
   }
@@ -155,34 +153,5 @@ export function handleTypeLiterals(
     },
   };
 
-  let parseLiterals = transpilerContext.getParseLiterals();
-  let count = transpilerContext.getAnonInterfaceCount();
-
-  // Check if we've already hoisted this literal
-  let existingName = transpilerContext.getHoistedLiteral(JSON.stringify(val));
-
-  let res;
-  if (existingName) {
-    // Reuse existing name
-    res = {
-      kind: TypeKind.TypeReference,
-      name: existingName,
-      isNullable: false,
-    };
-  } else {
-    // Create new name and hoist it
-    let newName = `AnonInterface$${count}`;
-    res = {
-      kind: TypeKind.TypeReference,
-      name: newName,
-      isNullable: false,
-    };
-    transpilerContext.setHoistedLiteral(JSON.stringify(val), newName);
-    transpilerContext.setAnonInterfaceCount(count + 1);
-  }
-
-  if (!parseLiterals) {
-    return res;
-  }
   return val;
 }

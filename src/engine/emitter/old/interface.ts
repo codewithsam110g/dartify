@@ -13,7 +13,7 @@ export function emitInterface(
   debug: boolean = false,
 ) {
   const dartParts: string[] = [];
-
+  
   dartParts.push("@JS()");
   dartParts.push("@anonymous");
 

@@ -1,4 +1,4 @@
-import { IRType,IRParameter } from "./type";
+import { IRType, IRParameter } from "./type";
 
 export interface IRLiteral {
   properties: IRProperties[];
@@ -11,7 +11,7 @@ export interface IRLiteral {
 
 export interface IRProperties {
   name: string;
-  typeAfter?: IRType;
+  type: IRType;
   isOptional: boolean;
   isReadonly: boolean;
   isStatic: boolean;
@@ -27,7 +27,7 @@ export interface IRMethod {
 
 export interface IRGetAccessor {
   name: string;
-  typeAfter?: IRType;
+  type: IRType;
   isStatic: boolean;
 }
 
@@ -38,7 +38,7 @@ export interface IRSetAccessor {
 }
 
 export interface IRIndexSignatures {
-  keyType?: IRType;
-  valueType?: IRType;
+  keyType: IRType;
+  valueType: IRType;
   isReadonly: boolean;
 }

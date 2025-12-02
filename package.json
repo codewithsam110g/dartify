@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.3",
+    "@types/serve-static": "^2.2.0",
     "@types/yargs": "^17.0.33",
     "@vitest/ui": "^3.2.4",
     "tsup": "^8.5.0",

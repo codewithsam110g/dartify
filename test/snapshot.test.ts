@@ -1,14 +1,13 @@
 // test/snapshot.test.ts
 import { Transpiler } from "../src/transpiler";
 import { expect, test, describe } from "vitest";
-import { readFileSync, readdirSync } from "fs";
+import { readFileSync } from "fs";
 import { join, basename } from "path";
+import fg from "fast-glob";
 
-// Get all .d.ts files from the def_files directory
+// Get all .d.ts files from the def_files directory recursively
 const defFilesDir = join(process.cwd(), "def_files");
-const defFiles = readdirSync(defFilesDir)
-  .filter((file) => file.endsWith(".d.ts"))
-  .sort();
+const defFiles = fg.sync("**/*.d.ts", { cwd: defFilesDir }).sort();
 
 describe("TypeScript Definition Files Snapshot Tests", () => {
   defFiles.forEach((fileName) => {

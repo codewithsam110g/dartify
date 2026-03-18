@@ -1,16 +1,14 @@
+# Node Modules
 node_modules/
 
-**/*.d.ts
-def_files/
+# Distribution Files
 dist/
 
-dart_web_bindings_test/
-**/*.dart
+# Output Files
 output/
 
-# Temp stuff
-src/emitter/new
-src/utils/debug.ts
+# Dart Files
+**/*.dart
 
-# ir and logs
+# Logs
 logs/

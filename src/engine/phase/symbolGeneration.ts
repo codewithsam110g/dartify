@@ -130,8 +130,9 @@ class SymbolGenerator {
     filePath: string,
   ): void {
     const interfaceName = node.getName();
-    const parsedInterface = parser.parseInterface(node);
     let fqn = filePath + "::" + this.modulePrefix + interfaceName;
+    transpilerContext.currentFQN = fqn;
+    const parsedInterface = parser.parseInterface(node);
     let symbol: Symbol = {
       type: SymbolType.INTERFACE,
       ir: parsedInterface,
@@ -145,8 +146,9 @@ class SymbolGenerator {
     filePath: string,
   ): void {
     const aliasName = node.getName();
-    const parsedTypeAlias = parser.parseTypeAlias(node);
     let fqn = filePath + "::" + this.modulePrefix + aliasName;
+    transpilerContext.currentFQN = fqn;
+    const parsedTypeAlias = parser.parseTypeAlias(node);
     let symbol: Symbol = {
       type: SymbolType.TYPE_ALIAS,
       ir: parsedTypeAlias,
@@ -160,8 +162,9 @@ class SymbolGenerator {
     filePath: string,
   ): void {
     let className = node.getName() || "Error_Class";
-    const parsedClass = parser.parseClass(node);
     let fqn = filePath + "::" + this.modulePrefix + className;
+    transpilerContext.currentFQN = fqn;
+    const parsedClass = parser.parseClass(node);
     let symbol: Symbol = {
       type: SymbolType.CLASS,
       ir: parsedClass,
@@ -175,8 +178,9 @@ class SymbolGenerator {
     filePath: string,
   ): void {
     let functionName = node.getName() || "Error_Function";
-    const parsedFunction = parser.parseFunction(node);
     let fqn = filePath + "::" + this.modulePrefix + functionName;
+    transpilerContext.currentFQN = fqn;
+    const parsedFunction = parser.parseFunction(node);
     let symbol: Symbol = {
       type: SymbolType.FUNCTION,
       ir: parsedFunction,
@@ -189,7 +193,10 @@ class SymbolGenerator {
     node: ts.VariableStatement,
     filePath: string,
   ): void {
-    const parsedVariables = parser.parseVariableStmt(node);
+    const parsedVariables = parser.parseVariableStmt(
+      filePath + "::" + this.modulePrefix,
+      node,
+    );
     for (const variable of parsedVariables) {
       let fqn = filePath + "::" + this.modulePrefix + variable.name;
       let symbol: Symbol = {
@@ -206,8 +213,9 @@ class SymbolGenerator {
     filePath: string,
   ): void {
     const enumName = node.getName();
-    const parsedEnum = parser.parseEnum(node);
     let fqn = filePath + "::" + this.modulePrefix + enumName;
+    transpilerContext.currentFQN = fqn;
+    const parsedEnum = parser.parseEnum(node);
     let symbol: Symbol = {
       type: SymbolType.ENUM,
       ir: parsedEnum,

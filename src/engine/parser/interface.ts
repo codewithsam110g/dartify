@@ -10,6 +10,7 @@ import {
 import { IRParameter } from "@ir/function";
 import { parseType } from "@typeParser/type";
 import { IRDeclKind } from "@ir/index";
+import { transpilerContext } from "@/context";
 
 export function parseInterface(
   interfaceDecl: ts.InterfaceDeclaration,
@@ -21,7 +22,10 @@ export function parseInterface(
   let properties: IRProperties[] = [];
   for (let prop of interfaceDecl.getProperties()) {
     let name = prop.getName();
+    const prevFQN = transpilerContext.currentFQN;
+    transpilerContext.currentFQN = prevFQN + "|" + name;
     let type = parseType(prop.getTypeNode());
+    transpilerContext.currentFQN = prevFQN;
     let isReadonly = prop.isReadonly();
     let isOptional = prop.hasQuestionToken();
 
@@ -38,6 +42,8 @@ export function parseInterface(
   let methods: IRMethod[] = [];
   for (let method of interfaceDecl.getMethods()) {
     let name = method.getName();
+    const prevFQN = transpilerContext.currentFQN;
+    transpilerContext.currentFQN = prevFQN + "|" + name;
     let parameters: IRParameter[] = [];
     let returnType = parseType(method.getReturnTypeNode());
     let returnTypeNode = method.getReturnTypeNode();
@@ -47,17 +53,21 @@ export function parseInterface(
       // Do not parse `this` param
       if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
 
-      let name = param.getName();
+      let pName = param.getName();
+      const paramPrevFQN = transpilerContext.currentFQN;
+      transpilerContext.currentFQN = paramPrevFQN + "|" + pName;
       let type = parseType(param.getTypeNode());
+      transpilerContext.currentFQN = paramPrevFQN;
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
-        name: name,
+        name: pName,
         type: type,
         isOptional: isOptional,
         isRest: isRest,
       });
     }
+    transpilerContext.currentFQN = prevFQN;
     methods.push({
       name,
       parameters,
@@ -71,6 +81,8 @@ export function parseInterface(
   let constructors: IRMethod[] = [];
   for (let constructor of interfaceDecl.getConstructSignatures()) {
     let parameters: IRParameter[] = [];
+    const prevFQN = transpilerContext.currentFQN;
+    transpilerContext.currentFQN = prevFQN + "|constructor";
     let returnType = parseType(constructor.getReturnTypeNode());
     let returnTypeNode = constructor.getReturnTypeNode();
 
@@ -78,17 +90,21 @@ export function parseInterface(
       // Do not parse `this` param
       if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
 
-      let name = param.getName();
+      let pName = param.getName();
+      const paramPrevFQN = transpilerContext.currentFQN;
+      transpilerContext.currentFQN = paramPrevFQN + "|" + pName;
       let type = parseType(param.getTypeNode());
+      transpilerContext.currentFQN = paramPrevFQN;
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
-        name: name,
+        name: pName,
         type: type,
         isOptional: isOptional,
         isRest: isRest,
       });
     }
+    transpilerContext.currentFQN = prevFQN;
     constructors.push({
       name: "constructor",
       parameters,
@@ -102,7 +118,10 @@ export function parseInterface(
   let getAccessors: IRGetAccessor[] = [];
   for (let ga of interfaceDecl.getGetAccessors()) {
     let name = ga.getName();
+    const prevFQN = transpilerContext.currentFQN;
+    transpilerContext.currentFQN = prevFQN + "|" + name;
     let type = parseType(ga.getReturnTypeNode());
+    transpilerContext.currentFQN = prevFQN;
 
     getAccessors.push({
       name,
@@ -115,6 +134,8 @@ export function parseInterface(
   let setAccessors: IRSetAccessor[] = [];
   for (let sa of interfaceDecl.getSetAccessors()) {
     let name = sa.getName();
+    const prevFQN = transpilerContext.currentFQN;
+    transpilerContext.currentFQN = prevFQN + "|" + name;
     let param = sa.getParameters()[0];
     setAccessors.push({
       name: name,
@@ -126,13 +147,17 @@ export function parseInterface(
       },
       isStatic: false,
     });
+    transpilerContext.currentFQN = prevFQN;
   }
 
   // IndexSignatures
   let indexSignatures: IRIndexSignatures[] = [];
   for (let indexSig of interfaceDecl.getIndexSignatures()) {
+    const prevFQN = transpilerContext.currentFQN;
+    transpilerContext.currentFQN = prevFQN + "|indexSig";
     let keyType = parseType(indexSig.getKeyTypeNode());
     let valueType = parseType(indexSig.getReturnTypeNode());
+    transpilerContext.currentFQN = prevFQN;
     let isReadonly = indexSig.isReadonly();
     indexSignatures.push({
       keyType,

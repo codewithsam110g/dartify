@@ -3,11 +3,13 @@ import { SymbolTable } from "./symbol/table";
 class TranspilerContext {
   private static instance: TranspilerContext;
   private isLogging: boolean;
+  public currentFQN: string;
   public readonly symbolTable: SymbolTable;
 
   private constructor() {
     this.isLogging = false;
     this.symbolTable = new SymbolTable();
+    this.currentFQN = "";
   }
 
   public static getInstance(): TranspilerContext {

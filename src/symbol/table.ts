@@ -44,6 +44,10 @@ export class SymbolTable {
     public getAll(): Symbol[] {
         return Array.from(this.symbols.values()).flat();
     }
+  
+    public getSymbolTable(): Map<string, Symbol[]>{
+      return this.symbols;
+    }
 
     /**
      * Clears the table (useful between tests or independent transpilation runs).

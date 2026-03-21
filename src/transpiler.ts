@@ -7,6 +7,7 @@
 import * as ts from "ts-morph";
 import { resolve, dirname } from "path";
 import { generateSymbols } from "./engine/phase/symbolGeneration";
+import { emitAllFiles } from "./engine/phase/emitterPhase";
 import { transpilerContext } from "./context";
 
 export class TranspileException extends Error {
@@ -121,10 +122,23 @@ export class Transpiler {
       }
 
       // Print all generated symbols after everything is parsed
-      let st = transpilerContext.symbolTable.getAll();
-      for (const s of st) {
-        console.log("FQN:", s.fqn);
+      if (this.debug) {
+        let sta = transpilerContext.symbolTable.getSymbolTable();
+        for (const [_, symbols] of sta) {
+          if (symbols.length > 1) {
+            for (const symbol of symbols) {
+              console.log("FQN:", symbol.fqn);
+            }
+          }
+        }
       }
+
+      // Phase 3: Emission — write Dart files
+      const outDir = this.outDir || "./dart_out";
+      // Use the directory of the first input file as the input root
+      const firstInputFile = this.inputFiles.keys().next().value;
+      const inputRoot = firstInputFile ? dirname(firstInputFile) : ".";
+      await emitAllFiles(outDir, inputRoot, this.debug);
     } catch (error) {
       if (error instanceof TranspileException) {
         throw error;

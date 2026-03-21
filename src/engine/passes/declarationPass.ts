@@ -42,38 +42,6 @@ export class DeclarationPassProcessor {
             );
       errors.push(transpileError);
     }
-    if (transpilerContext.getIsLogging()) {
-      let logger = new Logger("declarationPass.ir", "./logs", LogLevel.DEBUG);
-      const line = "═".repeat(
-        transpilerContext.getCurrentFileName().length + 22,
-      );
-      logger.info(
-        `\n\n${line}\n  📄 Current File: ${transpilerContext.getCurrentFileName()}\n${line}\n`,
-      );
-      logger.log(
-        LogLevel.DEBUG,
-        "Pass: 3 -> Declaration Pass",
-        "Writing all the Declaration IR's to Log",
-      );
-      for (const [key, value] of declarationMap) {
-        if (value.length > 1) {
-          let count = 0;
-          for (let val of value) {
-            logger.debug(`${key}: ${count++}: ${JSON.stringify(val)}`);
-          }
-        } else {
-          logger.debug(`${key}: ${JSON.stringify(value[0])}`);
-        }
-      }
-      if (errors.length > 0) {
-        Logger.stdout.warn(
-          "Got some errors from declaration parser, writing them to log",
-        );
-        for (let err of errors) {
-          logger.warn(err.message);
-        }
-      }
-    }
     return { declarationMap, errors };
   }
 

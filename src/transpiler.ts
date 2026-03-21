@@ -5,16 +5,9 @@
  */
 
 import * as ts from "ts-morph";
-import { readFile, writeFile, mkdir, rm } from "fs/promises";
-import { resolve, basename, extname, join, dirname } from "path";
-import { TypeParser } from "@typeParser/type";
-import { TypePassProcessor } from "@passes/typePass/typePass";
-import { TypeTransformer } from "@transformers/typeTransformer";
-import { DeclarationPassProcessor } from "@passes/declarationPass";
-import { DeclarationTransformer } from "@transformers/declarationTransformers";
-import { EmissionPassProcessor } from "@passes/emissionPass";
+import { resolve, dirname } from "path";
+import { generateSymbols } from "./engine/phase/symbolGeneration";
 import { transpilerContext } from "./context";
-import { Logger, LogLevel, LogPayload } from "./log";
 
 export class TranspileException extends Error {
   public readonly code: string;
@@ -60,23 +53,7 @@ export interface TranspilerOptions {
   files: string[];
   outDir?: string;
   debug?: boolean;
-}
-
-export interface StringTranspileOptions {
-  fileName?: string;
-  debug?: boolean;
-}
-
-export interface StringTranspileResult {
-  content: string;
-  errors: TranspileException[];
-}
-
-interface FileTranspileResult {
-  filePath: string;
-  outputPath?: string;
-  errors: TranspileException[];
-  content: string;
+  tsConfigFilePath?: string;
 }
 
 export class Transpiler {
@@ -84,22 +61,37 @@ export class Transpiler {
   private readonly outDir: string | undefined;
   private readonly debug: boolean;
   private project: ts.Project;
-  private modulePrefix: string = "";
-  private currentFile: string = "";
 
-  // Multi-pass state
-  private typeParser: TypeParser;
-  private typePassProcessor: TypePassProcessor;
-  private typeTransformer: TypeTransformer;
-  private declarationPassProcessor: DeclarationPassProcessor;
-  private declarationTransformer: DeclarationTransformer;
-  private emissionPassProcessor: EmissionPassProcessor;
+  // Resolved source file maps — populated by transpile()
+  private inputFiles = new Map<string, ts.SourceFile>();
+  private packageDepFiles = new Map<string, ts.SourceFile>();
+  private stdlibFiles = new Map<string, ts.SourceFile>();
 
   constructor(options: TranspilerOptions) {
     this.files = options.files;
     this.outDir = options.outDir;
     this.debug = options.debug ?? false;
-    this.project = new ts.Project();
+
+    if (options.tsConfigFilePath) {
+      this.project = new ts.Project({
+        tsConfigFilePath: options.tsConfigFilePath,
+        skipAddingFilesFromTsConfig: true,
+        compilerOptions: {
+          types: [],
+        },
+      });
+    } else {
+      this.project = new ts.Project({
+        compilerOptions: {
+          target: ts.ts.ScriptTarget.ES2020,
+          module: ts.ts.ModuleKind.ESNext,
+          moduleResolution: ts.ts.ModuleResolutionKind.NodeNext,
+          types: [],
+          skipLibCheck: true,
+          noEmit: true,
+        },
+      });
+    }
 
     transpilerContext.setIsLogging(this.debug);
 
@@ -109,109 +101,29 @@ export class Transpiler {
         "INVALID_FILES",
       );
     }
-
-    // Initialize pass processors
-    this.typeParser = TypeParser.getInstance();
-    this.typePassProcessor = new TypePassProcessor(this.typeParser);
-    this.typeTransformer = new TypeTransformer();
-    this.declarationPassProcessor = new DeclarationPassProcessor();
-    this.declarationTransformer = new DeclarationTransformer();
-    this.emissionPassProcessor = new EmissionPassProcessor();
-  }
-
-  /**
-   * Static method to transpile TypeScript content from a string directly
-   */
-  public static async transpileFromString(
-    content: string,
-    options: StringTranspileOptions = {},
-  ): Promise<StringTranspileResult> {
-    const fileName = options.fileName || "virtual.d.ts";
-    const debug = options.debug ?? false;
-
-    const tempTranspiler = new Transpiler({ files: [fileName], debug });
-    const project = new ts.Project();
-    const sourceFile = project.createSourceFile(fileName, content, {
-      overwrite: true,
-    });
-
-    tempTranspiler.project = project;
-    tempTranspiler.currentFile = fileName;
-
-    const result: StringTranspileResult = {
-      content: "",
-      errors: [],
-    };
-
-    try {
-      const fileResult = await tempTranspiler.processFileMultiPass(sourceFile);
-      result.content = fileResult.content;
-      result.errors = fileResult.errors;
-    } catch (error) {
-      const transpileError =
-        error instanceof TranspileException
-          ? error
-          : new TranspileException(
-            `Failed to process content: ${error instanceof Error ? error.message : String(error)}`,
-            "CONTENT_PROCESS_ERROR",
-            fileName,
-          );
-      result.errors.push(transpileError);
-    }
-
-    return result;
   }
 
   public async transpile(): Promise<void> {
     try {
       await this.validateFiles();
+      this.resolveAndCategorize();
 
-      const results: FileTranspileResult[] = [];
-
-      if (transpilerContext.getIsLogging()) {
-        const folderPath = resolve(process.cwd(), "logs");
-
-        try {
-          // remove folder and its contents if it exists
-          await rm(folderPath, { recursive: true, force: true });
-        } catch {
-          // ignore if doesn't exist
-        }
-
-        // recreate empty folder
-        await mkdir(folderPath, { recursive: true });
+      if (this.debug) {
+        this.printResolutionSummary();
+        this.detectUnresolvedDeps();
       }
 
-      for (const file of this.files) {
-        const result = await this.transpileFile(file);
-        results.push(result);
+      for (const [filePath, sourceFile] of this.inputFiles) {
+        await this.transpileFile(filePath, sourceFile);
+      }
+      for (const [filePath, sourceFile] of this.packageDepFiles) {
+        await this.transpileFile(filePath, sourceFile);
       }
 
-      // Handle output based on outDir
-      const shouldPrintToStdout = !this.outDir || this.outDir.trim() === "";
-
-      if (shouldPrintToStdout) {
-        for (const result of results) {
-          console.log(result.content);
-        }
-      } else {
-        for (const result of results) {
-          if (result.content && result.outputPath) {
-            const dir = dirname(result.outputPath);
-            await mkdir(dir, { recursive: true });
-            await writeFile(result.outputPath, result.content);
-            console.log(`Generated Dart file: ${result.outputPath}`);
-          }
-        }
-      }
-
-      // Report any errors
-      const allErrors = results.flatMap((r) => r.errors);
-      if (allErrors.length > 0) {
-        console.warn(
-          `Transpilation completed with ${allErrors.length} warnings/errors`,
-        );
-        allErrors.forEach((error) => console.warn(error.toString()));
+      // Print all generated symbols after everything is parsed
+      let st = transpilerContext.symbolTable.getAll();
+      for (const s of st) {
+        console.log("FQN:", s.fqn);
       }
     } catch (error) {
       if (error instanceof TranspileException) {
@@ -224,150 +136,178 @@ export class Transpiler {
     }
   }
 
-  private async transpileFile(filePath: string): Promise<FileTranspileResult> {
-    this.currentFile = filePath;
+  private async transpileFile(fp: string, sf: ts.SourceFile) {
+    await generateSymbols(fp, sf);
+  }
 
-    const shouldPrintToStdout = !this.outDir || this.outDir.trim() === "";
-    const outputPath = shouldPrintToStdout
-      ? undefined
-      : join(this.outDir!, this.getDartFileName(filePath));
+  /**
+   * Add input files to the project, resolve all transitive dependencies,
+   * and categorize every resolved file into input / packageDep / stdlib.
+   */
+  private resolveAndCategorize(): void {
+    const addedSourceFiles = this.project.addSourceFilesAtPaths(this.files);
+    this.project.resolveSourceFileDependencies();
 
-    const result: FileTranspileResult = {
-      filePath,
-      outputPath,
-      errors: [],
-      content: "",
-    };
+    // project.getSourceFiles() only returns explicitly added files.
+    // The TS program's getSourceFiles() returns ALL resolved files including
+    // @types/ packages resolved via /// <reference types> and import statements.
+    const allProgramFiles = this.project
+      .getProgram()
+      .compilerObject.getSourceFiles();
+    const inputSet = new Set(this.files);
 
-    try {
-      const content = await readFile(filePath, "utf-8");
-      const sourceFile = this.project.createSourceFile(filePath, content, {
-        overwrite: true,
+    // Reset maps
+    this.inputFiles.clear();
+    this.packageDepFiles.clear();
+    this.stdlibFiles.clear();
+
+    for (const sf of allProgramFiles) {
+      const morphSf =
+        this.project.addSourceFileAtPathIfExists(sf.fileName) ??
+        this.project.addSourceFileAtPath(sf.fileName);
+
+      if (inputSet.has(sf.fileName)) {
+        this.inputFiles.set(sf.fileName, morphSf);
+      } else if (Transpiler.isStdlib(sf.fileName)) {
+        this.stdlibFiles.set(sf.fileName, morphSf);
+      } else {
+        this.packageDepFiles.set(sf.fileName, morphSf);
+      }
+    }
+  }
+
+  /**
+   * Classify a file path as stdlib (Node builtins, TS libs, undici internals).
+   */
+  private static isStdlib(filePath: string): boolean {
+    if (filePath.includes("@types/node/")) return true;
+    if (filePath.includes("undici-types/")) return true;
+    if (/typescript\/lib\/lib\..*\.d\.ts$/.test(filePath)) return true;
+    return false;
+  }
+
+  /**
+   * Print a categorized summary of all resolved source files.
+   */
+  private printResolutionSummary(): void {
+    const total =
+      this.inputFiles.size + this.packageDepFiles.size + this.stdlibFiles.size;
+
+    console.log(`\n========================================`);
+    console.log(`  Source Path Resolution Summary`);
+    console.log(`========================================`);
+    console.log(`  Input files (from CLI):     ${this.files.length}`);
+    console.log(`  Total resolved files:       ${total}`);
+    console.log(`  ── Categorized ──`);
+    console.log(`  📥 Input files:             ${this.inputFiles.size}`);
+    console.log(`  📦 Package dependencies:    ${this.packageDepFiles.size}`);
+    console.log(`  📚 Stdlib / Node builtins:  ${this.stdlibFiles.size}`);
+    console.log(`========================================\n`);
+
+    console.log(`📥 Input file paths (${this.inputFiles.size}):`);
+    [...this.inputFiles.keys()].forEach((f, i) => {
+      console.log(`  ${i + 1}. ${f}`);
+    });
+
+    if (this.packageDepFiles.size > 0) {
+      console.log(`\n📦 Package Dependencies (${this.packageDepFiles.size}):`);
+      [...this.packageDepFiles.keys()].forEach((f, i) => {
+        console.log(`  ${i + 1}. ${f}`);
       });
-      transpilerContext.setCurrentFileName(this.currentFile);
-      const fileResult = await this.processFileMultiPass(sourceFile);
-      result.content = fileResult.content;
-      result.errors.push(...fileResult.errors);
-    } catch (error) {
-      const transpileError =
-        error instanceof TranspileException
-          ? error
-          : new TranspileException(
-            `Failed to process file: ${error instanceof Error ? error.message : String(error)}`,
-            "FILE_PROCESS_ERROR",
-            filePath,
-          );
-      result.errors.push(transpileError);
     }
 
-    return result;
+    if (this.stdlibFiles.size > 0) {
+      console.log(`\n📚 Stdlib / Node.js Builtins (${this.stdlibFiles.size}):`);
+      [...this.stdlibFiles.keys()].forEach((f, i) => {
+        console.log(`  ${i + 1}. ${f}`);
+      });
+    }
+
+    const delta = total - this.files.length;
+    console.log(`\nDelta: ${delta} additional files resolved via dependencies`);
   }
 
-  private async processFileMultiPass(sourceFile: ts.SourceFile): Promise<{
-    content: string;
-    errors: TranspileException[];
-  }> {
-    const errors: TranspileException[] = [];
-    try {
-      // PASS 1: Type Parsing - Extract all types from AST nodes
-      if (this.debug) Logger.stdout.info("Pass 1: Type parsing...");
-      const typePassResult = await this.typePassProcessor.processFile(
-        sourceFile,
-        this.modulePrefix,
-      );
-      errors.push(...typePassResult.errors);
+  /**
+   * Scan input source files for unresolved references and report them.
+   */
+  private detectUnresolvedDeps(): void {
+    const allResolvedPaths = new Set([
+      ...this.inputFiles.keys(),
+      ...this.packageDepFiles.keys(),
+      ...this.stdlibFiles.keys(),
+    ]);
 
-      // PASS 2: Declaration Parsing - Parse actual declarations using transformed types
-      if (this.debug) Logger.stdout.info("Pass 2: Declaration parsing...");
-      const declarationPassResult =
-        await this.declarationPassProcessor.processFile(
-          sourceFile,
-          this.modulePrefix,
+    const unresolvedRefs: { file: string; ref: string; kind: string }[] = [];
+
+    for (const sf of this.project.getSourceFiles()) {
+      for (const ref of sf.getPathReferenceDirectives()) {
+        const refText = ref.getFileName();
+        const resolvedPath = resolve(
+          dirname(String(sf.getFilePath())),
+          refText,
         );
-      errors.push(...declarationPassResult.errors);
+        if (
+          !allResolvedPaths.has(resolvedPath) &&
+          !allResolvedPaths.has(resolvedPath.replace(/\.ts$/, ".d.ts"))
+        ) {
+          unresolvedRefs.push({
+            file: sf.getFilePath(),
+            ref: refText,
+            kind: "path",
+          });
+        }
+      }
 
-      // PASS 3: Type Transformations - Apply type hoisting
-      if (this.debug) Logger.stdout.info("Pass 3: Type transformations...");
-      const typeTransformResult = this.typeTransformer.transform(
-        declarationPassResult.declarationMap
-      );
-      errors.push(...typeTransformResult.errors);
-      
-      
-      // PASS 4: Declaration Transformations - Apply transformations on declarations
-      // if (this.debug)
-      //   Logger.stdout.info("Pass 4: Declaration transformations...");
-      // const declarationTransformResult = this.declarationTransformer.transform(
-      //   typeTransformResult.transformedMap,
-      // );
-      // errors.push(...declarationTransformResult.errors);
+      for (const ref of sf.getTypeReferenceDirectives()) {
+        const refText = ref.getFileName();
+        const isResolved = [...allResolvedPaths].some(
+          (p) =>
+            p.includes(`@types/${refText}`) ||
+            p.includes(`node_modules/${refText}`),
+        );
+        if (!isResolved) {
+          unresolvedRefs.push({
+            file: sf.getFilePath(),
+            ref: refText,
+            kind: "types",
+          });
+        }
+      }
 
-      // PASS 5: Code Emission - Generate final Dart code
-      if (this.debug) Logger.stdout.info("Pass 5: Code emission...");
-      const emissionResult = this.emissionPassProcessor.processDeclarations(
-        typeTransformResult.transformedMap,
-        this.generateDartFileHeader(sourceFile.getFilePath()),
-        this.debug,
-      );
-      errors.push(...emissionResult.errors);
+      for (const importDecl of sf.getImportDeclarations()) {
+        const moduleSpecifier = importDecl.getModuleSpecifierValue();
+        if (!importDecl.getModuleSpecifierSourceFile()) {
+          unresolvedRefs.push({
+            file: sf.getFilePath(),
+            ref: moduleSpecifier,
+            kind: "import",
+          });
+        }
+      }
 
-      return {
-        content: emissionResult.content,
-        errors,
-      };
-    } catch (error) {
-      const transpileError =
-        error instanceof TranspileException
-          ? error
-          : new TranspileException(
-            `Multi-pass processing failed: ${error instanceof Error ? error.message : String(error)}`,
-            "MULTIPASS_ERROR",
-            this.currentFile,
-          );
-      errors.push(transpileError);
-
-      return {
-        content: "",
-        errors,
-      };
-    }
-  }
-
-  private getDartFileName(filePath: string): string {
-    const fileName = basename(filePath);
-
-    if (fileName.endsWith(".d.ts")) {
-      return fileName.slice(0, -5) + ".dart";
+      for (const exportDecl of sf.getExportDeclarations()) {
+        const moduleSpecifier = exportDecl.getModuleSpecifierValue();
+        if (moduleSpecifier && !exportDecl.getModuleSpecifierSourceFile()) {
+          unresolvedRefs.push({
+            file: sf.getFilePath(),
+            ref: moduleSpecifier,
+            kind: "export",
+          });
+        }
+      }
     }
 
-    if (fileName.endsWith(".ts")) {
-      return fileName.slice(0, -3) + ".dart";
-    }
-
-    const nameWithoutExt = basename(filePath, extname(filePath));
-    return nameWithoutExt + ".dart";
-  }
-
-  private generateDartFileHeader(filePath: string): string {
-    const fileName = basename(filePath);
-
-    let baseName: string;
-    if (fileName.endsWith(".d.ts")) {
-      baseName = fileName.slice(0, -5);
-    } else if (fileName.endsWith(".ts")) {
-      baseName = fileName.slice(0, -3);
+    if (unresolvedRefs.length > 0) {
+      console.log(`\n⚠️  Unresolved Dependencies (${unresolvedRefs.length}):`);
+      console.log(`----------------------------------------`);
+      for (const { file, ref, kind } of unresolvedRefs) {
+        console.log(`  [${kind}] ${ref}`);
+        console.log(`    ↳ from: ${file}`);
+      }
+      console.log(`----------------------------------------`);
     } else {
-      baseName = basename(filePath, extname(filePath));
+      console.log(`\n✅ All dependencies resolved successfully.`);
     }
-
-    return `// Generated from ${fileName}
-// Do not edit directly
-
-@JS()
-library ${baseName.replace(/[^a-zA-Z0-9]/g, "_")};
-import 'package:js/js.dart';
-
-`;
   }
 
   private async validateFiles(): Promise<void> {
@@ -380,13 +320,5 @@ import 'package:js/js.dart';
         );
       }
     }
-  }
-
-  public getFiles(): readonly string[] {
-    return [...this.files];
-  }
-
-  public isDebugEnabled(): boolean {
-    return this.debug;
   }
 }

@@ -1,11 +1,13 @@
+import { SymbolTable } from "./symbol/table";
+
 class TranspilerContext {
   private static instance: TranspilerContext;
   private isLogging: boolean;
-  private currentFileName: string;
+  public readonly symbolTable: SymbolTable;
 
   private constructor() {
     this.isLogging = false;
-    this.currentFileName = "";
+    this.symbolTable = new SymbolTable();
   }
 
   public static getInstance(): TranspilerContext {
@@ -22,14 +24,6 @@ class TranspilerContext {
   public setIsLogging(val: boolean) {
     this.isLogging = val;
   }
-
-  public getCurrentFileName(): string {
-    return this.currentFileName;
-  }
-  public setCurrentFileName(val: string) {
-    this.currentFileName = val;
-  }
-
 }
 
 // Global cached instance for frequent access

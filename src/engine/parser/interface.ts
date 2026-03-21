@@ -8,7 +8,7 @@ import {
   IRSetAccessor,
 } from "@ir/interface";
 import { IRParameter } from "@ir/function";
-import { parseType } from "@typeParser//type";
+import { parseType } from "@typeParser/type";
 import { IRDeclKind } from "@ir/index";
 
 export function parseInterface(

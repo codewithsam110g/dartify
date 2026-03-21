@@ -15,6 +15,7 @@ import { Transpiler, TranspilerOptions } from "./transpiler";
 interface CliOptions {
   defFiles: string[];
   output?: string;
+  tsconfig?: string;
   enableLogs: boolean;
   dryRun: boolean;
 }
@@ -44,6 +45,11 @@ const argv = yargs(hideBin(process.argv))
     describe: "Show what would be processed without doing it",
     default: false,
   })
+  .option("tsconfig", {
+    alias: "p",
+    type: "string",
+    describe: "Path to tsconfig.json for module resolution (handles pnpm, node_modules, etc.)",
+  })
   .example('dart_bindgen -d "**/*.d.ts"', "Process all .d.ts files recursively")
   .example(
     'dart_bindgen -d "src/*.d.ts" -d "lib/*.d.ts" -o ./output',
@@ -63,12 +69,30 @@ async function main(options: CliOptions): Promise<void> {
   const startTime = Date.now();
 
   try {
-    const files = await fg(options.defFiles, {
-      onlyFiles: true,
-      absolute: true,
-      ignore: ["node_modules/**", "*.min.d.ts"],
-      caseSensitiveMatch: false,
-    });
+    // Separate explicit paths from glob patterns
+    // Explicit paths (no glob chars) bypass the node_modules ignore,
+    // allowing users to target files in node_modules/@types/ directly.
+    const isGlobPattern = (p: string) => /[*?{}[\]]/.test(p);
+    const explicitPaths = options.defFiles.filter((p) => !isGlobPattern(p));
+    const globPatterns = options.defFiles.filter((p) => isGlobPattern(p));
+
+    // Resolve explicit paths to absolute
+    const explicitAbsolute = explicitPaths.map((p) =>
+      path.resolve(process.cwd(), p),
+    );
+
+    // Run fast-glob only on glob patterns (with node_modules ignore)
+    const globFiles =
+      globPatterns.length > 0
+        ? await fg(globPatterns, {
+          onlyFiles: true,
+          absolute: true,
+          ignore: ["node_modules/**", "*.min.d.ts"],
+          caseSensitiveMatch: false,
+        })
+        : [];
+
+    const files = [...new Set([...explicitAbsolute, ...globFiles])];
 
     const dtsFiles = files.filter((file) => file.endsWith(".d.ts"));
 
@@ -132,6 +156,9 @@ async function processFiles(
     files: files,
     outDir: options.output,
     debug: options.enableLogs,
+    tsConfigFilePath: options.tsconfig
+      ? path.resolve(process.cwd(), options.tsconfig)
+      : undefined,
   };
   let transpiler: Transpiler = new Transpiler(transpilerOptions);
   await transpiler.transpile();

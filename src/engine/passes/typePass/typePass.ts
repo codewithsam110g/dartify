@@ -14,8 +14,7 @@ import {
   processInterfaceStmtTypes,
   processClassStmtTypes,
 } from "./processors";
-import { transpilerContext } from "@/context";
-import { Logger, LogLevel } from "@/log";
+
 
 export interface TypePassResult {
   typeMap: Map<string, IRType>;
@@ -54,31 +53,6 @@ export class TypePassProcessor {
               sourceFile.getFilePath(),
             );
       errors.push(transpileError);
-    }
-    if (transpilerContext.getIsLogging()) {
-      let logger = new Logger("typePass.ir", "./logs", LogLevel.DEBUG);
-      const line = "═".repeat(
-        transpilerContext.getCurrentFileName().length + 22,
-      );
-      logger.info(
-        `\n\n${line}\n  📄 Current File: ${transpilerContext.getCurrentFileName()}\n${line}\n`,
-      );
-      logger.log(
-        LogLevel.DEBUG,
-        "Pass: 1 -> TypePass",
-        "Writing all the Type IR's to Log",
-      );
-      for (const [key, value] of typeMap) {
-        logger.debug(`${key}: ${JSON.stringify(value)}`);
-      }
-      if (errors.length > 0) {
-        Logger.stdout.warn(
-          "Got some errors from type parser, writing them to log",
-        );
-        for (let err of errors) {
-          logger.warn(err.message);
-        }
-      }
     }
     return { typeMap, errors };
   }

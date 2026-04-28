@@ -3,7 +3,7 @@ import { IRType, TypeKind, IRParameter, IRProperty } from "@ir/type";
 import { handleLiteralType } from "./literals";
 import { handleUnionType } from "./unions";
 import { handleDirectArrayType } from "./array";
-import { handleTypeReferences } from "./typeRefernce";
+import { handleTypeReferences, collectTypeDep } from "./typeRefernce";
 import { handleFunctionTypes } from "./function";
 import { handleTypeLiterals } from "./typeLiterals";
 import { handleTupleType } from "./tuple";
@@ -14,7 +14,7 @@ export class TypeParser {
   private static instance: TypeParser;
   private cache: Map<string, IRType> = new Map();
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): TypeParser {
     if (!TypeParser.instance) {
@@ -33,6 +33,13 @@ export class TypeParser {
         name: TypeKind.Any,
         isNullable: false,
       };
+    }
+
+    // Always collect deps for TypeReference nodes, even on cache hit.
+    // The cache prevents handleTypeReferences from being called on repeat visits,
+    // but we still need to record the dependency for the current declaration.
+    if (typeNode.getKind() === ts.SyntaxKind.TypeReference) {
+      collectTypeDep(typeNode as ts.TypeReferenceNode);
     }
 
     // Generate cache key using the type node text and depth

@@ -133,10 +133,10 @@ function deriveOutputPath(
     // Get relative path from the input root
     let relPath = relative(inputRoot, sourceFile);
 
-    // Strip leading "../" segments so dep files outside the inputRoot
+    // Strip leading "../" or "..\" segments so dep files outside the inputRoot
     // don't escape outDir. e.g. "../../serve-static/index.d.ts" → "serve-static/index.d.ts"
-    const segments = relPath.split("/");
-    while (segments.length > 0 && segments[0] === "..") {
+    const segments = relPath.split(/[\\/]/);
+    while (segments.length > 0 && (segments[0] === ".." || segments[0] === ".")) {
         segments.shift();
     }
     relPath = segments.join("/");

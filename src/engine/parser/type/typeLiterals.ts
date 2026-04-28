@@ -164,6 +164,7 @@ export function handleTypeLiterals(
         fqn: filePath + "::anon_dynamic",
         ir,
         type: SymbolType.TYPE_ALIAS,
+        deps: [],
       });
     }
     return {
@@ -206,6 +207,7 @@ export function handleTypeLiterals(
     type: SymbolType.INTERFACE,
     fqn: fullAnonFqn,
     ir: anonInterface,
+    deps: [],
   });
 
   // 5. Return a TypeRef pointing at the newly hoisted anonymous interface

@@ -28,10 +28,10 @@ class SymbolGenerator {
         error instanceof TranspileException
           ? error
           : new TranspileException(
-              `Symbol Generator Failed: ${error instanceof Error ? error.message : String(error)}`,
-              "SYMBOL_GENERATOR_ERROR",
-              sourceFile.getFilePath(),
-            );
+            `Symbol Generator Failed: ${error instanceof Error ? error.message : String(error)}`,
+            "SYMBOL_GENERATOR_ERROR",
+            sourceFile.getFilePath(),
+          );
       errors.push(transpileError);
     }
 
@@ -56,12 +56,12 @@ class SymbolGenerator {
           error instanceof TranspileException
             ? error
             : new TranspileException(
-                `Error processing statement declaration: ${error instanceof Error ? error.message : String(error)}`,
-                "STATEMENT_DECLARATION_ERROR",
-                filePath,
-                statement.getStartLineNumber(),
-                statement.getStart(),
-              );
+              `Error processing statement declaration: ${error instanceof Error ? error.message : String(error)}`,
+              "STATEMENT_DECLARATION_ERROR",
+              filePath,
+              statement.getStartLineNumber(),
+              statement.getStart(),
+            );
         errors.push(transpileError);
       }
     }
@@ -132,11 +132,13 @@ class SymbolGenerator {
     const interfaceName = node.getName();
     let fqn = filePath + "::" + this.modulePrefix + interfaceName;
     transpilerContext.currentFQN = fqn;
+    transpilerContext.clearDeps();
     const parsedInterface = parser.parseInterface(node);
     let symbol: Symbol = {
       type: SymbolType.INTERFACE,
       ir: parsedInterface,
       fqn,
+      deps: Array.from(transpilerContext.currentDeps),
     };
     transpilerContext.symbolTable.register(fqn, symbol);
   }
@@ -148,11 +150,13 @@ class SymbolGenerator {
     const aliasName = node.getName();
     let fqn = filePath + "::" + this.modulePrefix + aliasName;
     transpilerContext.currentFQN = fqn;
+    transpilerContext.clearDeps();
     const parsedTypeAlias = parser.parseTypeAlias(node);
     let symbol: Symbol = {
       type: SymbolType.TYPE_ALIAS,
       ir: parsedTypeAlias,
       fqn,
+      deps: Array.from(transpilerContext.currentDeps),
     };
     transpilerContext.symbolTable.register(fqn, symbol);
   }
@@ -164,11 +168,13 @@ class SymbolGenerator {
     let className = node.getName() || "Error_Class";
     let fqn = filePath + "::" + this.modulePrefix + className;
     transpilerContext.currentFQN = fqn;
+    transpilerContext.clearDeps();
     const parsedClass = parser.parseClass(node);
     let symbol: Symbol = {
       type: SymbolType.CLASS,
       ir: parsedClass,
       fqn,
+      deps: Array.from(transpilerContext.currentDeps),
     };
     transpilerContext.symbolTable.register(fqn, symbol);
   }
@@ -180,11 +186,13 @@ class SymbolGenerator {
     let functionName = node.getName() || "Error_Function";
     let fqn = filePath + "::" + this.modulePrefix + functionName;
     transpilerContext.currentFQN = fqn;
+    transpilerContext.clearDeps();
     const parsedFunction = parser.parseFunction(node);
     let symbol: Symbol = {
       type: SymbolType.FUNCTION,
       ir: parsedFunction,
       fqn,
+      deps: Array.from(transpilerContext.currentDeps),
     };
     transpilerContext.symbolTable.register(fqn, symbol);
   }
@@ -193,6 +201,7 @@ class SymbolGenerator {
     node: ts.VariableStatement,
     filePath: string,
   ): void {
+    transpilerContext.clearDeps();
     const parsedVariables = parser.parseVariableStmt(
       filePath + "::" + this.modulePrefix,
       node,
@@ -203,6 +212,7 @@ class SymbolGenerator {
         type: SymbolType.VARIABLE,
         ir: variable,
         fqn,
+        deps: Array.from(transpilerContext.currentDeps),
       };
       transpilerContext.symbolTable.register(fqn, symbol);
     }
@@ -215,11 +225,13 @@ class SymbolGenerator {
     const enumName = node.getName();
     let fqn = filePath + "::" + this.modulePrefix + enumName;
     transpilerContext.currentFQN = fqn;
+    transpilerContext.clearDeps();
     const parsedEnum = parser.parseEnum(node);
     let symbol: Symbol = {
       type: SymbolType.ENUM,
       ir: parsedEnum,
       fqn,
+      deps: Array.from(transpilerContext.currentDeps),
     };
     transpilerContext.symbolTable.register(fqn, symbol);
   }

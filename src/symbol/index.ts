@@ -13,4 +13,6 @@ export interface Symbol {
   type: SymbolType;
   fqn: string;
   ir: IRDeclaration;
+  /** Pseudo-FQNs of type dependencies (e.g. "sourceFile::TypeName") */
+  deps: string[];
 }

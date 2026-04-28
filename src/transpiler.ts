@@ -7,6 +7,7 @@
 import * as ts from "ts-morph";
 import { resolve, dirname } from "path";
 import { generateSymbols } from "./engine/phase/symbolGeneration";
+import { runLinker } from "./engine/phase/linkerPhase";
 import { emitAllFiles } from "./engine/phase/emitterPhase";
 import { transpilerContext } from "./context";
 
@@ -133,6 +134,9 @@ export class Transpiler {
         }
       }
 
+      // Phase 2: Linker — fix overloads, augmentations, resolve deps
+      await runLinker(this.debug);
+
       // Phase 3: Emission — write Dart files
       const outDir = this.outDir || "./dart_out";
       // Use the directory of the first input file as the input root
@@ -168,7 +172,9 @@ export class Transpiler {
     const allProgramFiles = this.project
       .getProgram()
       .compilerObject.getSourceFiles();
-    const inputSet = new Set(this.files);
+    const inputSet = new Set(
+      this.files.map(f => Transpiler.toForwardSlash(resolve(f)))
+    );
 
     // Reset maps
     this.inputFiles.clear();
@@ -188,6 +194,15 @@ export class Transpiler {
         this.packageDepFiles.set(sf.fileName, morphSf);
       }
     }
+  }
+
+  /**
+   * Normalize a file path to use forward slashes (POSIX style).
+   * ts-morph always uses forward slashes internally, but Windows
+   * path.resolve() returns backslashes.
+   */
+  private static toForwardSlash(p: string): string {
+    return p.split("\\").join("/");
   }
 
   /**

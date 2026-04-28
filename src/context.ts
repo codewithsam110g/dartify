@@ -4,12 +4,21 @@ class TranspilerContext {
   private static instance: TranspilerContext;
   private isLogging: boolean;
   public currentFQN: string;
+  public currentDeps: Set<string>;
   public readonly symbolTable: SymbolTable;
 
   private constructor() {
     this.isLogging = false;
     this.symbolTable = new SymbolTable();
     this.currentFQN = "";
+    this.currentDeps = new Set();
+  }
+
+  /**
+   * Clears the deps bucket. Call before parsing each declaration.
+   */
+  public clearDeps(): void {
+    this.currentDeps.clear();
   }
 
   public static getInstance(): TranspilerContext {

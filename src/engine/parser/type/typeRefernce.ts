@@ -13,6 +13,7 @@ import { transpilerContext } from "@/context";
  */
 export function collectTypeDep(node: ts.TypeReferenceNode): void {
   try {
+    if (node.getType().isTypeParameter()) return;
     const typeName = node.getTypeName();
     const name = typeName.getText();
 

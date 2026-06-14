@@ -123,16 +123,16 @@ export class Transpiler {
       }
 
       // Print all generated symbols after everything is parsed
-      if (this.debug) {
-        let sta = transpilerContext.symbolTable.getSymbolTable();
-        for (const [_, symbols] of sta) {
-          if (symbols.length > 1) {
-            for (const symbol of symbols) {
-              console.log("FQN:", symbol.fqn);
-            }
-          }
-        }
-      }
+      // if (this.debug) {
+      //   let sta = transpilerContext.symbolTable.getSymbolTable();
+      //   for (const [_, symbols] of sta) {
+      //     if (symbols.length > 1) {
+      //       for (const symbol of symbols) {
+      //         console.log("FQN:", symbol.fqn);
+      //       }
+      //     }
+      //   }
+      // }
 
       // Phase 2: Linker — fix overloads, augmentations, resolve deps
       await runLinker(this.debug);
@@ -173,7 +173,7 @@ export class Transpiler {
       .getProgram()
       .compilerObject.getSourceFiles();
     const inputSet = new Set(
-      this.files.map(f => Transpiler.toForwardSlash(resolve(f)))
+      this.files.map((f) => Transpiler.toForwardSlash(resolve(f))),
     );
 
     // Reset maps

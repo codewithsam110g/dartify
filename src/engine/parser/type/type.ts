@@ -9,6 +9,7 @@ import { handleTypeLiterals } from "./typeLiterals";
 import { handleTupleType } from "./tuple";
 import { handleIntersectionType } from "./intersection";
 import { handleRestType } from "./restType";
+import { sourceTextOf } from "./sourceText";
 
 /**
  * Parses `ts.TypeNode`s into `IRType`.
@@ -62,6 +63,7 @@ export class TypeParser {
         kind: TypeKind.Any,
         name: TypeKind.Any,
         isNullable: false,
+        originalText: sourceTextOf(typeNode),
       };
     }
 
@@ -193,6 +195,11 @@ export class TypeParser {
         break;
     }
 
+    // T-02: every node carries the text it was written as, at every depth.
+    // Set here rather than in the handlers so no `SyntaxKind` can be added
+    // later that forgets to record it — including the `default:` branch, where
+    // losing the text is exactly the bug.
+    result.originalText = sourceTextOf(typeNode);
     return result;
   }
 }

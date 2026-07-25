@@ -8,11 +8,13 @@ exports[`Type Parser Snapshot Test > Array - Array<T> 1`] = `
       "isNullable": false,
       "kind": "typeReference",
       "name": "String",
+      "originalText": "String",
     },
   ],
   "isNullable": false,
   "kind": "typeReference",
   "name": "Array",
+  "originalText": "Array<String>",
 }
 `;
 
@@ -22,10 +24,12 @@ exports[`Type Parser Snapshot Test > Array - T[] 1`] = `
     "isNullable": false,
     "kind": "string",
     "name": "string",
+    "originalText": "string",
   },
   "isNullable": false,
   "kind": "array",
   "name": "array",
+  "originalText": "string[]",
 }
 `;
 
@@ -35,22 +39,26 @@ exports[`Type Parser Snapshot Test > Complex Array T 1`] = `
     "isNullable": false,
     "kind": "union",
     "name": "union",
+    "originalText": "(string | number)",
     "unionTypes": [
       {
         "isNullable": false,
         "kind": "string",
         "name": "string",
+        "originalText": "string",
       },
       {
         "isNullable": false,
         "kind": "number",
         "name": "number",
+        "originalText": "number",
       },
     ],
   },
   "isNullable": false,
   "kind": "array",
   "name": "array",
+  "originalText": "(string | number)[]",
 }
 `;
 
@@ -59,16 +67,19 @@ exports[`Type Parser Snapshot Test > Complex Union - A | B | undef 1`] = `
   "isNullable": true,
   "kind": "union",
   "name": "union",
+  "originalText": "string | number | undefined",
   "unionTypes": [
     {
       "isNullable": false,
       "kind": "string",
       "name": "string",
+      "originalText": "string",
     },
     {
       "isNullable": false,
       "kind": "number",
       "name": "number",
+      "originalText": "number",
     },
   ],
 }
@@ -79,16 +90,19 @@ exports[`Type Parser Snapshot Test > Complex Union - A | B 1`] = `
   "isNullable": false,
   "kind": "union",
   "name": "union",
+  "originalText": "string | number",
   "unionTypes": [
     {
       "isNullable": false,
       "kind": "string",
       "name": "string",
+      "originalText": "string",
     },
     {
       "isNullable": false,
       "kind": "number",
       "name": "number",
+      "originalText": "number",
     },
   ],
 }
@@ -99,6 +113,7 @@ exports[`Type Parser Snapshot Test > Functions - Optional Parameter 1`] = `
   "isNullable": false,
   "kind": "function",
   "name": "function",
+  "originalText": "(a: string, b: number) => void",
   "parameters": [
     {
       "isOptional": false,
@@ -108,6 +123,7 @@ exports[`Type Parser Snapshot Test > Functions - Optional Parameter 1`] = `
         "isNullable": false,
         "kind": "string",
         "name": "string",
+        "originalText": "string",
       },
     },
     {
@@ -118,6 +134,7 @@ exports[`Type Parser Snapshot Test > Functions - Optional Parameter 1`] = `
         "isNullable": false,
         "kind": "number",
         "name": "number",
+        "originalText": "number",
       },
     },
   ],
@@ -125,6 +142,7 @@ exports[`Type Parser Snapshot Test > Functions - Optional Parameter 1`] = `
     "isNullable": false,
     "kind": "void",
     "name": "void",
+    "originalText": "void",
   },
 }
 `;
@@ -134,6 +152,7 @@ exports[`Type Parser Snapshot Test > Functions - Params: 1, no return 1`] = `
   "isNullable": false,
   "kind": "function",
   "name": "function",
+  "originalText": "(a: string) => void",
   "parameters": [
     {
       "isOptional": false,
@@ -143,6 +162,7 @@ exports[`Type Parser Snapshot Test > Functions - Params: 1, no return 1`] = `
         "isNullable": false,
         "kind": "string",
         "name": "string",
+        "originalText": "string",
       },
     },
   ],
@@ -150,6 +170,7 @@ exports[`Type Parser Snapshot Test > Functions - Params: 1, no return 1`] = `
     "isNullable": false,
     "kind": "void",
     "name": "void",
+    "originalText": "void",
   },
 }
 `;
@@ -159,6 +180,7 @@ exports[`Type Parser Snapshot Test > Functions - Params: 1, return 1`] = `
   "isNullable": false,
   "kind": "function",
   "name": "function",
+  "originalText": "(a: string) => number",
   "parameters": [
     {
       "isOptional": false,
@@ -168,6 +190,7 @@ exports[`Type Parser Snapshot Test > Functions - Params: 1, return 1`] = `
         "isNullable": false,
         "kind": "string",
         "name": "string",
+        "originalText": "string",
       },
     },
   ],
@@ -175,6 +198,7 @@ exports[`Type Parser Snapshot Test > Functions - Params: 1, return 1`] = `
     "isNullable": false,
     "kind": "number",
     "name": "number",
+    "originalText": "number",
   },
 }
 `;
@@ -184,6 +208,7 @@ exports[`Type Parser Snapshot Test > Functions - Rest Parameter 1`] = `
   "isNullable": false,
   "kind": "function",
   "name": "function",
+  "originalText": "(a: string, ...args:number[]) => number",
   "parameters": [
     {
       "isOptional": false,
@@ -193,6 +218,7 @@ exports[`Type Parser Snapshot Test > Functions - Rest Parameter 1`] = `
         "isNullable": false,
         "kind": "string",
         "name": "string",
+        "originalText": "string",
       },
     },
     {
@@ -204,10 +230,12 @@ exports[`Type Parser Snapshot Test > Functions - Rest Parameter 1`] = `
           "isNullable": false,
           "kind": "number",
           "name": "number",
+          "originalText": "number",
         },
         "isNullable": false,
         "kind": "array",
         "name": "array",
+        "originalText": "number[]",
       },
     },
   ],
@@ -215,6 +243,7 @@ exports[`Type Parser Snapshot Test > Functions - Rest Parameter 1`] = `
     "isNullable": false,
     "kind": "number",
     "name": "number",
+    "originalText": "number",
   },
 }
 `;
@@ -226,16 +255,19 @@ exports[`Type Parser Snapshot Test > Generics - Map<K, V> 1`] = `
       "isNullable": false,
       "kind": "string",
       "name": "string",
+      "originalText": "string",
     },
     {
       "isNullable": false,
       "kind": "number",
       "name": "number",
+      "originalText": "number",
     },
   ],
   "isNullable": false,
   "kind": "typeReference",
   "name": "Map",
+  "originalText": "Map<string, number>",
 }
 `;
 
@@ -246,11 +278,13 @@ exports[`Type Parser Snapshot Test > Generics - Promise<T> 1`] = `
       "isNullable": false,
       "kind": "string",
       "name": "string",
+      "originalText": "string",
     },
   ],
   "isNullable": false,
   "kind": "typeReference",
   "name": "Promise",
+  "originalText": "Promise<string>",
 }
 `;
 
@@ -259,6 +293,7 @@ exports[`Type Parser Snapshot Test > Primitives - Bool 1`] = `
   "isNullable": false,
   "kind": "boolean",
   "name": "boolean",
+  "originalText": "boolean",
 }
 `;
 
@@ -267,6 +302,7 @@ exports[`Type Parser Snapshot Test > Primitives - Number 1`] = `
   "isNullable": false,
   "kind": "number",
   "name": "number",
+  "originalText": "number",
 }
 `;
 
@@ -275,6 +311,7 @@ exports[`Type Parser Snapshot Test > Primitives - String 1`] = `
   "isNullable": false,
   "kind": "string",
   "name": "string",
+  "originalText": "string",
 }
 `;
 
@@ -283,6 +320,7 @@ exports[`Type Parser Snapshot Test > Primitives - void 1`] = `
   "isNullable": false,
   "kind": "void",
   "name": "void",
+  "originalText": "void",
 }
 `;
 
@@ -292,6 +330,7 @@ exports[`Type Parser Snapshot Test > Type References - basic 1`] = `
   "isNullable": false,
   "kind": "typeReference",
   "name": "HTMLElement",
+  "originalText": "HTMLElement",
 }
 `;
 
@@ -300,11 +339,13 @@ exports[`Type Parser Snapshot Test > Union - String? 1 1`] = `
   "isNullable": true,
   "kind": "union",
   "name": "union",
+  "originalText": "string | null",
   "unionTypes": [
     {
       "isNullable": false,
       "kind": "string",
       "name": "string",
+      "originalText": "string",
     },
   ],
 }
@@ -315,11 +356,13 @@ exports[`Type Parser Snapshot Test > Union - String? 2 1`] = `
   "isNullable": true,
   "kind": "union",
   "name": "union",
+  "originalText": "string | undefined",
   "unionTypes": [
     {
       "isNullable": false,
       "kind": "string",
       "name": "string",
+      "originalText": "string",
     },
   ],
 }
@@ -330,11 +373,13 @@ exports[`Type Parser Snapshot Test > Union - String? 3 1`] = `
   "isNullable": true,
   "kind": "union",
   "name": "union",
+  "originalText": "string | null | undefined",
   "unionTypes": [
     {
       "isNullable": false,
       "kind": "string",
       "name": "string",
+      "originalText": "string",
     },
   ],
 }
@@ -345,21 +390,25 @@ exports[`Type Parser Snapshot Test > tuple - [A, A, A] 1`] = `
   "isNullable": false,
   "kind": "tuple",
   "name": "tuple",
+  "originalText": "[string, string, string]",
   "tupleTypes": [
     {
       "isNullable": false,
       "kind": "string",
       "name": "string",
+      "originalText": "string",
     },
     {
       "isNullable": false,
       "kind": "string",
       "name": "string",
+      "originalText": "string",
     },
     {
       "isNullable": false,
       "kind": "string",
       "name": "string",
+      "originalText": "string",
     },
   ],
 }
@@ -370,16 +419,19 @@ exports[`Type Parser Snapshot Test > tuple - [A, B] 1`] = `
   "isNullable": false,
   "kind": "tuple",
   "name": "tuple",
+  "originalText": "[string, number]",
   "tupleTypes": [
     {
       "isNullable": false,
       "kind": "string",
       "name": "string",
+      "originalText": "string",
     },
     {
       "isNullable": false,
       "kind": "number",
       "name": "number",
+      "originalText": "number",
     },
   ],
 }

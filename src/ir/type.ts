@@ -38,7 +38,15 @@ export interface IRType {
   // Literal types: "success" | 42 | true
   literalValue?: string | number | bigint | boolean;
 
-  // Debug info
+  /**
+   * The source text this node was written as, whitespace-normalised to one
+   * line. Written by `parseType` for every node at every depth (`T-02`).
+   *
+   * Not debug info: it is the body of the degradation comment
+   * (`/// Unrepresentable in Dart: keyof Box<string>`) and the input to the
+   * name derivation for minted aliases. Optional only because IR nodes
+   * synthesised by the linker rather than parsed have no source text.
+   */
   originalText?: string;
 }
 

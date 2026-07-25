@@ -20,7 +20,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `L-01` | Cross-file dep FQNs name the importing file, not the declaring file; masked by the fuzzy matcher | `parser/type/typeRefernce.ts:24-30` | ✅ |
 | `P-01` | Heritage clauses bypass `parseType` → **no inheritance edge reaches the dep graph** | `parser/interface.ts:19`, `class.ts:17-18` | ✅ |
 | `E-08` | No cross-file imports are ever emitted — 415/415 three.js files uncompilable | `phase/emitterPhase.ts:188-195` | ✅ |
-| `T-02` | `IRType.originalText` declared but never written — source text destroyed at parse, unrecoverable downstream | `ir/type.ts:42` | ✅ |
+| `T-02` **[FIXED]** | ~~`IRType.originalText` declared but never written — source text destroyed at parse~~ — written for every node at every depth from one place in `parseType` (S1.2), whitespace-normalised, no truncation | `type/sourceText.ts`, `type/type.ts` | ✅ |
 | `E-03` | Type parameters never emitted — every generic declaration is uncompilable | `emitter/old/class.ts:17` | ✅ |
 | `E-04` | `extends`/`implements` never emitted — whole inheritance graph dropped | all emitters | ✅ |
 | `R-01` | Extensionless relative imports silently fail to resolve (most `@types/*` packages) | `transpiler.ts:86-96` | ✅ |

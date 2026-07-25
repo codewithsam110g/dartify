@@ -20,6 +20,7 @@ exports[`AST Parsers to IR > parseClass() > should parse a simple class with pro
         "isNullable": false,
         "kind": "string",
         "name": "string",
+        "originalText": "string",
       },
     },
   ],
@@ -66,6 +67,7 @@ exports[`AST Parsers to IR > parseFunction() > should parse a function declarati
         "isNullable": false,
         "kind": "number",
         "name": "number",
+        "originalText": "number",
       },
     },
   ],
@@ -74,6 +76,7 @@ exports[`AST Parsers to IR > parseFunction() > should parse a function declarati
     "isNullable": false,
     "kind": "typeReference",
     "name": "User",
+    "originalText": "User",
   },
 }
 `;
@@ -97,6 +100,7 @@ exports[`AST Parsers to IR > parseInterface() > should parse a simple interface 
         "isNullable": false,
         "kind": "number",
         "name": "number",
+        "originalText": "number",
       },
     },
     {
@@ -108,6 +112,7 @@ exports[`AST Parsers to IR > parseInterface() > should parse a simple interface 
         "isNullable": false,
         "kind": "string",
         "name": "string",
+        "originalText": "string",
       },
     },
   ],
@@ -134,6 +139,7 @@ exports[`AST Parsers to IR > parseInterface() > should parse an interface with o
         "isNullable": false,
         "kind": "string",
         "name": "string",
+        "originalText": "string",
       },
     },
     {
@@ -145,6 +151,7 @@ exports[`AST Parsers to IR > parseInterface() > should parse an interface with o
         "isNullable": false,
         "kind": "number",
         "name": "number",
+        "originalText": "number",
       },
     },
   ],
@@ -160,16 +167,19 @@ exports[`AST Parsers to IR > parseTypeAlias() > should parse a type alias for a 
     "isNullable": false,
     "kind": "union",
     "name": "union",
+    "originalText": "string | number",
     "unionTypes": [
       {
         "isNullable": false,
         "kind": "string",
         "name": "string",
+        "originalText": "string",
       },
       {
         "isNullable": false,
         "kind": "number",
         "name": "number",
+        "originalText": "number",
       },
     ],
   },
@@ -188,6 +198,7 @@ exports[`AST Parsers to IR > parseVariableStmt() > should parse a variable state
       "kind": "numberLiteral",
       "literalValue": 3.14159,
       "name": "double",
+      "originalText": "3.14159",
     },
   },
 ]

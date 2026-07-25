@@ -149,7 +149,7 @@ small enough to reason about.
 | # | Task | Findings |
 |---|---|---|
 | 1.1 | ✅ **Cache hygiene first.** ~~Key the type cache on file+scope+text+depth (or drop it — measure); stop handlers mutating cached objects~~ — **measured, then dropped the cache outright** (three.js `analyze()` 836→987 ms, leaflet unchanged; a correct key needs the per-declaration `currentFQN`, which would have collapsed the hit rate anyway). Handlers now spread. Uncovered `T-13`: cache hits were dropping nested dep edges, so the 2nd occurrence of a generic in a file contributed none | `T-04`, `T-03`, `T-13` |
-| 1.2 | Populate `originalText` on **every** `IRType` node, at every depth — this is the comment body and it is unrecoverable later | `T-02` |
+| 1.2 | ✅ Populate `originalText` on **every** `IRType` node, at every depth — this is the comment body and it is unrecoverable later. Done centrally in `parseType` (one assignment after the dispatch, so no future `SyntaxKind` can forget it); normalised to one line by `sourceTextOf`, never truncated | `T-02` |
 | 1.3 | `TypeKind.Unsupported` carrying `originalText` + a machine-readable reason code | `I-03`, `T-01` |
 | 1.4 | **Tier A — represent properly.** `this` (**do first: ~1,100 corpus sites, the single biggest type gap, and cheap**), `readonly T[]`, qualified names, type predicates, `typeof x`, named/optional tuple members, bare `null` → `Null` | `P-07`, `T-01`, `T-07` |
 | 1.5 | **Tier B — mint a named alias.** `keyof`, conditional, mapped, template literal, `infer`, indexed access. Deterministic name derivation, collision-checked against the symbol table | `T-01`, principle 2 |

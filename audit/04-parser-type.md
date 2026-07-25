@@ -41,7 +41,37 @@ gap.
 
 ---
 
-## T-02 — `IRType.originalText` is declared but never written or read `[verified]`
+## T-02 — `IRType.originalText` is declared but never written or read `[verified]` **[FIXED — S1.2]**
+
+> **Resolved.** `parseType` now writes `originalText` on every node it returns,
+> at every depth, from a single assignment after the dispatch switch — not in
+> the handlers, so a `SyntaxKind` added later cannot forget to record it. The
+> `default:` branch and the `depth > 15` bail-out both carry it too, which is
+> the whole point: those are precisely the paths where the text was being
+> destroyed.
+>
+> Text is whitespace-normalised to one line (`sourceTextOf`, `type/sourceText.ts`)
+> because `.d.ts` types are routinely written across several indented lines and
+> a dartdoc comment is one line. No truncation — how much of a long expression
+> to show is the emitter's decision (`E-16`), and it cannot make that decision
+> on text it never received.
+>
+> Verified by walking the full IR for 8 representative types and asserting no
+> node lacks the field. The nested case is the one that matters:
+>
+> ```
+> Map<string, Array<keyof Box>>
+>   └─ genericArgs[1]              originalText: "Array<keyof Box>"
+>        └─ genericArgs[0]  any    originalText: "keyof Box"   ← recoverable now
+> ```
+>
+> Emitted Dart is unchanged (byte-exact smoke snapshots pass untouched); this
+> stage only makes the information available to S1.3–S1.7.
+
+Original finding follows.
+
+---
+
 
 **`src/ir/type.ts:42`** declares `originalText?: string`.
 

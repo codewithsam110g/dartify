@@ -121,6 +121,14 @@ Consequences worth holding on to:
   `src/`: when it was imported from `linkerPhase`, the `@viz-js/viz`
   devDependency it pulls in was **95% of the shipped bundle** (`D-07`).
   Instruments consume phase output; they are never steps inside it.
+- **h3 passing is necessary but NOT sufficient — it is the easiest file in the
+  corpus.** `h3.d.ts` has 0 `extends`, 0 `implements`, 0 generics, 0
+  `interface`s, and is a single file. So `E-03` (type params never emitted),
+  `E-04` (heritage never emitted) and `E-08` (no cross-file imports) are all
+  *structurally invisible* from h3. Its output has shipped since the 3-day
+  version for exactly this reason. Never conclude the emitter works because h3
+  looks right — check leaflet (92 `extends`, 15 namespaces) and three.js
+  (420 files) before believing anything.
 - **`ts-morph`'s tuple wrapper covers rest params because of this project** —
   the author filed the upstream issue. Worth re-checking `T-10` (unreachable
   `OptionalType` in tuples) against current ts-morph rather than assuming the

@@ -283,7 +283,7 @@ add. **Fix this before P2, not after.**
 
 ---
 
-## T-05 — Depth is not propagated through function types `[inspection]`
+## T-05 — Depth is not propagated through function types `[inspection]` **[FIXED — S1.9]**
 
 **`parser/type/function.ts:11`**
 ```ts
@@ -377,7 +377,7 @@ are `Null`, so this is benign today — but it is another IR-level information l
 
 ---
 
-## T-08 — Intersection dispatch uses source-text string comparison `[inspection]`
+## T-08 — Intersection dispatch uses source-text string comparison `[inspection]` **[FIXED — S1.9]**
 
 **`parser/type/intersection.ts:17-32`**
 ```ts
@@ -467,7 +467,7 @@ delimiters but leaves escape sequences raw. A literal type `"a\"b"` yields
 
 ---
 
-## T-12 — Union of a single member keeps a `Union` wrapper `[inspection]`
+## T-12 — Union of a single member keeps a `Union` wrapper `[inspection]` **[FIXED — S1.9]**
 
 `handleUnionType` (`unions.ts:16-21`) always returns `TypeKind.Union`, even
 after null-filtering leaves one member. `emitType` compensates at
@@ -577,3 +577,53 @@ than honestly degraded. They get a minted alias instead (`E-16`).
 syntax. Syntax is the wrong axis: the question is not "can this construct be
 represented" but "can dartify *find out* what it means". Any remaining category
 should be re-checked against the type checker before being written off.
+
+---
+
+## T-15 — `null | undefined` threw at emit `[verified]` **[FIXED — S1.9]**
+
+Found while normalising single-member unions; not in the original audit.
+
+`handleUnionType` filtered `null` and `undefined` out of the member list and
+returned a `TypeKind.Union` regardless. For `null | undefined` that left
+`unionTypes: []`, and `emitType` reached straight for `unionTypes![0]`:
+
+```
+declare var x: null | undefined;
+→ // ERROR emitting /e.d.ts::x: Cannot read properties of undefined (reading 'kind')
+```
+
+The throw was caught by `emitFileContent`'s per-symbol `try/catch`, so it
+degraded one declaration into a comment rather than failing the run — which is
+also why it survived: the stress tier asserts nothing *throws*, and nothing did.
+
+Fixed by returning a nullable `Any`. Not present in the shipping corpus; found
+by probing the degenerate case directly.
+
+---
+
+## T-16 — The empty type literal emitted a cyclic typedef `[verified]` **[FIXED — S1.9]**
+
+`handleTypeLiterals` special-cased `{}` by synthesising a symbol whose type was
+a `TypeReference` to *itself*:
+
+```dart
+typedef anon_dynamic = anon_dynamic;
+```
+
+Two defects in one. The typedef is cyclic, and it was registered under the bare
+key `"anon_dynamic"` rather than a `file::Name` FQN — so the `has()` guard
+tested a key shaped unlike every other one in the table, and the symbol was
+unreachable through normal resolution. Since the guard was global-ish and the
+emission per-file, the typedef was emitted into exactly **one** file while
+**117** use sites across **34** files referred to the name.
+
+**This was live in three.js**, not just synthetic input:
+
+```dart
+external InterleavedBuffer clone(anon_dynamic data);   // undefined in this library
+```
+
+`{}` in TypeScript means "any non-null value", so there is no structure to hoist
+and `dynamic` says everything there is to say. The special case is gone.
+Occurrences of `anon_dynamic` in emitted output: **117 → 0**.

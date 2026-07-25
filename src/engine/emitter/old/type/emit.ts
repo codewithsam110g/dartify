@@ -84,7 +84,7 @@ export function emitType(type: IRType): string {
         // `dynamic?` is not valid Dart — dynamic already admits null (`E-17`).
         // This branch returns early, so it has to repeat the guard applied to
         // `baseType` at the end of the function rather than inherit it.
-        if (type.isNullable && only !== "dynamic" && only !== "void") {
+        if (type.isNullable && !isDynamicLike(only) && only !== "void") {
           return `${only}?`;
         }
         return only;
@@ -145,8 +145,11 @@ export function emitType(type: IRType): string {
     // unit tests calling `emitType` directly, and the alias declaration's own
     // right-hand side, which must not refer to itself.
     case TypeKind.Unsupported:
-      baseType = type.aliasName ?? "dynamic";
-      break;
+      // Returned directly, like `Null` above: a minted alias is a typedef for
+      // `dynamic`, so `KeyOfBoxString?` is exactly as invalid as `dynamic?`
+      // (`E-17`). The nullability of the original expression is already
+      // subsumed — `dynamic` admits null.
+      return type.aliasName ?? "dynamic";
 
     // Default fallback for Intersection, unhandled TypeLiterals, etc.
     default:
@@ -158,9 +161,23 @@ export function emitType(type: IRType): string {
   // This handles cases like `(string | null)[]` -> `List<String?>`
   // or `Promise<string | null>` -> `Future<String?>`.
   // And most importantly, simple `string | null` -> `String?`.
-  if (type.isNullable && baseType !== "dynamic" && baseType !== "void") {
+  if (type.isNullable && !isDynamicLike(baseType) && baseType !== "void") {
     return `${baseType}?`;
   }
 
   return baseType;
+}
+
+/**
+ * Whether an emitted type already admits null, and so must not take a `?`.
+ *
+ * The commented form is why this is not an equality check. A nullable union of
+ * two representable members emits `dynamic` followed by a trailing block
+ * comment naming them, which is not string-equal to `"dynamic"`. The original
+ * `E-17` guard compared for exact equality and let that through, producing a
+ * commented `dynamic` with a `?` stuck on the end — uncompilable, and live in
+ * three.js output until S1.9 surfaced it.
+ */
+function isDynamicLike(emitted: string): boolean {
+  return emitted === "dynamic" || emitted.startsWith("dynamic /*");
 }

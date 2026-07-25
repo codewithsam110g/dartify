@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { IRType, TypeKind } from "@ir/type";
 import { parseType } from "./type";
+import { isNullOrUndefined, isNever, isVoid } from "./keywords";
 
 export function handleIntersectionType(
   node: ts.IntersectionTypeNode,
@@ -14,19 +15,20 @@ export function handleIntersectionType(
   const intersectionNodes: IRType[] = [];
 
   for (const typeNode of rawTypes) {
-    const text = typeNode.getText().trim();
-
-    if (text === "null" || text === "undefined") {
+    // Dispatched on SyntaxKind, not on `getText()` (`T-08`). Text comparison
+    // made this the one handler that could be fooled by a comment inside the
+    // node or by whitespace the printer leaves alone.
+    if (isNullOrUndefined(typeNode)) {
       isNullable = true;
       continue; // skip in intersection
     }
 
-    if (text === "never") {
+    if (isNever(typeNode)) {
       hasNever = true;
       continue; // handled separately
     }
 
-    if (text === "void") {
+    if (isVoid(typeNode)) {
       // Only include void in return context — if needed, pass context flag
       continue; // skip by default
     }

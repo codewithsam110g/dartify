@@ -337,51 +337,27 @@ exports[`Type Parser Snapshot Test > Type References - basic 1`] = `
 exports[`Type Parser Snapshot Test > Union - String? 1 1`] = `
 {
   "isNullable": true,
-  "kind": "union",
-  "name": "union",
+  "kind": "string",
+  "name": "string",
   "originalText": "string | null",
-  "unionTypes": [
-    {
-      "isNullable": false,
-      "kind": "string",
-      "name": "string",
-      "originalText": "string",
-    },
-  ],
 }
 `;
 
 exports[`Type Parser Snapshot Test > Union - String? 2 1`] = `
 {
   "isNullable": true,
-  "kind": "union",
-  "name": "union",
+  "kind": "string",
+  "name": "string",
   "originalText": "string | undefined",
-  "unionTypes": [
-    {
-      "isNullable": false,
-      "kind": "string",
-      "name": "string",
-      "originalText": "string",
-    },
-  ],
 }
 `;
 
 exports[`Type Parser Snapshot Test > Union - String? 3 1`] = `
 {
   "isNullable": true,
-  "kind": "union",
-  "name": "union",
+  "kind": "string",
+  "name": "string",
   "originalText": "string | null | undefined",
-  "unionTypes": [
-    {
-      "isNullable": false,
-      "kind": "string",
-      "name": "string",
-      "originalText": "string",
-    },
-  ],
 }
 `;
 

@@ -14,7 +14,6 @@ import { IRParameter } from "@ir/function";
 import { IRDeclKind } from "@ir/declaration";
 import { transpilerContext } from "@/context";
 import { SymbolType } from "@/symbol";
-import { IRTypeAlias } from "@/ir";
 
 export function handleTypeLiterals(
   node: ts.TypeLiteralNode,
@@ -146,32 +145,16 @@ export function handleTypeLiterals(
     transpilerContext.currentFQN = prevFQN;
   }
 
+  // `{}` — the empty type literal. It means "any non-null value", so `dynamic`
+  // says everything there is to say and there is no structure worth hoisting.
+  //
+  // This used to synthesise a symbol whose type referred to itself, emitting
+  // `typedef anon_dynamic = anon_dynamic;` — a cyclic typedef Dart rejects. It
+  // also registered under the bare key `"anon_dynamic"` rather than an FQN, so
+  // the `has()` guard was checking a key shaped unlike every other one in the
+  // table and the entry was unreachable by normal lookup (`T-16`).
   if (node.getMembers().length == 0) {
-    if (!transpilerContext.symbolTable.has("anon_dynamic")) {
-      let ir: IRTypeAlias = {
-        kind: IRDeclKind.TypeAlias,
-        name: "anon_dynamic",
-        type: {
-          kind: TypeKind.TypeReference,
-          name: "anon_dynamic",
-          isNullable: false,
-        },
-      };
-      const fqn = transpilerContext.currentFQN;
-      const [filePath, scopePath] = fqn.split("::");
-
-      transpilerContext.symbolTable.register("anon_dynamic", {
-        fqn: filePath + "::anon_dynamic",
-        ir,
-        type: SymbolType.TYPE_ALIAS,
-        deps: [],
-      });
-    }
-    return {
-      kind: TypeKind.TypeReference,
-      name: "anon_dynamic",
-      isNullable: false,
-    };
+    return { kind: TypeKind.Any, name: TypeKind.Any, isNullable: false };
   }
 
   const fqn = transpilerContext.currentFQN;

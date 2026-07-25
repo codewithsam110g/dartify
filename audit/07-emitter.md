@@ -256,8 +256,9 @@ error - lib/probe.dart:147:12 - 'extends' can't be used as an identifier ...
 `static` — the case originally recorded above — turns out to be *accepted* in
 property position, which is exactly the §10.3 distinction `js_facade_gen` draws.
 The reserved words that actually break the build are the true keywords. This
-raises `E-09` to the same severity class as `E-17`: it is on the `X-09` v1 gate,
-not a polish item.
+puts `E-09` on the `X-09` v1 gate rather than in the polish pile. It is in fact
+*more* severe than `E-17`, which turns out to be a warning — see the severity
+correction under that finding.
 
 ---
 
@@ -421,7 +422,7 @@ reproduce it.
 
 ---
 
-## E-17 — `dynamic?` is emitted, and it is not valid Dart `[verified]` **[FIXED — S1.4]**
+## E-17 — `dynamic?` is emitted `[verified]` **[FIXED — S1.4, hardened S1.9]**
 
 Found while diffing S1.4's output, not present in the original audit.
 
@@ -546,3 +547,35 @@ Recorded so later stages can be measured against them rather than re-argued.
 
 `E-03` and `L-05`/`E-10` are the whole game. Type parameters and declaration
 merging between them account for well over 400 of leaflet's 507.
+
+### Severity correction, and the residue S1.9 found
+
+**This finding originally said "not valid Dart". That is wrong**, and it was
+asserted from reading rather than from running the analyser. Measured:
+
+| emitted | `dart analyze` |
+|---|---|
+| `dynamic?` | **warning** — `unnecessary_question_mark` |
+| `dynamic /* Foo\|Bar */?` | **warning** — same |
+| `Alias?` where `typedef Alias = dynamic` | clean, no diagnostic |
+| `void?` | **error** — `Expected to find ';'` |
+
+So `dynamic?` is a lint, not a compile error. It still blocks the v1 gate —
+`dart analyze` exits non-zero on warnings — but it is not in the same class as
+`E-09`, and the note under that finding claiming they are equivalent overstates
+it. `void?` is the genuine parse error, and the guard already excluded `void`.
+
+**The residue.** The S1.4 guard compared for exact equality with `"dynamic"`,
+so the *commented* form slipped straight through:
+
+```dart
+external dynamic /* Node|String */? build(NodeBuilder builder, ...);
+```
+
+Three three.js files carried this until S1.9 — `nodes/core/Node.dart`,
+`renderers/common/Renderer.dart`, `scenes/Scene.dart`. It only became visible
+once `T-12` normalised single-member unions away, which changed which branch
+those types took. The guard is now `isDynamicLike`, covering the commented form,
+and `TypeKind.Unsupported` returns early for the same reason: a minted alias is
+a typedef for `dynamic`, so `KeyOfBoxString?` is the same construct wearing a
+name.

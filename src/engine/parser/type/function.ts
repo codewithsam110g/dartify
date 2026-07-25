@@ -8,7 +8,10 @@ export function handleFunctionTypes(
 ): IRType {
   let params = node.getParameters().map((e) => handleParamTypes(e, depth));
   let retType = node.getReturnTypeNode();
-  let returnIR = parseType(retType);
+  // `depth + 1`, not a reset to 0. The `depth > 15` guard is the only recursion
+  // protection there is, and a type recursing through function return positions
+  // used to slip past it entirely (`T-05`).
+  let returnIR = parseType(retType, depth + 1);
 
   return {
     kind: TypeKind.Function,
@@ -26,7 +29,7 @@ function handleParamTypes(
   const isRest = param.isRestParameter();
   const isOptional = param.isOptional();
   const name = param.getName();
-  const paramType = parseType(param.getTypeNode(), depth);
+  const paramType = parseType(param.getTypeNode(), depth + 1);
   return {
     name: name,
     type: paramType,

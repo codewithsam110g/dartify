@@ -160,6 +160,38 @@ project credible, and it is the one thing currently unmeasurable.
 
 ---
 
+## X-11 — Stress-tier baseline: 43% of the corpus renders empty, and that is correct `[verified]`
+
+First full-corpus run after the S0.6 retier:
+
+```
+DARTIFY_STRESS=1 pnpm test:run test/stress.test.ts
+→ 1 passed, 262 s
+→ ⚠️  710/1649 file(s) rendered empty
+→ 0 files threw
+```
+
+**Zero crashes over 1,649 files** is the headline. The empty-render warning
+looks alarming and is not:
+
+| Category | Count | Verdict |
+|---|---|---|
+| re-export / barrel files (`export * from`, `export { X } from`) | 697 | correct — nothing to emit |
+| comment-only or near-empty | 13 | correct |
+| genuinely dropped declarations | **0** | — |
+
+The corpus is dominated by barrels. `three/src/Three.Core.d.ts` is 163 lines of
+which 153 are `export *`; it has no declarations of its own at all. A
+single-file string API has nothing to emit for these by construction, and the
+real multi-file pipeline emits them as the empty libraries they are.
+
+**Use 710/1649 as the regression baseline.** A jump means declarations started
+being dropped; a drop means barrel handling changed. Either is worth
+investigating. The stress tier deliberately does not assert on this number —
+it warns — because the right value moves as `def_files/` gains fixtures.
+
+---
+
 ## X-10 — Probe fixture used for this audit
 
 Several `E-*` findings were verified with one synthetic file. Recording it here

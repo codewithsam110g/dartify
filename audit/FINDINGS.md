@@ -155,5 +155,6 @@ fix. The ROADMAP schedules `this` for v0.7; the data says v0.6.
 | three.js | 420 files, 1943 symbols, 0 broken, 415 emitted, 10 s |
 | files with cross-file imports emitted | **0** |
 | `dart analyze` clean outputs | **unmeasured** (`X-09`) |
+| full-corpus stress (post-S0) | 1,649 files, **0 crashes**, 262 s; 710 empty renders — all barrels/comment-only, 0 real (`X-11`) |
 
 Re-measure after each phase in `PLAN.md`.

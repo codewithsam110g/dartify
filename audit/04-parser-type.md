@@ -352,22 +352,27 @@ The parser work is done and correct; the result is thrown away at emit.
 ```
 Known and documented. Retained here for completeness.
 
-**Re-checked against ts-morph 26.0.0 (S1.3) — the gap is still real:**
+**Fixed upstream — the repo was simply pinned behind it.**
 
-```
-isOptionalTypeNode:  undefined
-OptionalTypeNode:    undefined
-isConstructorTypeNode: function     ← for contrast, this one exists
-```
+A first pass in S1.3 checked ts-morph **26.0.0** (the installed version) and
+concluded the gap was still real. That conclusion was wrong as a statement about
+ts-morph: it was only true of the pin. `package.json` had `"ts-morph": "^26.0.0"`
+while npm was at **28.0.0**.
 
-So the author's comment stands and this is not stale. It is no longer *silent*,
-though: `[string?]` now parses to `Unsupported/optionalMember` rather than a
-nameless `any`, and `test/type/unsupported.test.ts` asserts that. When ts-morph
-adds the wrapper, that test is the thing that should start failing.
+| | 26.0.0 | 28.0.0 |
+|---|---|---|
+| `Node.isOptionalTypeNode` | `undefined` | `function` |
+| `OptionalTypeNode` class | `undefined` | `function` |
+| `[string?]` element ctor | `Node` | `OptionalTypeNode` |
+| `[string?]` `getTypeNode()` | `undefined` | `function` |
+| `[...number[]]` element ctor | `RestTypeNode` | `RestTypeNode` |
 
-Two routes when it is fixed properly in S1.4: file the upstream issue (the same
-route that got rest params wrapped — see `CLAUDE.md`), or reach the inner node
-positionally via `forEachChildAsArray()`, which does expose it.
+Note the last row: `RestTypeNode` was already wrapped at 26. So the upstream
+issue this project prompted was about **optional** tuple members, not rest ones
+— which is what the author said, and what `CLAUDE.md` previously got backwards.
+
+Resolved in S1.4 by upgrading to `^28.0.0` and reading the inner node through
+the typed API. The `forEachChildAsArray()` workaround is unnecessary.
 
 ---
 

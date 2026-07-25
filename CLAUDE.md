@@ -38,15 +38,22 @@ the audit with a new ID rather than reporting it only in chat.
 Use `pnpm` — the repo has a `pnpm-lock.yaml` and `packageManager` pinned.
 
 ```bash
-pnpm test:run                       # one-shot suite (pnpm test is the same now)
+pnpm test                           # one-shot suite (test:run is the same)
 pnpm test:watch                     # watch mode
+pnpm test:ui                        # browser UI at localhost:51204/__vitest__/
+pnpm test:update                    # accept snapshot changes (vitest run -u)
+pnpm test:stress                    # opt-in full 1,648-file corpus, ~4.5 min
 pnpm exec tsc --noEmit              # typecheck — must stay at 0 errors
 pnpm dev -d "<glob>" -o <outdir>    # run the CLI from source
 pnpm dev -d "<file>" -o <out> -l    # + verbose: resolution summary, linker report
 pnpm graph -d "<glob>" -o g.svg     # dependency graph SVG (internal tooling)
 pnpm build                          # tsup → dist/
-DARTIFY_STRESS=1 pnpm test:run test/stress.test.ts   # full 1,648-file corpus
 ```
+
+`test:ui` accepts the same filters as the CLI — `pnpm test:ui type` opens the UI
+scoped to the type tests. `test:stress` sets `DARTIFY_STRESS=1` inline, which is
+POSIX-shell syntax; on Windows use `pnpm test:run test/stress.test.ts` with the
+variable set separately.
 
 Test tiers: `simple` (sanity) · `smoke` (3 files, byte-exact snapshots) ·
 `stress` (whole corpus, opt-in, asserts only that nothing throws).
@@ -129,13 +136,13 @@ Consequences worth holding on to:
   version for exactly this reason. Never conclude the emitter works because h3
   looks right — check leaflet (92 `extends`, 15 namespaces) and three.js
   (420 files) before believing anything.
-- **`ts-morph`'s tuple wrapper covers rest params because of this project** —
-  the author filed the upstream issue. `T-10` (unreachable `OptionalType` in
-  tuples) was **re-checked at ts-morph 26.0.0 in S1.3 and the gap is still
-  real**: no `Node.isOptionalTypeNode`, no `OptionalTypeNode` class, while
-  `isConstructorTypeNode` exists. Don't re-check without a version bump —
-  `test/type/unsupported.test.ts` fails when it lands. Either file the upstream
-  issue again or reach the inner node via `forEachChildAsArray()`.
+- **`ts-morph`'s tuple `OptionalTypeNode` wrapper exists because of this
+  project** — the author filed the upstream issue and it was fixed. `T-10` is
+  **resolved upstream and shipped in ts-morph 28.0.0**; the repo was pinned at
+  `^26.0.0`, which is why it still looked broken. Upgraded in S1.4. The
+  distinction that misled a previous session: `RestTypeNode` was *already*
+  wrapped at 26, `OptionalTypeNode` is the one that landed later — so "the
+  tuple wrapper" is about **optional** members, not rest.
 - **three.js reporting "0 broken links" is not proof multi-file works.** It
   passes because it is modern ESM with explicit `.js` extensions. Extensionless
   relative imports — most of DefinitelyTyped — silently resolve to nothing

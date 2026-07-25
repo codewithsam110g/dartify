@@ -18,16 +18,13 @@
     "graph": "tsx tools/graph.ts",
     "build": "tsup src/cli.ts --format esm --target node20 --out-dir dist --clean",
     "test": "vitest run",
+    "test:run": "vitest run",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",
-    "test:run": "vitest run",
+    "test:update": "vitest run -u",
+    "test:stress": "DARTIFY_STRESS=1 vitest run test/stress.test.ts",
     "test:coverage": "vitest --coverage",
-    "test:snapshot": "vitest run test/snapshot.test.ts",
-    "test:snapshot:ui": "vitest --ui test/snapshot.test.ts",
-    "test:snapshot:update": "vitest run test/snapshot.test.ts -u",
-    "test:snapshot:check": "vitest run test/snapshot.test.ts --reporter=verbose",
     "test:debug": "vitest --inspect-brk --no-coverage --reporter=verbose",
-    "test:clean": "rm -rf test/__snapshots__",
     "test:cli": "pnpm build && node dist/cli.js -d \"def_files/h3/h3.d.ts\" -o ./output",
     "clean": "rm -rf dist output",
     "prepublishOnly": "pnpm build"
@@ -50,7 +47,7 @@
   "packageManager": "pnpm@10.9.0",
   "dependencies": {
     "fast-glob": "^3.3.3",
-    "ts-morph": "^26.0.0",
+    "ts-morph": "^28.0.0",
     "yargs": "^18.0.0"
   },
   "devDependencies": {

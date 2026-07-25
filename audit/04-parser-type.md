@@ -37,9 +37,34 @@ module owns one `SyntaxKind` family.
 >
 > **`typeof x` is the surprise.** The occurrence table below counts it by
 > *files* (43) and so ranks it as a minor item; by *occurrences* it is 443 —
-> second only to `this` and 20× `keyof`. Both belong in Tier A. `keyof`'s 1,728
-> figure below is a whole-corpus count dominated by `typescript.d.ts` and
-> `vscode.d.ts`; in the two libraries that actually gate v1 it appears 3 times.
+> second only to `this` and 20× `keyof`. `keyof`'s 1,728 figure below is a
+> whole-corpus count dominated by `typescript.d.ts` and `vscode.d.ts`; in the
+> two libraries that actually gate v1 it appears 3 times.
+>
+> ### After Tier A (S1.4): 1,410 → 503
+>
+> | reason | count | note |
+> |---|---:|---|
+> | `typeQuery` | 443 | 88% of what remains |
+> | `indexedAccess` | 22 | |
+> | `conditional` | 19 | |
+> | `mapped` | 8 | |
+> | `templateLiteral` | 7 | |
+> | `keyOf` | 3 | |
+> | `constructorType` | 1 | |
+>
+> `thisType` (900), `readonlyOperator` (5), `typePredicate` (1) and
+> `optionalMember` (1) are gone — represented, not renamed.
+>
+> **`typeof x` was moved from Tier A to Tier B on inspection, reversing an
+> earlier call in this file.** The dominant corpus form is
+> `export const BRDF_GGX: typeof TSL.BRDF_GGX` — `typeof` applied to a *value*,
+> whose type only the type checker knows. It is not syntactically recoverable,
+> and the obvious guess is wrong: `typeof Foo` for a class is the **constructor**
+> type, not `Foo`, so resolving it to `Foo` would emit a confidently incorrect
+> signature. Tier A is for constructs whose representation follows from the
+> syntax; this one needs `ts.TypeChecker` and belongs with the other Tier C
+> checker work, with Tier B giving it a name in the meantime.
 >
 > **`unclassified` is the metric to watch.** It reaching 0 means every
 > degradation in these libraries has a name. Two constructs were found this way
@@ -294,7 +319,23 @@ belongs in the emitter's string table.
 
 ---
 
-## T-07 — Bare `null` in type position degrades to `dynamic` `[inspection]`
+## T-07 — Bare `null` in type position degrades to `dynamic` `[inspection]` **[FIXED — S1.4]**
+
+> **Resolved.** A `NullKeyword` case was added to `handleLiteralType`, which is
+> the only place it can be caught — in type position `null` is a `LiteralType`
+> wrapping a `NullKeyword`, so the `NullKeyword` case in `parseType` really is
+> unreachable, exactly as this finding says. `null` now yields `TypeKind.Null`
+> and emits `Null` (js_facade_gen §1.10). `string | null` is untouched and still
+> collapses to `String?`.
+>
+> The second half of this finding — `UndefinedKeyword` and `NullKeyword` sharing
+> `TypeKind.Undefined` — is **not** fixed. Still benign (both are `Null` in
+> Dart), still an IR-level information loss.
+
+Original finding follows.
+
+---
+
 
 **`type.ts:100-107`** handles `ts.SyntaxKind.NullKeyword` — but in a *type*
 position, `null` is parsed as a `LiteralType` wrapping a `NullKeyword`, not a
@@ -342,7 +383,22 @@ The parser work is done and correct; the result is thrown away at emit.
 
 ---
 
-## T-10 — `OptionalType` inside tuples is unreachable `[inspection]`
+## T-10 — `OptionalType` inside tuples is unreachable `[inspection]` **[FIXED — S1.4]**
+
+> **Resolved by upgrading ts-morph to 28.0.0**, where `OptionalTypeNode` and
+> its `getTypeNode()` exist. `tuple.ts` now reads the inner node through the
+> typed API via `ts.Node.isOptionalTypeNode`.
+>
+> Visible in real output immediately: leaflet's
+> `type LatLngTuple = [number, number, number?]` was emitting
+> `typedef LatLngTuple = List<dynamic>` because the optional third member
+> parsed as `any`, making the tuple heterogeneous. It now emits
+> `typedef LatLngTuple = List<num>`.
+
+Original finding follows.
+
+---
+
 
 **`parser/type/tuple.ts:21-26`**, with the author's own comment:
 ```ts

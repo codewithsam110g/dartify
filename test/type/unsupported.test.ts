@@ -13,7 +13,6 @@ describe("unsupported type classification", () => {
   const cases: [label: string, source: string, reason: UnsupportedReason][] = [
     ["this type", "this", UnsupportedReason.ThisType],
     ["keyof", "keyof Box<string>", UnsupportedReason.KeyOf],
-    ["readonly array", "readonly string[]", UnsupportedReason.ReadonlyOperator],
     ["unique symbol", "unique symbol", UnsupportedReason.UniqueSymbol],
     ["conditional", "A extends B ? C : D", UnsupportedReason.Conditional],
     ["mapped", "{ [K in keyof T]: T[K] }", UnsupportedReason.Mapped],
@@ -44,16 +43,15 @@ describe("unsupported type classification", () => {
     expect(ir.unsupportedReason).toBeUndefined();
   });
 
-  // `[string?]` reaches the classifier as a bare OptionalType, which ts-morph
-  // still does not wrap as of 26.0.0 (`T-10`). Asserted here so that when the
-  // wrapper does land, this test fails and points at the workaround to delete.
-  test("positional optional tuple member is named, not left unclassified", () => {
-    const ir = parseType(createTypeNode("[string?]"));
+  // Was Unsupported/optionalMember until ts-morph 28 exposed OptionalTypeNode
+  // with getTypeNode(). Requires ts-morph >= 28 (`T-10`).
+  test("positional optional tuple member resolves to its inner type", () => {
+    const ir = parseType(createTypeNode("[string?, number?]"));
 
-    const member = ir.tupleTypes![0];
-    expect(member.kind).toBe(TypeKind.Unsupported);
-    expect(member.unsupportedReason).toBe(UnsupportedReason.OptionalMember);
-    expect(member.isOptional).toBe(true);
+    expect(ir.tupleTypes!.map((m) => [m.kind, m.isOptional])).toEqual([
+      [TypeKind.String, true],
+      [TypeKind.Number, true],
+    ]);
   });
 
   test("nested unsupported types are reachable and keep their own text", () => {

@@ -11,6 +11,8 @@ import { handleIntersectionType } from "./intersection";
 import { handleRestType } from "./restType";
 import { sourceTextOf } from "./sourceText";
 import { makeUnsupported } from "./unsupported";
+import { handleThisType } from "./thisType";
+import { handleTypeOperator, handleTypePredicate } from "./typeOperator";
 
 /**
  * Parses `ts.TypeNode`s into `IRType`.
@@ -186,6 +188,21 @@ export class TypeParser {
       // Rest Type: ...number[] with internal type being number[]
       case ts.SyntaxKind.RestType:
         result = handleRestType(typeNode as ts.RestTypeNode, depth);
+        break;
+
+      // `this` — resolves to the enclosing class/interface (P-07, 900 sites)
+      case ts.SyntaxKind.ThisType:
+        result = handleThisType(typeNode);
+        break;
+
+      // readonly T[] → List<T>; keyof / unique symbol stay Unsupported
+      case ts.SyntaxKind.TypeOperator:
+        result = handleTypeOperator(typeNode as ts.TypeOperatorTypeNode, depth);
+        break;
+
+      // x is T → bool (js_facade_gen §6.6)
+      case ts.SyntaxKind.TypePredicate:
+        result = handleTypePredicate();
         break;
 
       // Everything with no case above. Previously this collapsed to `Any`,

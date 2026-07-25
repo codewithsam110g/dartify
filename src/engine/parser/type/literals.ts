@@ -78,6 +78,17 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
         isNullable: false,
       };
 
+    // Bare `null` in type position. TypeScript parses this as a LiteralType
+    // wrapping a NullKeyword, so the NullKeyword case in `parseType` is
+    // unreachable and this is the only place it can be caught (`T-07`).
+    // `js_facade_gen` §1.10 gives `Null`; it was giving `dynamic`.
+    case ts.SyntaxKind.NullKeyword:
+      return {
+        kind: TypeKind.Null,
+        name: TypeKind.Null,
+        isNullable: true,
+      };
+
     default:
       return {
         kind: TypeKind.Any,

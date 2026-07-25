@@ -36,6 +36,12 @@ export function emitType(type: IRType): string {
       baseType = "void";
       break;
 
+    // Bare `null` in type position (`T-07`, js_facade_gen §1.10). Returned
+    // directly: `Null?` is not a thing, and the nullability pass below would
+    // otherwise append one since this node is nullable by construction.
+    case TypeKind.Null:
+      return "Null";
+
     // Array
     case TypeKind.Array:
       baseType = "List<" + emitType(type.elementType!) + ">";
@@ -45,6 +51,9 @@ export function emitType(type: IRType): string {
     case TypeKind.TypeReference: {
       let typeName = type.name;
       if (typeName === "Array") typeName = "List";
+      // Dart has no read-only list type, so this collapses to List the same
+      // way `readonly T[]` does — js_facade_gen §14.4 (`T-07`).
+      if (typeName === "ReadonlyArray") typeName = "List";
       if (typeName === "Promise") typeName = "Future";
       if (typeName === "Date") typeName = "DateTime";
 
@@ -71,11 +80,14 @@ export function emitType(type: IRType): string {
           " */"
         );
       } else {
-        if (type.isNullable) {
-          return emitType(type.unionTypes![0]) + "?";
-        } else {
-          return emitType(type.unionTypes![0]);
+        const only = emitType(type.unionTypes![0]);
+        // `dynamic?` is not valid Dart — dynamic already admits null (`E-17`).
+        // This branch returns early, so it has to repeat the guard applied to
+        // `baseType` at the end of the function rather than inherit it.
+        if (type.isNullable && only !== "dynamic" && only !== "void") {
+          return `${only}?`;
         }
+        return only;
       }
     }
 

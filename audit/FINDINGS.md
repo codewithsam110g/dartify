@@ -26,6 +26,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `R-01` | Extensionless relative imports silently fail to resolve (most `@types/*` packages) | `transpiler.ts:86-96` | ✅ |
 | `X-01` **[FIXED]** | ~~Test suite calls removed `Transpiler.transpileFromString`~~ — restored in S0.2 as a static wrapper over the three phases | `transpiler.ts` | ✅ |
 | `E-16` | No type-definitions section; degradation to `dynamic` is anonymous and unnamed — blocks design principle 2 | `phase/emitterPhase.ts`, `emitter/old/type/emit.ts` | ✅ |
+| `E-17` **[FIXED]** | ~~`dynamic?` emitted for nullable unions collapsing to dynamic — **uncompilable Dart**~~ — nullability guard was bypassed by an early `return`; fixed S1.4 | `emitter/old/type/emit.ts` | ✅ |
 
 ## S2 — Obviously broken / blocks a phase
 
@@ -39,8 +40,8 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `E-07` | Hoisted anonymous classes get no factory → unconstructible | `emitter/old/interface.ts:21-29` | ✅ |
 | `I-01` | Type params absent from IR except `IRClass` (and unemitted there) | `ir/{interface,function,typealias}.ts` | ✅ |
 | `I-04` | Heritage stored as raw strings — loses generic args, dep edges, qualified names | `ir/interface.ts:9`, `ir/class.ts:13-14` | ✅ |
-| `T-01` / `I-03` *(partial)* | ~~No `TypeKind` for unsupported constructs; all collapse to `Any`~~ — `TypeKind.Unsupported` + `UnsupportedReason` added in S1.3, carrying `originalText`. **Census: 1,410 nodes over three.js+leaflet, 0 unclassified.** Emission is still `dynamic`; representing them is S1.4/S1.5 | `type/unsupported.ts` | ✅ |
-| `P-07` | `this` type → `dynamic`. **900 occurrences in three.js+leaflet alone — confirmed the #1 type gap.** Now named (`Unsupported/thisType`) but still unrepresented — S1.4 | `parser/type/type.ts` | ✅ |
+| `T-01` / `I-03` *(partial)* | ~~No `TypeKind` for unsupported constructs; all collapse to `Any`~~ — `TypeKind.Unsupported` + `UnsupportedReason` (S1.3). **Census 1,410 → 503 after Tier A (S1.4), 0 unclassified.** Remainder is 88% `typeof x`, which needs the checker and moves to Tier B | `type/unsupported.ts` | ✅ |
+| `P-07` **[FIXED]** | ~~`this` type → `dynamic`, 900 occurrences — the #1 type gap~~ — resolves to the enclosing class/interface per js_facade_gen §3.10 (S1.4). Owner found via AST ancestors, not by parsing `currentFQN` | `type/thisType.ts` | ✅ |
 | `E-09` | No Dart keyword escaping (`external bool get static;`) | all emitters | ✅ |
 | `E-10` | Namespace flattening collides (two `abstract class ZoomOptions` in leaflet) | `phase/emitterPhase.ts:198-211` | ✅ |
 | `E-05` | Variables emit mutable fields; `isReadonly`/`isConst` ignored | `emitter/old/variable.ts:13` | ✅ |

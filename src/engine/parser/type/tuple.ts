@@ -24,10 +24,11 @@ export function handleTupleType(node: ts.TupleTypeNode, depth: number): IRType {
       };
     }
 
-    if (e.getKind() === ts.SyntaxKind.OptionalType) {
-      // This fails as ts-morph didnt wrap OptionalTypeNode
-      // so we cant parseType and it will return any
-      return { ...parseType(e, depth + 1), isOptional: true };
+    if (ts.Node.isOptionalTypeNode(e)) {
+      // `[string?]`. ts-morph only grew OptionalTypeNode in 28.0.0 — before
+      // that the inner node was unreachable through the typed API and this
+      // branch parsed the `string?` wrapper itself, yielding `any` (`T-10`).
+      return { ...parseType(e.getTypeNode(), depth + 1), isOptional: true };
     }
 
     return parseType(e, depth + 1);

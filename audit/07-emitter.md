@@ -403,3 +403,43 @@ non-readonly branch emit an *identical* getter line; only the setter differs.
 The `if` is redundant as written but the intent (suppress the setter when
 readonly) is correctly realised. Cosmetic; noted so the rewrite does not
 reproduce it.
+
+---
+
+## E-17 — `dynamic?` is emitted, and it is not valid Dart `[verified]` **[FIXED — S1.4]**
+
+Found while diffing S1.4's output, not present in the original audit.
+
+`emitType`'s union branch returns early when the union collapses to a single
+member:
+
+```ts
+if (type.isNullable) {
+  return emitType(type.unionTypes![0]) + "?";   // no guard
+}
+```
+
+The guard applied to every other kind — `baseType !== "dynamic" && baseType !==
+"void"` at the end of the function — is bypassed by that early `return`. So any
+nullable union whose surviving member emits as `dynamic` produced `dynamic?`:
+
+```
+any | null              → dynamic?
+unknown | null          → dynamic?
+keyof T | null          → dynamic?
+(keyof T) | undefined   → dynamic?
+```
+
+`dynamic` already admits null in Dart, and `dynamic?` is a compile error. Every
+occurrence was an uncompilable declaration — directly against the `X-09` v1 gate
+("h3 and leaflet pass `dart analyze` with zero errors").
+
+**Fixed** by repeating the guard inside the early-return branch. Real nullable
+types are unaffected: `string | null` → `String?`, `string[] | null` →
+`List<String>?`. One occurrence existed in the leaflet smoke output
+(`Object.create`); `test/type/tier-a.test.ts` covers both directions.
+
+**Lesson for the S5 emitter rewrite:** the nullability rule lives at the bottom
+of `emitType` while three branches `return` before reaching it. Any rule that
+must hold for all kinds should be applied at a single exit, not duplicated at
+each one.

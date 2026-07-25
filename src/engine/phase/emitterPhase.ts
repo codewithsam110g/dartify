@@ -247,8 +247,16 @@ function emitFileContent(
     parts.push(`import 'package:js/js.dart';`);
     parts.push(``);
 
-    // Emit each symbol
-    for (const symbol of symbols) {
+    // Minted typedefs are collected into their own section rather than left
+    // interleaved with the translated declarations (`E-16`). They are not
+    // things the author wrote, and a reader scanning the bindings for the API
+    // should not have to step over dartify's bookkeeping to find it.
+    const declared = symbols.filter((s) => !s.minted);
+    const minted = symbols
+        .filter((s) => s.minted)
+        .sort((a, b) => a.fqn.localeCompare(b.fqn));
+
+    const emit = (symbol: Symbol) => {
         try {
             const jsPrefix = extractJsPrefix(symbol.fqn);
             const code = emitSymbol(symbol, jsPrefix, debug);
@@ -257,14 +265,32 @@ function emitFileContent(
                 parts.push(""); // blank line between declarations
             }
         } catch (error) {
-            const msg =
-                error instanceof Error ? error.message : String(error);
+            const msg = error instanceof Error ? error.message : String(error);
             parts.push(`// ERROR emitting ${symbol.fqn}: ${msg}`);
         }
+    };
+
+    declared.forEach(emit);
+
+    if (minted.length > 0) {
+        parts.push(TYPE_DEFINITIONS_HEADER);
+        parts.push("");
+        minted.forEach(emit);
     }
 
     return parts.join("\n");
 }
+
+const TYPE_DEFINITIONS_HEADER = [
+    "// " + "-".repeat(75),
+    "// Type definitions",
+    "//",
+    "// TypeScript constructs with no Dart representation. Each one is `dynamic`",
+    "// with its original spelling recorded, so the degradation is stated once and",
+    "// every use site refers to it by name. Replacing a `dynamic` here upgrades",
+    "// every use site at once.",
+    "// " + "-".repeat(75),
+].join("\n");
 
 /**
  * Dispatches a single Symbol to the appropriate emitter function.

@@ -25,7 +25,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `E-04` | `extends`/`implements` never emitted — whole inheritance graph dropped | all emitters | ✅ |
 | `R-01` | Extensionless relative imports silently fail to resolve (most `@types/*` packages) | `transpiler.ts:86-96` | ✅ |
 | `X-01` **[FIXED]** | ~~Test suite calls removed `Transpiler.transpileFromString`~~ — restored in S0.2 as a static wrapper over the three phases | `transpiler.ts` | ✅ |
-| `E-16` | No type-definitions section; degradation to `dynamic` is anonymous and unnamed — blocks design principle 2 | `phase/emitterPhase.ts`, `emitter/old/type/emit.ts` | ✅ |
+| `E-16` **[FIXED]** | ~~No type-definitions section; degradation to `dynamic` is anonymous and unnamed~~ — minted, documented typedefs with named use sites, S1.5–S1.7. 68 typedefs over three.js + leaflet, 0 dangling, 0 duplicates; no `dart analyze` issue names one | `engine/alias/*`, `phase/emitterPhase.ts` | ✅ |
 | `E-18` | Multi-member unions emit `js_facade_gen`'s inline `dynamic /* A\|B */` at every use site — pre-existing, conformant, but the pattern principle 2 replaces. Dedup is computed then discarded (`"a"\|"b"\|number` → `String\|String\|num`). Needs a Dart-side name derivation, not `E-16`'s text-side one | `emitter/old/type/emit.ts:70-92` | ✅ |
 | `E-17` **[FIXED]** | ~~`dynamic?` emitted for nullable unions collapsing to dynamic — **uncompilable Dart**~~ — nullability guard was bypassed by an early `return`; fixed S1.4 | `emitter/old/type/emit.ts` | ✅ |
 

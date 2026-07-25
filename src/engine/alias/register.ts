@@ -153,6 +153,7 @@ export function registerAliasSymbols(
         // `dynamic` depends on nothing. Registering it with an empty dep list
         // keeps it `LinkedIndependent` rather than absent from the graph.
         deps: [],
+        minted: true,
       };
 
       const existing = table.get(fqn);

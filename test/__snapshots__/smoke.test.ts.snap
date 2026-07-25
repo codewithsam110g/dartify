@@ -3356,25 +3356,44 @@ external IndexedTypeOfUtilSetOptions setOptions;
 @JS("noConflict")
 external dynamic noConflict();
 
-typedef TypeOfClass = dynamic;
+// ---------------------------------------------------------------------------
+// Type definitions
+//
+// TypeScript constructs with no Dart representation. Each one is \`dynamic\`
+// with its original spelling recorded, so the degradation is stated once and
+// every use site refers to it by name. Replacing a \`dynamic\` here upgrades
+// every use site at once.
+// ---------------------------------------------------------------------------
 
+/// Unrepresentable in Dart: \`HTMLElementTagNameMap[T]\`
 typedef IndexedHTMLElementTagNameMapT = dynamic;
 
+/// Unrepresentable in Dart: \`SVGElementTagNameMap[K]\`
 typedef IndexedSVGElementTagNameMapK = dynamic;
 
-typedef TypeOfControlOptions = dynamic;
-
-typedef TypeOfDomEvent = dynamic;
-
-typedef TypeOfHandler = dynamic;
-
-typedef IndexedTypeOfUtilExtend = dynamic;
-
+/// Unrepresentable in Dart: \`typeof Util["bind"]\`
 typedef IndexedTypeOfUtilBind = dynamic;
 
+/// Unrepresentable in Dart: \`typeof Util["extend"]\`
+typedef IndexedTypeOfUtilExtend = dynamic;
+
+/// Unrepresentable in Dart: \`typeof Util["setOptions"]\`
+typedef IndexedTypeOfUtilSetOptions = dynamic;
+
+/// Unrepresentable in Dart: \`typeof Util["stamp"]\`
 typedef IndexedTypeOfUtilStamp = dynamic;
 
-typedef IndexedTypeOfUtilSetOptions = dynamic;
+/// Unrepresentable in Dart: \`typeof Class\`
+typedef TypeOfClass = dynamic;
+
+/// Unrepresentable in Dart: \`typeof Control<Options>\`
+typedef TypeOfControlOptions = dynamic;
+
+/// Unrepresentable in Dart: \`typeof DomEvent\`
+typedef TypeOfDomEvent = dynamic;
+
+/// Unrepresentable in Dart: \`typeof Handler\`
+typedef TypeOfHandler = dynamic;
 "
 `;
 
@@ -3490,8 +3509,10 @@ external bool Function(dynamic) predicateHolder;
 @JS("typeofThing")
 external num typeofThing;
 
+/// Unrepresentable in Dart: \`{ [K in keyof T]: T[K] }\`
 typedef Mapped = dynamic;
 
+/// Unrepresentable in Dart: \`T extends Array<infer U> ? U : never\`
 typedef Inferred = dynamic;
 
 @JS("nullable")
@@ -3558,12 +3579,25 @@ extension OptsExtension on Opts {
   external set b(num value);
 }
 
+// ---------------------------------------------------------------------------
+// Type definitions
+//
+// TypeScript constructs with no Dart representation. Each one is \`dynamic\`
+// with its original spelling recorded, so the degradation is stated once and
+// every use site refers to it by name. Replacing a \`dynamic\` here upgrades
+// every use site at once.
+// ---------------------------------------------------------------------------
+
+/// Unrepresentable in Dart: \`Box<string>["value"]\`
+typedef IndexedBoxStringValue = dynamic;
+
+/// Unrepresentable in Dart: \`keyof Box<string>\`
 typedef KeyOfBoxString = dynamic;
 
-typedef TemplatePreString = dynamic;
-
+/// Unrepresentable in Dart: \`string extends number ? true : false\`
 typedef StringExtendsNumberTrueFalse = dynamic;
 
-typedef IndexedBoxStringValue = dynamic;
+/// Unrepresentable in Dart: \`\` \`pre-\${string}\` \`\`
+typedef TemplatePreString = dynamic;
 "
 `;

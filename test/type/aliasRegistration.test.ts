@@ -84,6 +84,62 @@ describe("alias registration", () => {
     expect(content).not.toContain("typedef");
   });
 
+  describe("the type-definitions section (E-16)", () => {
+    test("each typedef records what it stood in for", async () => {
+      const content = await render("declare var k: keyof Box<string>;");
+
+      expect(content).toContain(
+        "/// Unrepresentable in Dart: `keyof Box<string>`\ntypedef KeyOfBoxString = dynamic;",
+      );
+    });
+
+    test("the section is introduced, and only when there is one", async () => {
+      const withDegradation = await render("declare var k: keyof Box<string>;");
+      const without = await render("declare function f(x: string): number;");
+
+      expect(withDegradation).toContain("// Type definitions");
+      expect(without).not.toContain("// Type definitions");
+    });
+
+    // Minted typedefs go to the bottom; an author's own alias stays where they
+    // wrote it. Both are documented — the flag is about placement, not prose.
+    test("an author's alias is documented in place, not moved", async () => {
+      const content = await render(`
+        type Mapped<T> = { [K in keyof T]: T[K] };
+        declare var k: keyof Box<string>;
+      `);
+
+      const authorAlias = content.indexOf("typedef Mapped = dynamic;");
+      const sectionHeader = content.indexOf("// Type definitions");
+
+      expect(content).toContain(
+        "/// Unrepresentable in Dart: `{ [K in keyof T]: T[K] }`",
+      );
+      expect(authorAlias).toBeLessThan(sectionHeader);
+    });
+
+    // A template literal type carries backticks, so a single-backtick code
+    // span renders wrong. Markdown wants a longer fence plus padding.
+    test("source text containing backticks is fenced correctly", async () => {
+      const content = await render("declare var t: `pre-${string}`;");
+
+      expect(content).toContain(
+        "/// Unrepresentable in Dart: `` `pre-${string}` ``",
+      );
+    });
+
+    test("the section is ordered deterministically, not by parse order", async () => {
+      const content = await render(`
+        declare var z: keyof Zeta;
+        declare var a: keyof Alpha;
+      `);
+
+      expect(content.indexOf("typedef KeyOfAlpha")).toBeLessThan(
+        content.indexOf("typedef KeyOfZeta"),
+      );
+    });
+  });
+
   // Asserted as an invariant rather than against fixed counts, so editing the
   // probe fixture does not break the test for the wrong reason. Dedup can only
   // ever reduce typedefs relative to use sites, never the other way round.

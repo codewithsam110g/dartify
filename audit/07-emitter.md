@@ -333,7 +333,7 @@ external void operator []=(Object key, dynamic value);
 
 ---
 
-## E-16 — There is no type-definitions section, and degradation is anonymous `[verified]`
+## E-16 — There is no type-definitions section, and degradation is anonymous `[verified]` **[FIXED — S1.5–S1.7]**
 
 Emitted files are a flat list of translated declarations. Nothing declares the
 types that the translation *invented*, and nothing records what a `dynamic`
@@ -503,3 +503,46 @@ union alias has to be derived from the **emitted Dart member types**
 (`ListListNumOrListListListNum`), not from the TypeScript text. That is a
 different code path from `E-16`'s, which is why this is filed separately rather
 than folded into it.
+
+### Resolution — S1.5 through S1.7
+
+Delivered as specified above. `deriveAliasName` derives the identifier from
+`originalText` (`src/engine/alias/name.ts`), `AliasRegistry` makes it unique
+against the file's symbol table (`registry.ts`), `registerAliasSymbols` runs
+during linking and registers each as a real `Symbol` (`register.ts`), and
+`emitFileContent` collects them into a section under a header.
+
+Three refinements the plan did not anticipate:
+
+- **An author's own `type X = <unrepresentable>` is not given a second name.**
+  It is already a named degradation. Minting produced
+  `typedef Mapped = MappedKInKeyOfTTK;` on top of
+  `typedef MappedKInKeyOfTTK = dynamic;` — a hop naming nothing new. Author
+  aliases stay where they were written and are documented in place; only minted
+  ones move into the section.
+- **Use sites keep `kind: TypeKind.Unsupported`** and carry `aliasName`, rather
+  than being rewritten into `TypeReference`. `unsupportedReason` therefore
+  survives linking, so "how much are we still degrading, and of what?" stays a
+  query over the IR rather than a grep over generated Dart.
+- **The doc comment needs a computed Markdown fence.** Template literal types
+  carry their own backticks, so `` `pre-${string}` `` in a single-backtick code
+  span renders wrong; the fence has to out-length the longest run inside and pad
+  when the content touches a backtick at either end.
+
+**Verified.** Over three.js + leaflet + probe: 68 typedefs, 0 dangling
+references, 0 duplicate typedefs, bare `dynamic` tokens 2,239 → 2,191. `dart
+analyze` on the probe output reports 19 issues and on leaflet 507, and **not one
+of them names a minted typedef**. h3 is byte-identical throughout — it contains
+no unrepresentable types, which is the `E-18` union path, not this one.
+
+### `dart analyze` baselines at the close of S1.7
+
+Recorded so later stages can be measured against them rather than re-argued.
+
+| Output | Issues | Dominated by |
+|---|---:|---|
+| `synthetic/probe.dart` | 19 | `E-03` type params, `E-09` keywords, `L-05` duplicates |
+| `leaflet.dart` | 507 | 245 `duplicate_definition` (`L-05`, `E-10`), 141 `undefined_class` (`E-03`, `E-08`), 61 `non_type_as_type_argument` (`E-03`) |
+
+`E-03` and `L-05`/`E-10` are the whole game. Type parameters and declaration
+merging between them account for well over 400 of leaflet's 507.

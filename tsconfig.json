@@ -29,5 +29,5 @@
       "@typeEmitter/*": ["src/engine/emitter/old/type/*"]
     }
   },
-  "include": ["src", "test"]
+  "include": ["src", "test", "tools"]
 }

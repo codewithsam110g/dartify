@@ -1,6 +1,5 @@
 import { transpilerContext } from "@/context";
-import { generateDependencyGraphSVG } from "../../utils/visualizeGraph";
-import * as path from "path";
+import { resolveRealFQN } from "@/symbol/resolve";
 
 // 1. The clean interfaces describing all possible link states
 export enum LinkState {
@@ -20,7 +19,18 @@ export type LinkResult =
       viaChain: string[];
     };
 
-export async function runLinker(debug: boolean): Promise<void> {
+/**
+ * The linker's output. Consumers — the emitter, the graph tool, diagnostics —
+ * read this rather than re-deriving the graph (`L-07`, `L-08`).
+ */
+export interface LinkReport {
+  /** Link state per real (resolved) FQN */
+  results: Map<string, LinkResult>;
+  valid: number;
+  broken: number;
+}
+
+export async function runLinker(debug: boolean): Promise<LinkReport> {
   const table = transpilerContext.symbolTable.getSymbolTable();
 
   if (debug) {
@@ -34,70 +44,20 @@ export async function runLinker(debug: boolean): Promise<void> {
   // 3. Cycle Detection: Keeps track of nodes currently being explored in the current stack
   const resolvingStack = new Set<string>();
 
-  // HELPER: Fuzzy FQN Matcher to handle namespaces (e.g., "h3"|SplitLong)
-  function resolveRealFQN(
-    pseudoFqn: string,
-    table: Map<string, any[]>,
-  ): string | null {
-    // 1. The happy path: Direct match
-    if (table.has(pseudoFqn)) {
-      return pseudoFqn;
-    }
-
-    // 2. The pseudo-path fallback
-    const [filePath, rawSymbolName] = pseudoFqn.split("::");
-    if (!filePath || !rawSymbolName) return null;
-
-    // Track ALL matches instead of returning immediately
-    const matches: string[] = [];
-
-    for (const key of table.keys()) {
-      const tableSymbolName = key.split("::")[1];
-      if (!tableSymbolName) continue;
-
-      const nameParts = tableSymbolName.split("|");
-      const actualName = nameParts[nameParts.length - 1];
-
-      if (actualName === rawSymbolName) {
-        matches.push(key);
-      }
-    }
-
-    if (matches.length > 0) {
-      // 3. Collision resolution
-      // Prefer match in the same file to avoid ambiguity when same name exists in different files
-      const sameFileMatch = matches.find(m => m.startsWith(`${filePath}::`));
-      if (sameFileMatch) {
-        return sameFileMatch;
-      }
-
-      // Prefer primary symbol definition over module augmentations (ones containing |)
-      const primaryMatch = matches.find(m => {
-        const tableSymbolName = m.split("::")[1];
-        return !tableSymbolName.includes("|") && tableSymbolName === rawSymbolName;
-      });
-      if (primaryMatch) {
-        return primaryMatch;
-      }
-    }
-
-    // 3. Collision Warning
-    if (matches.length > 1) {
-      console.log(
-        `\n  ⚠️ AMBIGUOUS LINK: Found multiple matches for '${pseudoFqn}'`,
-      );
-      matches.forEach((m) => console.log(`     ↳ ${m}`));
-      console.log(`     (Defaulting to first match: ${matches[0]})`);
-    }
-
-    // Return the first match if it exists, otherwise null
-    return matches.length > 0 ? matches[0] : null;
-  }
+  // Fuzzy FQN matcher lives in @/symbol/resolve — shared with tools/graph.ts
+  const onAmbiguous = (pseudoFqn: string, matches: string[]) => {
+    if (!debug) return;
+    console.log(
+      `\n  ⚠️ AMBIGUOUS LINK: Found multiple matches for '${pseudoFqn}'`,
+    );
+    matches.forEach((m) => console.log(`     ↳ ${m}`));
+    console.log(`     (Defaulting to first match: ${matches[0]})`);
+  };
 
   // CORE: The recursive DFS Linker
   function checkDeps(pseudoFqn: string): LinkResult {
     // 1. Resolve the Pseudo-FQN to the Real FQN first!
-    const fqn = resolveRealFQN(pseudoFqn, table);
+    const fqn = resolveRealFQN(pseudoFqn, table, onAmbiguous);
 
     if (!fqn) {
       // It couldn't be resolved even with fuzzy matching. It's a true missing dep!
@@ -173,6 +133,7 @@ export async function runLinker(debug: boolean): Promise<void> {
 
   let validCount = 0;
   let invalidCount = 0;
+  const results = new Map<string, LinkResult>();
 
   // Sort entries so symbols with fewest dependencies are processed and cached first
   // This drastically reduces recursive depth by populating the cache with leaf nodes.
@@ -184,6 +145,7 @@ export async function runLinker(debug: boolean): Promise<void> {
 
   for (const [fqn] of sortedEntries) {
     const result = checkDeps(fqn);
+    results.set(fqn, result);
 
     if (
       result.state === LinkState.NotLinkedDirect ||
@@ -213,6 +175,9 @@ export async function runLinker(debug: boolean): Promise<void> {
     );
   }
 
-  // Generate SVG Visualization for the dependency graph
-   await generateDependencyGraphSVG(path.join(process.cwd(), "dependency_graph.svg"));
+  // The graph visualiser is NOT called from here. It is a consumer of this
+  // report, not a step inside the pipeline — see tools/graph.ts (`L-07`).
+  // Importing it here dragged @viz-js/viz (a devDependency) into the shipped
+  // bundle, where it accounted for ~70% of dist/cli.js (`D-07`).
+  return { results, valid: validCount, broken: invalidCount };
 }

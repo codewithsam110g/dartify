@@ -21,6 +21,18 @@ class TranspilerContext {
     this.currentDeps.clear();
   }
 
+  /**
+   * Returns context-owned state to its initial condition.
+   *
+   * Prefer `resetTranspilerState()` from `@/reset` — it also clears the type
+   * cache, which lives outside the context but has the same lifetime.
+   */
+  public reset(): void {
+    this.symbolTable.clear();
+    this.currentFQN = "";
+    this.currentDeps.clear();
+  }
+
   public static getInstance(): TranspilerContext {
     if (!TranspilerContext.instance) {
       TranspilerContext.instance = new TranspilerContext();

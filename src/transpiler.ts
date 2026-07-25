@@ -7,9 +7,14 @@
 import * as ts from "ts-morph";
 import { resolve, dirname } from "path";
 import { generateSymbols } from "./engine/phase/symbolGeneration";
-import { runLinker } from "./engine/phase/linkerPhase";
-import { emitAllFiles } from "./engine/phase/emitterPhase";
+import { runLinker, LinkReport } from "./engine/phase/linkerPhase";
+import {
+  renderAllFiles,
+  writeAllFiles,
+  RenderedFile,
+} from "./engine/phase/emitterPhase";
 import { transpilerContext } from "./context";
+import { resetTranspilerState } from "./reset";
 
 export class TranspileException extends Error {
   public readonly code: string;
@@ -56,6 +61,19 @@ export interface TranspilerOptions {
   outDir?: string;
   debug?: boolean;
   tsConfigFilePath?: string;
+}
+
+export interface TranspileFromStringOptions {
+  /** Virtual file name the source is treated as. Determines the Dart library name. */
+  fileName?: string;
+  debug?: boolean;
+}
+
+export interface TranspileFromStringResult {
+  /** The generated Dart source */
+  content: string;
+  /** Syntax errors in the input, plus anything thrown during emission */
+  errors: TranspileException[];
 }
 
 export class Transpiler {
@@ -105,8 +123,19 @@ export class Transpiler {
     }
   }
 
-  public async transpile(): Promise<void> {
-    try {
+  /**
+   * Phases 1 and 2 only: resolve inputs, build the symbol table, run the
+   * linker. Returns the linker's report without emitting anything.
+   *
+   * This is the seam consumers other than the emitter hang off — `tools/graph.ts`
+   * uses it to render the dependency graph without producing Dart (`L-07`).
+   */
+  public async analyze(): Promise<LinkReport> {
+    return this.guard(async () => {
+      // Both the context and the type cache are singletons; clear them so
+      // repeated runs in one process stay independent (R-11, T-04).
+      resetTranspilerState();
+
       await this.validateFiles();
       this.resolveAndCategorize();
 
@@ -115,6 +144,7 @@ export class Transpiler {
         this.detectUnresolvedDeps();
       }
 
+      // Phase 1: Symbol generation
       for (const [filePath, sourceFile] of this.inputFiles) {
         await this.transpileFile(filePath, sourceFile);
       }
@@ -122,27 +152,57 @@ export class Transpiler {
         await this.transpileFile(filePath, sourceFile);
       }
 
-      // Print all generated symbols after everything is parsed
-      // if (this.debug) {
-      //   let sta = transpilerContext.symbolTable.getSymbolTable();
-      //   for (const [_, symbols] of sta) {
-      //     if (symbols.length > 1) {
-      //       for (const symbol of symbols) {
-      //         console.log("FQN:", symbol.fqn);
-      //       }
-      //     }
-      //   }
-      // }
+      // Phase 2: Linker — dependency graph, (future) overloads + augmentation
+      return await runLinker(this.debug);
+    });
+  }
 
-      // Phase 2: Linker — fix overloads, augmentations, resolve deps
-      await runLinker(this.debug);
+  /**
+   * Phases 1-3, stopping short of the filesystem. Returns the rendered Dart
+   * source keyed by the path it would be written to (`E-11`).
+   */
+  public async render(): Promise<Map<string, RenderedFile>> {
+    await this.analyze();
+    return renderAllFiles(this.resolvedOutDir(), this.resolvedInputRoot(), this.debug);
+  }
 
-      // Phase 3: Emission — write Dart files
-      const outDir = this.outDir || "./dart_out";
-      // Use the directory of the first input file as the input root
-      const firstInputFile = this.inputFiles.keys().next().value;
-      const inputRoot = firstInputFile ? dirname(firstInputFile) : ".";
-      await emitAllFiles(outDir, inputRoot, this.debug);
+  /**
+   * The full pipeline: render, then write to disk.
+   */
+  public async transpile(): Promise<void> {
+    const rendered = await this.render();
+    await this.guard(() => writeAllFiles(rendered, this.debug));
+
+    if (this.debug) {
+      console.log(
+        `\n✅ Emitted ${rendered.size} Dart file(s) to ${this.resolvedOutDir()}`,
+      );
+    }
+  }
+
+  private resolvedOutDir(): string {
+    return this.outDir || "./dart_out";
+  }
+
+  /**
+   * Root that output paths are made relative to.
+   *
+   * Currently the directory of the *first* input file, which collides when
+   * inputs come from sibling trees (`R-03`). Replaced by a longest-common-
+   * ancestor computation in S2.
+   */
+  private resolvedInputRoot(): string {
+    const firstInputFile = this.inputFiles.keys().next().value;
+    return firstInputFile ? dirname(firstInputFile) : ".";
+  }
+
+  /**
+   * Wraps a pipeline step so anything that escapes it surfaces as a
+   * TranspileException rather than a raw error.
+   */
+  private async guard<T>(fn: () => Promise<T> | T): Promise<T> {
+    try {
+      return await fn();
     } catch (error) {
       if (error instanceof TranspileException) {
         throw error;
@@ -156,6 +216,86 @@ export class Transpiler {
 
   private async transpileFile(fp: string, sf: ts.SourceFile) {
     await generateSymbols(fp, sf);
+  }
+
+  /**
+   * Transpiles a single in-memory `.d.ts` source to Dart, touching no
+   * filesystem in either direction.
+   *
+   * Runs the same three phases as `transpile()` over one virtual source file.
+   * Intended for tests and for embedding; multi-file features (cross-file
+   * imports, augmentation across files) are by definition out of scope here,
+   * since there is only one file.
+   */
+  public static async transpileFromString(
+    source: string,
+    options: TranspileFromStringOptions = {},
+  ): Promise<TranspileFromStringResult> {
+    const fileName = options.fileName ?? "virtual.d.ts";
+    const debug = options.debug ?? false;
+    const errors: TranspileException[] = [];
+
+    resetTranspilerState();
+    transpilerContext.setIsLogging(debug);
+
+    const project = new ts.Project({
+      useInMemoryFileSystem: true,
+      compilerOptions: {
+        target: ts.ts.ScriptTarget.ES2020,
+        module: ts.ts.ModuleKind.ESNext,
+        types: [],
+        skipLibCheck: true,
+        noEmit: true,
+      },
+    });
+
+    const sourceFile = project.createSourceFile(fileName, source, {
+      overwrite: true,
+    });
+    const filePath = String(sourceFile.getFilePath());
+
+    // Surface syntax errors rather than silently producing empty output.
+    for (const diagnostic of sourceFile.getPreEmitDiagnostics()) {
+      const start = diagnostic.getStart();
+      const lineAndCol =
+        start !== undefined
+          ? sourceFile.getLineAndColumnAtPos(start)
+          : undefined;
+      errors.push(
+        new TranspileException(
+          ts.ts.flattenDiagnosticMessageText(
+            diagnostic.getMessageText() as any,
+            "\n",
+          ),
+          `TS${diagnostic.getCode()}`,
+          fileName,
+          lineAndCol?.line,
+          lineAndCol?.column,
+        ),
+      );
+    }
+
+    let content = "";
+    try {
+      await generateSymbols(filePath, sourceFile);
+      await runLinker(debug);
+
+      const rendered = renderAllFiles(".", dirname(filePath), debug);
+      // Exactly one input file, so at most one rendered output.
+      content = rendered.values().next().value?.content ?? "";
+    } catch (error) {
+      errors.push(
+        error instanceof TranspileException
+          ? error
+          : new TranspileException(
+              `Unexpected error during transpilation: ${error instanceof Error ? error.message : String(error)}`,
+              "UNEXPECTED_ERROR",
+              fileName,
+            ),
+      );
+    }
+
+    return { content, errors };
   }
 
   /**

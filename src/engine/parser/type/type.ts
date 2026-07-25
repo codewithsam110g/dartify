@@ -195,6 +195,17 @@ export class TypeParser {
   }
 
   // Utility methods for cache management
+
+  /**
+   * Drops every cached IRType.
+   *
+   * The cache is keyed on `${typeNode.getText()}_depth_${depth}` with no file
+   * or scope component, so entries from one run stay visible to the next and
+   * identical text in different files collides (`T-04`). Clearing between runs
+   * makes repeated transpilations independent — see `resetTranspilerState()`.
+   * The key itself is fixed in S1, before `originalText` starts carrying
+   * per-site data and the collision stops being benign.
+   */
   public clearCache(): void {
     this.cache.clear();
   }

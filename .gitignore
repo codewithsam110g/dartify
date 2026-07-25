@@ -12,3 +12,6 @@ output/
 
 # Logs
 logs/
+
+# Generated dependency graphs (see `pnpm graph`)
+*.svg

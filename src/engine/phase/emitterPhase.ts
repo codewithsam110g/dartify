@@ -23,8 +23,77 @@ import * as emitter from "@emitter/old/index";
 import { TranspileException } from "@/transpiler";
 
 /**
- * Top-level entry point for the emission phase.
- * Reads the global SymbolTable, groups by source file, emits Dart files.
+ * One rendered Dart file, before it touches the filesystem.
+ */
+export interface RenderedFile {
+    /** Absolute path of the originating .d.ts file */
+    sourceFile: string;
+    /** Path the file would be written to under outDir */
+    outputPath: string;
+    /** The complete Dart source */
+    content: string;
+    /** How many symbols contributed to it */
+    symbolCount: number;
+}
+
+/**
+ * Renders the whole symbol table to Dart source, in memory.
+ *
+ * This is the pure half of the emission phase: it touches no filesystem, so it
+ * can be called from tests, from `Transpiler.transpileFromString`, or by any
+ * consumer that wants the output without writing it (E-11).
+ *
+ * @param outDir     Root output directory (used only to derive paths)
+ * @param inputRoot  Common root of all input files
+ * @param debug      Whether to log emission details
+ */
+export function renderAllFiles(
+    outDir: string,
+    inputRoot: string,
+    debug: boolean,
+): Map<string, RenderedFile> {
+    const table = transpilerContext.symbolTable.getSymbolTable();
+
+    // 1. Group all symbols by their source .d.ts file
+    const fileGroups = groupSymbolsByFile(table);
+
+    // 2. Render each file group into Dart source
+    const rendered = new Map<string, RenderedFile>();
+    for (const [sourceFile, symbols] of fileGroups) {
+        const outputPath = deriveOutputPath(sourceFile, inputRoot, outDir);
+        rendered.set(outputPath, {
+            sourceFile,
+            outputPath,
+            content: emitFileContent(sourceFile, symbols, debug),
+            symbolCount: symbols.length,
+        });
+    }
+
+    return rendered;
+}
+
+/**
+ * Writes rendered files to disk. The impure half of the emission phase.
+ */
+export async function writeAllFiles(
+    files: Map<string, RenderedFile>,
+    debug: boolean,
+): Promise<void> {
+    for (const [outputPath, file] of files) {
+        // Create parent directories if they don't exist
+        await mkdir(dirname(outputPath), { recursive: true });
+        await writeFile(outputPath, file.content, "utf-8");
+
+        if (debug) {
+            console.log(
+                `  📝 ${file.sourceFile} → ${outputPath} (${file.symbolCount} symbols)`,
+            );
+        }
+    }
+}
+
+/**
+ * Top-level entry point for the emission phase: render, then write.
  *
  * @param outDir     Root output directory
  * @param inputRoot  Common root of all input files (used to derive relative paths)
@@ -35,27 +104,11 @@ export async function emitAllFiles(
     inputRoot: string,
     debug: boolean,
 ): Promise<void> {
-    const table = transpilerContext.symbolTable.getSymbolTable();
-
-    // 1. Group all symbols by their source .d.ts file
-    const fileGroups = groupSymbolsByFile(table);
-
-    // 2. Emit each file group as a separate .dart file
-    for (const [sourceFile, symbols] of fileGroups) {
-        const outputPath = deriveOutputPath(sourceFile, inputRoot, outDir);
-        const dartContent = emitFileContent(sourceFile, symbols, debug);
-
-        // Create parent directories if they don't exist
-        await mkdir(dirname(outputPath), { recursive: true });
-        await writeFile(outputPath, dartContent, "utf-8");
-
-        if (debug) {
-            console.log(`  📝 ${sourceFile} → ${outputPath} (${symbols.length} symbols)`);
-        }
-    }
+    const rendered = renderAllFiles(outDir, inputRoot, debug);
+    await writeAllFiles(rendered, debug);
 
     if (debug) {
-        console.log(`\n✅ Emitted ${fileGroups.size} Dart file(s) to ${outDir}`);
+        console.log(`\n✅ Emitted ${rendered.size} Dart file(s) to ${outDir}`);
     }
 }
 

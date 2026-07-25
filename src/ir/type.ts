@@ -58,6 +58,17 @@ export interface IRType {
    * answered by a query rather than by grepping generated Dart.
    */
   unsupportedReason?: UnsupportedReason;
+
+  /**
+   * The minted typedef this use site refers to, e.g. `KeyOfBoxString`.
+   *
+   * Written by the linker, not the parser — the name has to be unique against
+   * the whole file's symbol table, which no single parse knows (`L-05`,
+   * `E-16`). Set only on `Unsupported` nodes at *use* sites; the alias
+   * declaration's own type deliberately leaves it unset, or the typedef would
+   * refer to itself.
+   */
+  aliasName?: string;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { transpilerContext } from "@/context";
 import { resolveRealFQN } from "@/symbol/resolve";
+import { registerAliasSymbols } from "@engine/alias/register";
 
 // 1. The clean interfaces describing all possible link states
 export enum LinkState {
@@ -28,6 +29,10 @@ export interface LinkReport {
   results: Map<string, LinkResult>;
   valid: number;
   broken: number;
+  /** Typedefs minted for unrepresentable types (`E-16`) */
+  aliasesMinted: number;
+  /** Use sites those typedefs replaced a bare `dynamic` at */
+  aliasUseSites: number;
 }
 
 export async function runLinker(debug: boolean): Promise<LinkReport> {
@@ -36,6 +41,15 @@ export async function runLinker(debug: boolean): Promise<LinkReport> {
   if (debug) {
     console.log("\n🔗 Linker phase: Dependency Graph Verification");
     // ... your existing summary logging can stay here ...
+  }
+
+  // Before verification, so the minted typedefs are themselves graph nodes and
+  // get link-checked like any other declaration (`L-05`, `E-16`).
+  const aliases = registerAliasSymbols(table);
+  if (debug && aliases.total > 0) {
+    console.log(
+      `\n  🏷️  Minted ${aliases.total} typedef(s) for unrepresentable types across ${aliases.byFile.size} file(s), covering ${aliases.useSites} use site(s).`,
+    );
   }
 
   // 2. The Cache (LUT) to prevent re-checking symbols we already verified
@@ -179,5 +193,11 @@ export async function runLinker(debug: boolean): Promise<LinkReport> {
   // report, not a step inside the pipeline — see tools/graph.ts (`L-07`).
   // Importing it here dragged @viz-js/viz (a devDependency) into the shipped
   // bundle, where it accounted for ~70% of dist/cli.js (`D-07`).
-  return { results, valid: validCount, broken: invalidCount };
+  return {
+    results,
+    valid: validCount,
+    broken: invalidCount,
+    aliasesMinted: aliases.total,
+    aliasUseSites: aliases.useSites,
+  };
 }

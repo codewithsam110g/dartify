@@ -57,8 +57,11 @@ describe("Tier A: constructs with a real Dart representation", () => {
       // `this` inside a bare type literal has no class or interface ancestor.
       // Degrading is correct here; naming the hoisted `Anon_Loose` would be a
       // guess, and a wrong one whenever the literal is used in two places.
-      expect(content).toContain("external dynamic m();");
       expect(content).not.toContain("external Anon_Loose m();");
+      // Since S1.6 the degradation is a minted typedef rather than a bare
+      // `dynamic` — still not an invented owner, just no longer anonymous.
+      expect(content).toContain("external This m();");
+      expect(content).toContain("typedef This = dynamic;");
     });
   });
 

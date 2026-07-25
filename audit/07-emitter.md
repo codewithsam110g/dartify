@@ -244,6 +244,21 @@ correctly *allowing* built-in identifiers in property position (§10.3).
 Note this interacts with `E-01`: any escaping scheme must keep the original JS
 name for the `@JS()` annotation, which the current `split("_")` approach cannot.
 
+**Confirmed uncompilable, not merely non-idiomatic.** `dart analyze` over the
+probe output (S1.6):
+
+```
+error - lib/probe.dart:145:12 - 'class' can't be used as an identifier
+        because it's a keyword - expected_identifier_but_got_keyword
+error - lib/probe.dart:147:12 - 'extends' can't be used as an identifier ...
+```
+
+`static` — the case originally recorded above — turns out to be *accepted* in
+property position, which is exactly the §10.3 distinction `js_facade_gen` draws.
+The reserved words that actually break the build are the true keywords. This
+raises `E-09` to the same severity class as `E-17`: it is on the `X-09` v1 gate,
+not a polish item.
+
 ---
 
 ## E-10 — Namespace flattening collides `[verified]`

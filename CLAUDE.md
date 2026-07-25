@@ -50,6 +50,20 @@ pnpm graph -d "<glob>" -o g.svg     # dependency graph SVG (internal tooling)
 pnpm build                          # tsup → dist/
 ```
 
+**`dart analyze` is available on this machine and it is the v1 acceptance
+test** — use it, don't just eyeball the Dart. A throwaway harness is enough:
+
+```bash
+mkdir -p /tmp/dc/lib && cd /tmp/dc
+printf 'name: dc\nenvironment:\n  sdk: ">=3.0.0 <4.0.0"\ndependencies:\n  js: ^0.6.7\n' > pubspec.yaml
+dart pub get && cp <generated>.dart lib/ && dart analyze
+```
+
+Probe currently reports 19 errors, all of them known findings — `E-03` (type
+params never emitted), `E-09` (keyword escaping), `L-05` (augmentation
+duplicates). Check new errors against `audit/FINDINGS.md` before assuming
+they're new.
+
 `test:ui` accepts the same filters as the CLI — `pnpm test:ui type` opens the UI
 scoped to the type tests. `test:stress` sets `DARTIFY_STRESS=1` inline, which is
 POSIX-shell syntax; on Windows use `pnpm test:run test/stress.test.ts` with the

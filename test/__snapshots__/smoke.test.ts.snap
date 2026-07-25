@@ -320,7 +320,7 @@ external HTMLElement? get(dynamic /* String|HTMLElement */ element);
 external String? getStyle(HTMLElement el, String styleAttrib);
 
 @JS("DomUtil.create")
-external dynamic create(T tagName, [String className, HTMLElement container]);
+external IndexedHTMLElementTagNameMapT create(T tagName, [String className, HTMLElement container]);
 
 @JS("DomUtil.create")
 external HTMLElement create(String tagName, [String className, HTMLElement container]);
@@ -1986,7 +1986,7 @@ class SVG {
 }
 
 @JS("SVG.create")
-external dynamic create(K name);
+external IndexedSVGElementTagNameMapK create(K name);
 
 @JS("SVG.create")
 external SVGElement create(String name);
@@ -2751,10 +2751,10 @@ typedef EventHandlerFn = void Function(Event);
 typedef PropagableEvent = dynamic /* LeafletMouseEvent|LeafletKeyboardEvent|LeafletEvent|Event */;
 
 @JS("DomEvent.on")
-external dynamic on(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
+external TypeOfDomEvent on(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.on")
-external dynamic on(HTMLElement el, Anon_DomEvent_on_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent on(HTMLElement el, Anon_DomEvent_on_eventMap eventMap, [dynamic context]);
 
 @JS()
 @anonymous
@@ -2765,13 +2765,13 @@ extension Anon_DomEvent_on_eventMapExtension on Anon_DomEvent_on_eventMap {
 }
 
 @JS("DomEvent.off")
-external dynamic off(HTMLElement el);
+external TypeOfDomEvent off(HTMLElement el);
 
 @JS("DomEvent.off")
-external dynamic off(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
+external TypeOfDomEvent off(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.off")
-external dynamic off(HTMLElement el, Anon_DomEvent_off_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent off(HTMLElement el, Anon_DomEvent_off_eventMap eventMap, [dynamic context]);
 
 @JS()
 @anonymous
@@ -2782,19 +2782,19 @@ extension Anon_DomEvent_off_eventMapExtension on Anon_DomEvent_off_eventMap {
 }
 
 @JS("DomEvent.stopPropagation")
-external dynamic stopPropagation(PropagableEvent ev);
+external TypeOfDomEvent stopPropagation(PropagableEvent ev);
 
 @JS("DomEvent.disableScrollPropagation")
-external dynamic disableScrollPropagation(HTMLElement el);
+external TypeOfDomEvent disableScrollPropagation(HTMLElement el);
 
 @JS("DomEvent.disableClickPropagation")
-external dynamic disableClickPropagation(HTMLElement el);
+external TypeOfDomEvent disableClickPropagation(HTMLElement el);
 
 @JS("DomEvent.preventDefault")
-external dynamic preventDefault(Event ev);
+external TypeOfDomEvent preventDefault(Event ev);
 
 @JS("DomEvent.stop")
-external dynamic stop(PropagableEvent ev);
+external TypeOfDomEvent stop(PropagableEvent ev);
 
 @JS("DomEvent.getMousePosition")
 external Point getMousePosition(MouseEvent ev, [HTMLElement container]);
@@ -2803,10 +2803,10 @@ external Point getMousePosition(MouseEvent ev, [HTMLElement container]);
 external num getWheelDelta(Event ev);
 
 @JS("DomEvent.addListener")
-external dynamic addListener(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
+external TypeOfDomEvent addListener(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.addListener")
-external dynamic addListener(HTMLElement el, Anon_DomEvent_addListener_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent addListener(HTMLElement el, Anon_DomEvent_addListener_eventMap eventMap, [dynamic context]);
 
 @JS()
 @anonymous
@@ -2817,10 +2817,10 @@ extension Anon_DomEvent_addListener_eventMapExtension on Anon_DomEvent_addListen
 }
 
 @JS("DomEvent.removeListener")
-external dynamic removeListener(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
+external TypeOfDomEvent removeListener(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.removeListener")
-external dynamic removeListener(HTMLElement el, Anon_DomEvent_removeListener_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent removeListener(HTMLElement el, Anon_DomEvent_removeListener_eventMap eventMap, [dynamic context]);
 
 @JS()
 @anonymous
@@ -2955,7 +2955,7 @@ class Map {
   @JS("flyToBounds")
   external Map flyToBounds(LatLngBoundsExpression bounds, [FitBoundsOptions options]);
   @JS("addHandler")
-  external Map addHandler(String name, dynamic HandlerClass);
+  external Map addHandler(String name, TypeOfHandler HandlerClass);
   @JS("remove")
   external Map remove();
   @JS("createPane")
@@ -3342,19 +3342,39 @@ external num lastId;
 external String emptyImageUrl;
 
 @JS("extend")
-external dynamic extend;
+external IndexedTypeOfUtilExtend extend;
 
 @JS("bind")
-external dynamic bind;
+external IndexedTypeOfUtilBind bind;
 
 @JS("stamp")
-external dynamic stamp;
+external IndexedTypeOfUtilStamp stamp;
 
 @JS("setOptions")
-external dynamic setOptions;
+external IndexedTypeOfUtilSetOptions setOptions;
 
 @JS("noConflict")
 external dynamic noConflict();
+
+typedef TypeOfClass = dynamic;
+
+typedef IndexedHTMLElementTagNameMapT = dynamic;
+
+typedef IndexedSVGElementTagNameMapK = dynamic;
+
+typedef TypeOfControlOptions = dynamic;
+
+typedef TypeOfDomEvent = dynamic;
+
+typedef TypeOfHandler = dynamic;
+
+typedef IndexedTypeOfUtilExtend = dynamic;
+
+typedef IndexedTypeOfUtilBind = dynamic;
+
+typedef IndexedTypeOfUtilStamp = dynamic;
+
+typedef IndexedTypeOfUtilSetOptions = dynamic;
 "
 `;
 
@@ -3453,16 +3473,16 @@ extension ReadonlyDictExtension on ReadonlyDict {
 }
 
 @JS("keyofThing")
-external dynamic keyofThing;
+external KeyOfBoxString keyofThing;
 
 @JS("tmpl")
-external dynamic tmpl;
+external TemplatePreString tmpl;
 
 @JS("cond")
-external dynamic cond;
+external StringExtendsNumberTrueFalse cond;
 
 @JS("idx")
-external dynamic idx;
+external IndexedBoxStringValue idx;
 
 @JS("predicateHolder")
 external bool Function(dynamic) predicateHolder;
@@ -3537,5 +3557,13 @@ extension OptsExtension on Opts {
   external num get b;
   external set b(num value);
 }
+
+typedef KeyOfBoxString = dynamic;
+
+typedef TemplatePreString = dynamic;
+
+typedef StringExtendsNumberTrueFalse = dynamic;
+
+typedef IndexedBoxStringValue = dynamic;
 "
 `;

@@ -138,12 +138,14 @@ export function emitType(type: IRType): string {
       break;
     }
     
-    // Something with no Dart representation yet. Still bare `dynamic` here —
-    // S1.7 replaces this with a reference to a minted, documented typedef
-    // (`E-16`), which is the whole reason the parser now preserves
-    // `originalText` and `unsupportedReason` on these nodes.
+    // Something with no Dart representation. The linker has usually minted a
+    // documented typedef for it and pointed `aliasName` at it (`E-16`), which
+    // is what `originalText` and `unsupportedReason` are preserved for. Bare
+    // `dynamic` remains the answer when emitting an IR the linker never saw —
+    // unit tests calling `emitType` directly, and the alias declaration's own
+    // right-hand side, which must not refer to itself.
     case TypeKind.Unsupported:
-      baseType = "dynamic";
+      baseType = type.aliasName ?? "dynamic";
       break;
 
     // Default fallback for Intersection, unhandled TypeLiterals, etc.

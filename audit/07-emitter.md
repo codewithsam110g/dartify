@@ -443,3 +443,48 @@ types are unaffected: `string | null` → `String?`, `string[] | null` →
 of `emitType` while three branches `return` before reaching it. Any rule that
 must hold for all kinds should be applied at a single exit, not duplicated at
 each one.
+
+---
+
+## E-18 — Multi-member unions still use `js_facade_gen`'s inline-comment pattern `[verified]`
+
+`emitType`'s union branch emits the reference tool's shape verbatim:
+
+```ts
+if (uniqueNames.length > 1) {
+  return "dynamic " + "/* " + type.unionTypes!.map((e) => emitType(e)).join("|") + " */";
+}
+```
+
+```dart
+external List<H3Index> polygonToCells(
+    dynamic /* List<List<num>>|List<List<List<num>>> */ coordinates, num res, ...);
+typedef H3IndexInput = dynamic /* String|List<num> */;
+```
+
+This is **pre-existing** — it dates to `a5433d7` (2025-08-19) and h3's output is
+byte-identical to the pre-S1 baseline. It is not a regression from the type
+layer work, and it is `js_facade_gen`-conformant.
+
+But it is exactly the pattern design principle 2 exists to replace: the
+information is repeated at every use site, it is not referenceable, it does not
+show on IDE hover, and improving the representation means editing every
+occurrence. The `typedef` case above is fine — that one *is* named. The
+parameter case is not.
+
+**Also, the dedup is computed and then thrown away.** `uniqueNames` gates the
+branch but the comment re-maps the original list, so duplicates survive:
+
+```
+"a" | "b" | number         ->  dynamic /* String|String|num */
+string | number | boolean  ->  dynamic /* String|num|bool */
+```
+
+**Blocker for a fix.** Union members cannot go through `deriveAliasName`
+unchanged. That derivation tokenises identifier runs out of the source text and
+drops everything else, so `number[][] | number[][][]` yields `NumberNumber` —
+uninformative *and* collision-prone, since both operands are `number`-shaped. A
+union alias has to be derived from the **emitted Dart member types**
+(`ListListNumOrListListListNum`), not from the TypeScript text. That is a
+different code path from `E-16`'s, which is why this is filed separately rather
+than folded into it.

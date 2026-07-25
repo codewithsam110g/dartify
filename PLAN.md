@@ -358,7 +358,7 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 | Stage | Status | Notes |
 |---|---|---|
 | S0 floor | ☑ **done** | suite 1654 failed → **57 passed**; `tsc` 15 errors → **0**; `dist` 1.59 MB → **75 KB**; snapshots 4.3 MB → **128 KB** |
-| S1 types | ☑ **done** | unsupported nodes 1,410 → **112**; 68 minted typedefs, 0 dangling / 0 duplicate; suite 57 → **199 passed**; `dist` 75 KB → **90.6 KB**. Fixed `T-01`–`T-16` bar `T-11`, plus `P-07`, `E-16`, `E-17`. No unrepresentable use site emits bare `dynamic`. Residual: 28 nodes across `object`/`undefined` (`E-19`), and `E-14`/`E-18` which bypass `emitType` — all S5. h3 `dart analyze` clean (was already); leaflet 507, probe 19, dominated by `E-03` and `L-05`/`E-10` |
+| S1 types | ☑ **done** | unsupported nodes 1,410 → **112**; 68 minted typedefs, 0 dangling / 0 duplicate; suite 57 → **199 passed**; `dist` 75 KB → **90.6 KB**. Fixed `T-01`–`T-16` bar `T-11`, plus `P-07`, `E-16`, `E-17`. No unrepresentable use site emits bare `dynamic`. Residual: 28 nodes across `object`/`undefined` (`E-19`), and `E-14`/`E-18` which bypass `emitType` — all S5. h3 `dart analyze` clean (was already); leaflet 510, probe 19, dominated by `E-03` and `L-05`/`E-10` |
 | S2 links | ☐ not started | |
 | S3 decls | ☐ not started | |
 | S4 semantics | ☐ not started | |

@@ -64,16 +64,23 @@ export interface IRType {
  * Why a TypeScript type has no Dart representation *yet*.
  *
  * A value here is not a permanent verdict — it is a statement about the
- * current backend. `ThisType` is listed because S1.4 has not landed; once a
- * construct gains a real representation its reason disappears from output
- * entirely. That is the intended direction of travel for every member.
+ * current backend. When a construct gains a real representation its reason
+ * stops appearing in output; the member stays so the classifier keeps a total
+ * function over `SyntaxKind`. That is the intended direction of travel for
+ * every member, and S1.4 already retired four of them.
  */
 export enum UnsupportedReason {
-  /** `this` as a type. ~1,100 corpus sites — the single biggest gap. */
+  /**
+   * `this` as a type. Retired in S1.4 — resolved to the enclosing class or
+   * interface. Still reachable for a `this` with no such ancestor.
+   */
   ThisType = "thisType",
   /** `keyof T` */
   KeyOf = "keyOf",
-  /** `readonly T[]` — the array is representable, the readonly-ness is not */
+  /**
+   * `readonly T[]`. Retired in S1.4: Dart has no read-only list, so this
+   * collapses to the inner type the way `ReadonlyArray<T>` does.
+   */
   ReadonlyOperator = "readonlyOperator",
   /** `unique symbol` */
   UniqueSymbol = "uniqueSymbol",
@@ -87,7 +94,7 @@ export enum UnsupportedReason {
   Infer = "infer",
   /** `T[K]` */
   IndexedAccess = "indexedAccess",
-  /** `x is T` */
+  /** `x is T`. Retired in S1.4 — a type predicate is a `bool` at runtime. */
   TypePredicate = "typePredicate",
   /** `typeof x` */
   TypeQuery = "typeQuery",
@@ -99,9 +106,9 @@ export enum UnsupportedReason {
    * `[string?]` — an optional tuple member written positionally.
    *
    * Distinct from the `[a?: string]` spelling, which ts-morph exposes as a
-   * `NamedTupleMember` and the tuple handler reads directly. Bare
-   * `OptionalType` has no ts-morph wrapper as of 26.0.0, so its inner type is
-   * not reachable through the typed API (`T-10`).
+   * `NamedTupleMember` and the tuple handler reads directly. Retired in S1.4
+   * by the ts-morph 26 → 28 upgrade, which added the `OptionalTypeNode`
+   * wrapper that makes the inner type reachable (`T-10`).
    */
   OptionalMember = "optionalMember",
   /** Parser hit its depth guard before reaching a representable node. */

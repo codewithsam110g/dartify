@@ -1,0 +1,188 @@
+# 09 — Tests & Tooling
+
+Covers `test/**`, `vitest.config.ts`, `tsconfig.json`, `package.json`.
+
+---
+
+## X-01 — The test suite calls an API the refactor removed `[verified]`
+
+```
+pnpm test:run
+→ Test Files  3 failed | 3 passed (6)
+→      Tests  1654 failed | 48 passed (1703)
+→ 1654 × "Transpiler.transpileFromString is not a function"
+```
+
+`test/simple.test.ts:5` and `test/snapshot.test.ts:18` both call:
+
+```ts
+const result = await Transpiler.transpileFromString(content, {
+  fileName, debug: false,
+});
+expect(result.content).toMatchSnapshot(...);
+```
+
+A **static** method taking a source string and returning `{ content, errors }`.
+The current `Transpiler` (`src/transpiler.ts:61`) is instance-based, takes file
+*paths*, and writes to disk with no string-returning path (`E-11`).
+
+**Fix direction:** restore `transpileFromString` as a static wrapper —
+create a virtual source file via `project.createSourceFile`, run
+`generateSymbols` → `runLinker` → `renderAllFiles`, return the rendered string
+plus collected errors. This depends on `E-11` (split render from write) and
+`R-11` (reset the singleton between runs, or tests leak symbols into each other).
+
+---
+
+## X-02 — 27 obsolete snapshots, and the suite snapshots the entire corpus `[verified]`
+
+`test/snapshot.test.ts:9-10` globs **every** `.d.ts` under `def_files/` — 1,648
+files — and produces one snapshot each.
+
+Two problems:
+
+1. **Volume.** 1,648 snapshots of whole generated libraries (three.js alone is
+   415 files, `vscode.d.ts` is 21k lines) is not a reviewable diff. A change to
+   `emitType` rewrites all of them; nobody can tell a fix from a regression.
+2. **Staleness.** 27 snapshots are already orphaned (`axios.dart`,
+   `lib.dom.dart`, `express-serve-static-core.dart`, …) from an earlier
+   directory layout.
+
+**Fix direction:** split into three tiers —
+- **conformance**: `def_files/legacy_tests/*` + the `js_facade_gen` cases,
+  asserted against *expected output*, not snapshots;
+- **smoke**: 3-5 representative libraries (h3, leaflet, a three.js subtree),
+  snapshotted;
+- **stress**: the full corpus behind an opt-in script, asserting only
+  "no crash, N broken links ≤ baseline" rather than byte-exact output.
+
+---
+
+## X-03 — `tsc --noEmit` reports 15 errors `[verified]`
+
+| Count | Location | Cause |
+|---|---|---|
+| 5 | `engine/passes`, `engine/transformers` | dead code, `getCurrentFileName` removed (`D-01`) |
+| 8 | `test/simple.test.ts`, `test/snapshot.test.ts` | `transpileFromString` gone (`X-01`) |
+| 1 | `test/decl/decl-parser.test.ts:65` | `parseVariableStmt` gained an `fqnPrefix` param |
+| 1 | `test/snapshot.test.ts:33` | implicit `any` on `(error, index)` |
+
+`tsconfig.json` has `"strict": true` and `"include": ["src", "test"]`, so all 15
+are real. None are in live `src` code — which is a genuinely good signal: the
+live path is type-clean.
+
+`test/decl/decl-parser.test.ts:65` is worth noting separately — `parseVariableStmt`
+changed signature to `(fqnPrefix, varStmt)` (`parser/variable.ts:7-10`) to
+thread FQN context. That is the same global-state threading flagged in `R-09`;
+if that is refactored to explicit scope passing, this test signature changes again.
+
+---
+
+## X-04 — `test-helper.ts` is a good foundation and is underused `[inspection]`
+
+`test/test-helper.ts` provides `createStatementNode(src)` and
+`createTypeNode(snippet)` (the latter wraps a snippet in
+`type __DUMMY = ${snippet};` and returns the inner node — a neat trick).
+
+These are exactly the primitives needed for a `js_facade_gen` conformance suite:
+each of the ~120 cases in `def_files/js_facade_gen_test_cases.md` is a
+snippet → expected-Dart pair. Currently only the four unit test files use them.
+
+Note the helper builds its own `ts.Project` with `target: ESNext` and no
+`moduleResolution` setting — so tests exercise a different resolution
+configuration than the CLI (`R-01`). Cross-file behaviour cannot be tested
+through this helper as written.
+
+---
+
+## X-05 — Snapshot path rewriting assumes a POSIX separator `[inspection]`
+
+`vitest.config.ts:9-12`
+```ts
+resolveSnapshotPath: (testPath, snapExtension) =>
+  testPath.replace("/test/", "/test/__snapshots__/") + snapExtension,
+```
+`"/test/"` is a literal; on Windows `testPath` uses `\`, so the replace is a
+no-op and snapshots land beside the tests. Minor, but the project targets
+Node on all platforms and `transpiler.ts:204` already has a
+`toForwardSlash` helper for exactly this class of problem.
+
+---
+
+## X-06 — No test covers the linker or the symbol table `[verified]`
+
+`test/` contains: `simple`, `snapshot`, `decl/decl-parser`, `decl/decl-emitter`,
+`type/type-parser`, `type/type-emitter`. There is **no** test for
+`symbolGeneration`, `linkerPhase`, `emitterPhase`, FQN construction, dep
+collection, or `resolveRealFQN`.
+
+Every finding in `06-symbol-linker.md` was found by running the CLI and reading
+output, because there is no unit-level surface to assert against. `L-01` and
+`L-02` in particular are trivially unit-testable once a fixture helper exists.
+
+**This is the highest-value test gap** — the linker is where the active
+development is, and it has zero coverage.
+
+---
+
+## X-07 — `pnpm test` runs vitest in watch mode `[inspection]`
+
+`package.json` scripts: `"test": "vitest"` (watch) and `"test:run": "vitest run"`
+(single). CI and agents want the latter. Conventional expectation is that
+`test` is the one-shot and `test:watch` is the watcher — both already exist, so
+`test` could simply be re-pointed at `vitest run`.
+
+---
+
+## X-08 — `test:cli` references a placeholder path `[inspection]`
+
+```json
+"test:cli": "pnpm build && node dist/cli.js --files ./path/to/test.d.ts --outDir ./output"
+```
+
+`./path/to/test.d.ts` is a placeholder, and the flags are wrong: the CLI accepts
+`-d/--def-files` and `-o/--output` (`cli.ts:25-36`), not `--files`/`--outDir`.
+The script cannot have been run successfully.
+
+---
+
+## X-09 — No `dart analyze` validation exists `[inspection]`
+
+The tool's output is Dart, but nothing in the repo compiles or analyses it.
+Every correctness claim about generated code is currently made by reading it.
+
+`def_files/leaflet_project/`, `three_project/` and `express_project/` exist as
+scaffolding (`package.json` + `tsconfig.json`) but contain no Dart side.
+
+**This is the acceptance test that matters for v1** — "h3 and leaflet bindings
+pass `dart analyze` with zero errors" is the single claim that would make the
+project credible, and it is the one thing currently unmeasurable.
+
+---
+
+## X-10 — Probe fixture used for this audit
+
+Several `E-*` findings were verified with one synthetic file. Recording it here
+so the findings are reproducible:
+
+```ts
+declare class Box<T> extends Base<T> implements Holder<T>, Named {
+  constructor(a: string);
+  constructor(a: string, b: number);
+  value: T;
+  map<U>(fn: (t: T) => U): Box<U>;
+}
+declare function my_func(a: string): void;
+declare const readonly_const: number;
+interface Callable { (n: number): boolean; }
+interface Child extends Parent1, Parent2 { x: string; }
+declare var keyofThing: keyof Box<string>;
+declare var tmpl: `pre-${string}`;
+declare var cond: string extends number ? true : false;
+declare var idx: Box<string>["value"];
+type Mapped<T> = { [K in keyof T]: T[K] };
+declare enum E { A = 1, B }
+```
+
+Covers `E-01`, `E-02`, `E-03`, `E-04`, `E-05`, `E-06`, `P-03`, `T-01`.
+Worth promoting into `def_files/synthetic/` as a permanent regression fixture.

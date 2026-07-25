@@ -1,0 +1,158 @@
+# Consolidated Findings
+
+Severity-ranked index. Detail and per-line reasoning live in the area files.
+
+**Severity**
+- **S1** — produces silently wrong output, or blocks a v1 goal outright
+- **S2** — produces obviously broken output, or blocks a planned phase
+- **S3** — correctness hazard that is currently latent, or a significant design debt
+- **S4** — cosmetic, wasteful, or documentation drift
+
+**Evidence** — `[verified]` reproduced by running · `[inspection]` established by reading · `[latent]` real but currently unobservable
+
+---
+
+## S1 — Silently wrong output / blocks v1
+
+| ID | Finding | Where | Ev. |
+|---|---|---|---|
+| `E-01` | `.split("_")[0]` truncates JS names at the first underscore — `my_func` binds to `@JS("my")` | `emitter/old/function.ts:11`, `class.ts:83`, `interface.ts:48` | ✅ |
+| `L-01` | Cross-file dep FQNs name the importing file, not the declaring file; masked by the fuzzy matcher | `parser/type/typeRefernce.ts:24-30` | ✅ |
+| `P-01` | Heritage clauses bypass `parseType` → **no inheritance edge reaches the dep graph** | `parser/interface.ts:19`, `class.ts:17-18` | ✅ |
+| `E-08` | No cross-file imports are ever emitted — 415/415 three.js files uncompilable | `phase/emitterPhase.ts:188-195` | ✅ |
+| `T-02` | `IRType.originalText` declared but never written — source text destroyed at parse, unrecoverable downstream | `ir/type.ts:42` | ✅ |
+| `E-03` | Type parameters never emitted — every generic declaration is uncompilable | `emitter/old/class.ts:17` | ✅ |
+| `E-04` | `extends`/`implements` never emitted — whole inheritance graph dropped | all emitters | ✅ |
+| `R-01` | Extensionless relative imports silently fail to resolve (most `@types/*` packages) | `transpiler.ts:86-96` | ✅ |
+| `X-01` **[FIXED]** | ~~Test suite calls removed `Transpiler.transpileFromString`~~ — restored in S0.2 as a static wrapper over the three phases | `transpiler.ts` | ✅ |
+| `E-16` | No type-definitions section; degradation to `dynamic` is anonymous and unnamed — blocks design principle 2 | `phase/emitterPhase.ts`, `emitter/old/type/emit.ts` | ✅ |
+
+## S2 — Obviously broken / blocks a phase
+
+| ID | Finding | Where | Ev. |
+|---|---|---|---|
+| `L-02` | Dotted qualified names never match table keys — 42/42 of leaflet's broken links | `phase/linkerPhase.ts:57-63` | ✅ |
+| `E-02` | Constructor counter never incremented → duplicate factory names | `emitter/old/class.ts:25-31` | ✅ |
+| `E-06` | Enum members unreachable (`static` in an `extension`) with per-member type drift | `emitter/old/enum.ts:19-29` | ✅ |
+| `P-04` | Enum values always parsed as strings, never numbers | `parser/enum.ts:11` | ✅ |
+| `P-03` / `I-05` | Interface call signatures never read; no IR field for them | `parser/interface.ts`, `ir/interface.ts` | ✅ |
+| `E-07` | Hoisted anonymous classes get no factory → unconstructible | `emitter/old/interface.ts:21-29` | ✅ |
+| `I-01` | Type params absent from IR except `IRClass` (and unemitted there) | `ir/{interface,function,typealias}.ts` | ✅ |
+| `I-04` | Heritage stored as raw strings — loses generic args, dep edges, qualified names | `ir/interface.ts:9`, `ir/class.ts:13-14` | ✅ |
+| `T-01` / `I-03` | No `TypeKind` for unsupported constructs; all collapse to `Any` | `parser/type/type.ts:187-189` | ✅ |
+| `P-07` | `this` type → `dynamic`. **~1,100 corpus occurrences — the #1 type gap** | `parser/type/type.ts` | ✅ |
+| `E-09` | No Dart keyword escaping (`external bool get static;`) | all emitters | ✅ |
+| `E-10` | Namespace flattening collides (two `abstract class ZoomOptions` in leaflet) | `phase/emitterPhase.ts:198-211` | ✅ |
+| `E-05` | Variables emit mutable fields; `isReadonly`/`isConst` ignored | `emitter/old/variable.ts:13` | ✅ |
+| `L-05` | Overload grouping + augmentation not implemented in the new pipeline | `phase/linkerPhase.ts` | ✅ |
+| `L-08` | `LinkState` computed then discarded — emitter cannot use the graph | `phase/linkerPhase.ts:98-169` | 🔍 |
+| `E-11` **[FIXED]** | ~~Emission coupled to `fs`~~ — split into `renderAllFiles()` / `writeAllFiles()` in S0.1 | `phase/emitterPhase.ts` | 🔍 |
+| `T-09` | Intersections parsed correctly, then dropped to `dynamic` at emit | `emitter/old/type/emit.ts:129-132` | ✅ |
+| `X-06` | **Zero test coverage of symbol table, linker, or emitter phase** | `test/` | ✅ |
+| `D-01` | 5-pass pipeline orphaned but still type-checked (5 of 15 `tsc` errors) | `engine/{passes,transformers}` | ✅ |
+| `D-07` **[FIXED]** | ~~**95% of `dist/cli.js` was `@viz-js/viz`**~~ — a devDependency made reachable by a live import in `linkerPhase`. S0.4: **1.59 MB → 73.3 KB** | `tools/graph.ts` | ✅ |
+| `X-03` | `tsc --noEmit` → 15 errors (none in live `src`) | — | ✅ |
+
+## S3 — Latent hazards & design debt
+
+| ID | Finding | Where | Ev. |
+|---|---|---|---|
+| `T-03` | Handlers mutate objects returned by reference from the shared cache | `type/restType.ts:6-8`, `type/tuple.ts:9-20` | 🔍 latent |
+| `T-04` *(partial)* | Type cache is global and text-keyed with no file/scope component. It is now **cleared between runs** (S0.3), but the key is still wrong *within* a run — S1.1 fixes that before `originalText` makes it observable | `type/type.ts:15,46` | 🔍 latent |
+| `R-09` | `currentFQN` save/restore is manual and not `try/finally` — one parse error poisons every later FQN in the file | 31 sites across parsers | 🔍 |
+| `I-11` | `deepCloneIRDeclaration` JSON round-trips — **throws on bigint literals** | `ir/declaration.ts:28-32` | 🔍 latent |
+| `R-11` **[FIXED]** | ~~Context singleton never reset between runs~~ — `resetTranspilerState()` (`src/reset.ts`) called at the start of every run, S0.3. Verified: two `transpileFromString` calls no longer contaminate each other | `src/reset.ts` | ✅ |
+| `T-06` | `IRType.name` has three incompatible meanings; Dart names leak into the IR | `type/literals.ts:19,42,58` | 🔍 |
+| `L-03` | Ambiguous FQN matches silently resolve to `matches[0]`; the warning is unreachable for the common case | `symbol/resolve.ts` | 🔍 |
+| `L-10` | `SymbolTable` has no `unregister`/`replace`; `getSymbolTable()` leaks the live `Map` | `symbol/table.ts` | 🔍 |
+| `L-11` | Module scoping is textual; `declare module` / `namespace` / `global` indistinguishable | `phase/symbolGeneration.ts:239-253` | 🔍 |
+| `I-06` / `P-06` | No JSDoc anywhere except an unread `IRConstructor.jsDoc` | `ir/class.ts:24` | 🔍 |
+| `I-10` | No source location on IR nodes — diagnostics cannot point at source | `ir/*` | 🔍 |
+| `I-09` | No `export`/`declare`/visibility modifiers in the IR | `ir/*` | 🔍 |
+| `T-05` | Depth not propagated through function types — recursion guard leaks | `type/function.ts:11,29` | 🔍 |
+| `T-08` | Intersection dispatch compares source text instead of `SyntaxKind` | `type/intersection.ts:17-32` | 🔍 |
+| `R-03` | `inputRoot` from first input file only → sibling trees collide in `outDir` | `transpiler.ts:142-144` | 🔍 |
+| `R-02` | Unresolved deps reported only under `--enable-logs` | `transpiler.ts:113-116` | 🔍 |
+| `X-02` | 1,648 whole-library snapshots + 27 obsolete — not a reviewable diff | `test/snapshot.test.ts:9-10` | ✅ |
+| `X-09` | Nothing runs `dart analyze` on the output — v1's key claim is unmeasurable | — | 🔍 |
+| `I-07` / `D-03` | `IRLiteral` vestigial since hoisting moved to parse time | `ir/literal.ts` | ✅ |
+| `I-08` | Two incompatible shapes for "constructor" | `ir/{class,interface}.ts` | 🔍 |
+| `E-14` | Index signatures ignore parsed key/value types | `emitter/old/interface.ts:70-73` | 🔍 |
+| `E-12` | Tuples collapse to `List<dynamic>`; `literalValue` discarded | `emitter/old/type/emit.ts` | ✅ |
+| `T-07` | Bare `null` in type position → `dynamic` (should be `Null`) | `type/literals.ts:81-87` | 🔍 |
+| `P-05` | `isReadonly` on variables can never be true | `parser/variable.ts:15` | 🔍 |
+| `P-02` | Type param constraints/defaults not captured even for classes | `parser/class.ts:20` | ✅ |
+| `R-10` | `currentDeps` shared across all declarators in one `var` statement | `phase/symbolGeneration.ts:200-219` | 🔍 |
+| `P-08` | Return types parsed outside the pushed FQN scope (asymmetric hoist names) | `parser/function.ts:9` | 🔍 |
+| `P-09` | Interface construct signatures stored as fake-named `IRMethod`; only `[0]` emitted | `parser/interface.ts:108-114` | 🔍 |
+
+## S4 — Cosmetic, wasteful, drift
+
+| ID | Finding | Where |
+|---|---|---|
+| `L-07` **[FIXED]** | ~~Visualiser wired into the production linker phase~~ — moved to `tools/graph.ts` (`pnpm graph`), consuming the `LinkReport` `runLinker` now returns. Stray logs gone; SVG untracked and gitignored | `tools/graph.ts` |
+| `L-06` **[FIXED]** | ~~`resolveRealFQN` duplicated~~ — extracted to `src/symbol/resolve.ts`, shared by the linker and the graph tool | `symbol/resolve.ts` |
+| `R-06` | `isStdlib` substring list duplicated with a different list | `transpiler.ts:211-216`, `typeRefernce.ts:47-53` |
+| `R-07` | CLI `--version` hardcoded `v0.3` vs `package.json` `0.5.0` | `cli.ts:64` |
+| `R-08` / `D-05` | `-l` no longer produces the IR dump the README advertises; `log.ts` unused (251 lines) | `cli.ts`, `src/log.ts` |
+| `E-13` | `stripQuotes` strips quotes globally, not just delimiters | `utils/utils.ts:2` |
+| `R-04` | Emission order depends on `Map` insertion order — latent snapshot flake | `transpiler.ts:118-123` |
+| `R-05` | Every program file materialised as a ts-morph object, including 51 stdlib files | `transpiler.ts:184-196` |
+| `X-05` | Snapshot path rewrite assumes POSIX separator | `vitest.config.ts:9-12` |
+| `X-07` | `pnpm test` is watch mode; `test:run` is the one-shot | `package.json` |
+| `X-08` | `test:cli` uses a placeholder path and wrong flag names | `package.json` |
+| `E-15` | Redundant `isReadonly` branch emitting identical getters | `emitter/old/interface.ts:35-44` |
+| `T-12` | Single-member unions keep a meaningless `Union` wrapper | `type/unions.ts:16-21` |
+| `T-10` | `OptionalType` in tuples unreachable (ts-morph wrapping) — known, documented | `type/tuple.ts:21-26` |
+| `T-11` | String literal values unquoted but not unescaped | `type/literals.ts:43` |
+| `I-12` | Multi-declarator `var` grouping lost (benign) | `parser/variable.ts` |
+| `D-06` | Verify dead code is tree-shaken from `dist/` after P0 | `package.json` |
+| `E-11b` | `@typeEmitter/*` alias hardcodes `emitter/old/` | `tsconfig.json:29` |
+
+---
+
+## Corpus frequency data
+
+Measured across all 1,648 `.d.ts` files in `def_files/`. Drives type-work priority.
+
+| Construct | Occurrences | Files | Status |
+|---|---|---|---|
+| **`this` type** | **~1,100** | many | → `dynamic` |
+| `keyof` | 1,728 | **20** | → `dynamic` |
+| `Array<` | 699 | — | ✅ handled |
+| `infer` | 368 | 7 | → `dynamic` |
+| `Promise<` | 354 | — | ✅ handled |
+| type predicates (`x is T`) | 296 | 16 | → `dynamic` |
+| `Exclude<` | 126 | — | → `dynamic` |
+| `Record<` | 122 | — | → `dynamic` |
+| `ReadonlyArray<` | 61 | — | → `dynamic` |
+| `Partial<` | 49 | — | → `dynamic` |
+| mapped `[K in keyof T]` | 37 | 17 | → `dynamic` |
+| template literal types | 26 | 6 | → `dynamic` |
+| `Omit<` / `Pick<` | 31 | — | → `dynamic` |
+| `declare module` | — | 39 | partial (`L-11`) |
+| `namespace` | — | 15 | partial (`L-11`) |
+
+**Reading:** the frightening constructs are *concentrated*, not pervasive —
+`keyof` is 1,728 hits across 20 files (`typescript.d.ts`, `vscode.d.ts`,
+lodash). `this` is the genuinely universal gap and it is also the cheapest to
+fix. The ROADMAP schedules `this` for v0.7; the data says v0.6.
+
+---
+
+## Baseline metrics (commit `fc57961`)
+
+| Metric | Value |
+|---|---|
+| `pnpm test:run` | 1654 failed / 48 passed |
+| `tsc --noEmit` | 15 errors (0 in live `src`) |
+| live `src` lines | ~3,600 |
+| dead `src` lines | ~4,300 |
+| `dist/cli.js` | **1.59 MB** — 95% of it `@viz-js/viz` (`D-07`; **73.3 KB** after S0.4) |
+| h3 | 1 file, 0 broken links, 0.5 s |
+| leaflet | 318 symbols, **42 broken**, ~1 s |
+| three.js | 420 files, 1943 symbols, 0 broken, 415 emitted, 10 s |
+| files with cross-file imports emitted | **0** |
+| `dart analyze` clean outputs | **unmeasured** (`X-09`) |
+
+Re-measure after each phase in `PLAN.md`.

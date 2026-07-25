@@ -1,0 +1,144 @@
+# CLAUDE.md
+
+Guidance for Claude Code sessions working in this repository.
+
+## What this is
+
+`dartify` (npm: `dart_bindgen`) — a TypeScript `.d.ts` → Dart JS-interop binding
+generator. Built on `ts-morph`. Solo-developer project.
+
+**v1 goal: a drop-in replacement for the archived `dart-lang/js_facade_gen`,
+targeting `package:js`.** This target is deliberate — do not suggest migrating
+the primary backend to `dart:js_interop`. Existing users have codebases whose
+`package:js` / `dart:html` dependencies extend past the generated bindings, so a
+drop-in replacement is near-zero friction where a migration is a project.
+**v2** adds a `js_interop` backend behind a CLI flag — the IR is
+output-language agnostic, so a backend is a pair of string tables, not a second
+compiler.
+
+**The next published version is `1.0.0`.** There is no 0.6/0.7/0.8/0.9 — the old
+version ladder was drawn against the 5-pass architecture and is void. Do not
+propose intermediate point releases.
+
+## Read these first
+
+| File | What it gives you |
+|---|---|
+| [`audit/FINDINGS.md`](audit/FINDINGS.md) | Every known defect, severity-ranked, with stable IDs |
+| [`audit/README.md`](audit/README.md) | Index into the per-area audit files |
+| [`PLAN.md`](PLAN.md) | Staged implementation plan S0–S6 to v1; every task cites a finding ID |
+| [`ROADMAP.md`](ROADMAP.md) | The public short version of the same thing |
+| `def_files/js_facade_gen_test_cases.md` | ~120 input/output pairs from the reference tool — the de facto spec |
+
+Do not re-derive findings from scratch. If you discover something new, add it to
+the audit with a new ID rather than reporting it only in chat.
+
+## Commands
+
+Use `pnpm` — the repo has a `pnpm-lock.yaml` and `packageManager` pinned.
+
+```bash
+pnpm test:run                       # one-shot suite  (pnpm test is WATCH mode)
+pnpm exec tsc --noEmit              # typecheck
+pnpm dev -d "<glob>" -o <outdir>    # run the CLI from source
+pnpm dev -d "<file>" -o <out> -l    # + verbose: resolution summary, linker report
+pnpm build                          # tsup → dist/
+```
+
+Useful corpora in `def_files/` (1,648 `.d.ts` files, not shipped to npm):
+
+| Path | Why |
+|---|---|
+| `h3/h3.d.ts` | small, clean, the demo candidate |
+| `leaflet/*.d.ts` | namespaces + qualified names — exercises `L-02` |
+| `three/src/Three.Core.d.ts` | 420-file transitive resolution, ~10 s |
+| `legacy_tests/*.d.ts` | the `js_facade_gen` conformance fixtures |
+
+## Architecture
+
+```
+cli.ts → transpiler.ts
+           ├ PHASE 1  phase/symbolGeneration.ts  → parser/* → IR → SymbolTable
+           ├ PHASE 2  phase/linkerPhase.ts       → dep graph, (future) overloads + augmentation
+           └ PHASE 3  phase/emitterPhase.ts      → emitter/old/* → .dart
+```
+
+FQN scheme: `<abs file path>::<scope|segments|>Name`. `::` splits physical from
+logical; `|` splits scope segments. Anonymous hoisted types become
+`<file>::Anon_<sanitised scope>`.
+
+This replaced a 5-pass architecture. `src/engine/passes/**` and
+`src/engine/transformers/**` are **orphaned** — see below.
+
+## Non-obvious things that will bite you
+
+- **~4,300 of ~7,900 `src` lines are dead.** `engine/passes/**`,
+  `engine/transformers/**`, `legacy/**`, `log.ts`, `ir/literal.ts`. They still
+  typecheck, and 5 of the 15 current `tsc` errors are in them.
+- **Do not delete `engine/transformers/**` yet.** It holds the only working
+  overload grouper and recursive IR walker. Mine it during S4, then delete
+  (`D-02`).
+- **`src/legacy/**` is the author's original 3-day implementation.** Self-contained,
+  compiles clean, deliberately kept as an architectural exhibit. Do not "clean
+  it up".
+- **The dependency graph is deliberate tooling, not cruft** — it is how linker
+  regressions get spotted, and it stays. But it is currently *wired into the
+  production pipeline*: `linkerPhase.ts:2` imports the visualiser, which drags
+  the `@viz-js/viz` devDependency into the bundle — **~70% of `dist/cli.js`'s
+  1.59 MB** (`D-07`). S0.4 moves it to `tools/graph.ts` as a consumer of
+  `LinkState`. Keep the instrument, cut the coupling (`L-07`).
+- **The test suite is currently red** (1654/1703) because the refactor removed
+  `Transpiler.transpileFromString`. Expected mid-refactor; S0 fixes it.
+- **three.js reporting "0 broken links" is not proof multi-file works.** It
+  passes because it is modern ESM with explicit `.js` extensions. Extensionless
+  relative imports — most of DefinitelyTyped — silently resolve to nothing
+  (`R-01`). And the linker's fuzzy name matcher masks a systematic wrong-file
+  FQN bug (`L-01`).
+- **`refactor/orchestration` is the working branch.** `main` is what ships to
+  npm. Broken states on the working branch are fine.
+
+## Working conventions
+
+- Verify claims by running the tool, not by reading alone. Tag findings
+  `[verified]` vs `[inspection]`; say which you did.
+- Prefer `pnpm` scripts that already exist over ad-hoc `npx` invocations.
+- Reference finding IDs (`L-01`, `E-08`, …) in commit messages and PR text.
+- Scratch files go in the session scratchpad, never in the repo.
+- `def_files/` is third-party fixture data — do not edit except to add a
+  deliberate synthetic case.
+
+## Maintenance contract
+
+**Keep these three documents current — this is part of the task, not an extra.**
+
+1. **`audit/`** — when you change code a finding covers, update the finding in
+   the same commit. Mark resolved ones `[FIXED]`; never renumber or delete an
+   ID. New subsystem → new section.
+2. **`PLAN.md`** — tick the stage table as work lands. Re-measure the baseline
+   metrics in `audit/FINDINGS.md` at the end of each stage.
+3. **`CLAUDE.md`** — when an entry under "Non-obvious things" stops being true,
+   remove it. A stale warning is worse than none.
+
+## Design principles (from `PLAN.md`)
+
+1. Never degrade silently.
+2. **Degrade to a *named* type, never bare `dynamic`.** `js_facade_gen` emits
+   `dynamic /*keyof Box<string>*/` at each use site. dartify instead mints a
+   real symbol and documents it once, in a type-definitions section:
+
+   ```dart
+   /// Unrepresentable in Dart: `keyof Box<string>`
+   typedef KeyOfBoxString = dynamic;
+   ```
+
+   Use sites then say `KeyOfBoxString`. Same information as the reference tool's
+   comment, but it is a referenceable type, it shows on IDE hover, it is stated
+   once rather than per occurrence, and one typedef edit upgrades every use site
+   when a better representation is found. This is `E-16` and it is **S1 — the
+   first feature after the floor is restored**.
+3. The IR is the contract — anything not captured at parse time is unrecoverable.
+4. The linker owns cross-declaration semantics (overloads, augmentation,
+   renaming, imports). This is the place the previous two architectures lacked.
+5. **Instruments are not pipeline stages.** The graph, IR dumps and diagnostics
+   consume phase output; they never sit inside it, and they live outside the
+   shipped entry graph.

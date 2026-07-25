@@ -66,6 +66,11 @@ module owns one `SyntaxKind` family.
 > syntax; this one needs `ts.TypeChecker` and belongs with the other Tier C
 > checker work, with Tier B giving it a name in the meantime.
 >
+> **Superseded — see `T-14`.** Every sentence above is true and the conclusion
+> still does not follow: dartify can simply *ask* the checker, which resolves
+> 87% of these to a primitive. Kept as written because the reasoning error is
+> the interesting part.
+>
 > **`unclassified` is the metric to watch.** It reaching 0 means every
 > degradation in these libraries has a name. Two constructs were found this way
 > and would otherwise have been silently lumped together: `ConstructorType`
@@ -495,3 +500,59 @@ The symbol table holds `leaflet.d.ts::Control|Attribution`; the dep records
 `L.Control.Attribution` — wrong separator *and* a stray `L.` prefix. That is
 `L-02`. The count going **up** here is the linker becoming more truthful, and
 `44` is the correct new baseline for leaflet.
+
+---
+
+## T-14 — `typeof x` was classified from syntax, so 87% of it degraded needlessly `[verified]` **[FIXED — S1.5b]**
+
+`TypeQuery` had no case in `parseType`, so every `typeof x` fell to the
+`default:` branch. After `S1.3` that meant a correctly-labelled
+`Unsupported/typeQuery` node — honest, but far more pessimistic than necessary.
+
+At **443 of 503 remaining nodes**, `typeof` was by a wide margin the largest
+category of degradation left after `S1.4`. This file previously recorded a
+decision to leave it that way:
+
+> `typeof x` was moved from Tier A to Tier B on inspection. The dominant corpus
+> form is `export const BRDF_GGX: typeof TSL.BRDF_GGX` — `typeof` applied to a
+> *value*, whose type only the type checker knows.
+
+**That reasoning was right and the conclusion was wrong.** It only knows what
+the checker knows — so the thing to do was ask the checker, not give up. Asking
+it, over three.js + leaflet + probe:
+
+| resolved to | count | Dart |
+|---|---:|---|
+| number literal | 199 | `num` |
+| string literal | 191 | `String` |
+| plain `number` | 3 | `num` |
+| callable | 28 | *stays unsupported* |
+| object (`typeof L.DomEvent`) | 21 | *stays unsupported* |
+| constructor (`typeof L.Class`) | 7 | *stays unsupported* |
+
+**393 of 449 (87%) resolve to a primitive.** The driver is the
+enum-as-consts idiom, which three.js uses throughout `src/constants.d.ts`:
+
+```ts
+export const NearestFilter: 1003;
+export const LinearFilter: 1006;
+export type TextureFilter = typeof NearestFilter | typeof LinearFilter;
+```
+
+Syntactically `typeof NearestFilter` is opaque. Resolved, it is `1003`, and the
+whole alias collapses to `num` — which is what `js_facade_gen` emits.
+
+**Impact.** Unsupported nodes **505 → 112**; minted typedefs **463 → 89**.
+Output diff over three.js + leaflet + h3: 17 files, 66 lines, **66 improvements,
+0 regressions**, e.g. `typedef CullFace = dynamic` → `typedef CullFace = num`.
+Cost: three.js end-to-end 5,144 ms → 5,202 ms, inside run-to-run noise — the
+checker was already instantiated for module resolution.
+
+The 56 that stay unsupported are deliberate. `typeof Foo` on a class is the
+*constructor* type, not `Foo`; emitting `Foo` would be confidently wrong rather
+than honestly degraded. They get a minted alias instead (`E-16`).
+
+**Generalisable lesson.** `S1.4`'s Tier A/Tier B split was drawn by reading
+syntax. Syntax is the wrong axis: the question is not "can this construct be
+represented" but "can dartify *find out* what it means". Any remaining category
+should be re-checked against the type checker before being written off.

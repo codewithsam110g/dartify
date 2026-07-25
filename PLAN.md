@@ -152,7 +152,8 @@ small enough to reason about.
 | 1.2 | ✅ Populate `originalText` on **every** `IRType` node, at every depth — this is the comment body and it is unrecoverable later. Done centrally in `parseType` (one assignment after the dispatch, so no future `SyntaxKind` can forget it); normalised to one line by `sourceTextOf`, never truncated | `T-02` |
 | 1.3 | ✅ `TypeKind.Unsupported` carrying `originalText` + a machine-readable reason code. Classifier covers 13 constructs; **census over three.js+leaflet: 1,410 nodes, 0 unclassified**. Emission unchanged (`dynamic`) so output stayed byte-identical | `I-03`, `T-01` |
 | 1.4 | ✅ **Tier A — represent properly.** `this` → enclosing type (900 sites, §3.10) · `readonly T[]` and `ReadonlyArray<T>` → `List<T>` (§14.4) · `x is T` → `bool` (§6.6) · bare `null` → `Null` (§1.10) · optional tuple members, via the ts-morph 26→28 upgrade. **Census 1,410 → 503.** Also fixed `E-17` (`dynamic?` — uncompilable Dart), found by diffing output. **`typeof x` moved to Tier B**: it needs the checker, and the obvious guess is wrong (`typeof Foo` is the constructor, not `Foo`). Qualified names moved to S2 with `L-02` | `P-07`, `T-01`, `T-07`, `T-10`, `E-17` |
-| 1.5 | **Tier B — mint a named alias.** `keyof`, conditional, mapped, template literal, `infer`, indexed access. Deterministic name derivation, collision-checked against the symbol table | `T-01`, principle 2 |
+| 1.5 | ✅ **Tier B — mint a named alias.** `keyof`, conditional, mapped, template literal, `infer`, indexed access. `deriveAliasName` is a pure function of the source text (64-char budget: derived length is p50 23 / p90 37 / p99 56); `AliasRegistry` owns uniqueness because that needs the symbol table, dedups on text and disambiguates by hash so names don't move when an unrelated declaration is added. Not yet wired into the pipeline | `T-01`, principle 2 |
+| 1.5b | ✅ **`typeof x` through the checker** — a correction, not a plan item. 1.4 wrote `typeof` off from *syntax*; asked properly, the checker resolves **393 of 449 (87%)** to a primitive (the enum-as-consts idiom: `export const NearestFilter: 1003`). Unsupported nodes **505 → 112**, minted typedefs **463 → 89**, `typedef CullFace = dynamic` → `= num`. 66 output lines changed, 0 regressions; cost inside noise. The 56 survivors — function values, namespace objects, class constructors — stay Tier B on purpose | `T-14` |
 | 1.6 | Register minted aliases as real `Symbol`s during linking; dedup identical type expressions within a file | `L-05` |
 | 1.7 | Emit the **type-definitions section**: `/// Unrepresentable in Dart: <originalText>` + `typedef Name = dynamic;`, with use sites referring to the name | `E-16` |
 | 1.8 | Purge Dart type names from `IRType.name`; TS-side names only | `T-06` |
@@ -164,7 +165,11 @@ same type expression twice in one file yields one typedef.
 
 **Deferred to post-v1 (Tier C):** evaluate `Partial<X>`→`X`, `Readonly<X>`→`X`,
 `Record<K,V>` through `ts.TypeChecker`. ~330 corpus occurrences; real payoff, no
-urgency — Tier B already gives them names.
+urgency — Tier B already gives them names. **But re-measure before deferring
+again**: `T-14` is exactly this bet, and asking the checker turned out to be
+both cheap and worth 393 sites. The Tier A/B split was drawn by reading syntax,
+and syntax is the wrong axis — the question is not "can this be represented"
+but "can dartify *find out* what it means".
 
 ---
 

@@ -1,8 +1,12 @@
 import { expect, test, describe } from "vitest";
-import { createTypeNode, createStatementNode } from "../test-helper";
+import {
+  createTypeNode,
+  createStatementNode,
+  createTypeNodeInContext,
+} from "../test-helper";
 import { parseType } from "../../src/engine/parser/type/type";
 import { emitType } from "../../src/engine/emitter/old/type/emit";
-import { TypeKind } from "../../src/ir/type";
+import { TypeKind, UnsupportedReason } from "../../src/ir/type";
 import { Transpiler } from "../../src/transpiler";
 import * as ts from "ts-morph";
 
@@ -78,6 +82,69 @@ describe("Tier A: constructs with a real Dart representation", () => {
 
     test("a nullable union is still collapsed, not turned into Null", () => {
       expect(emitType(parseType(createTypeNode("string | null")))).toBe("String?");
+    });
+  });
+
+  /**
+   * `T-14`. The construct is opaque in the syntax tree and obvious to the type
+   * checker, which is why it was wrongly written off in S1.4.
+   */
+  describe("typeof x through the checker", () => {
+    const parseIn = (context: string, snippet: string) =>
+      parseType(createTypeNodeInContext(context, snippet));
+
+    test.each([
+      // The enum-as-consts idiom, which is what drives the corpus count.
+      ["declare const NearestFilter: 1003;", "typeof NearestFilter", "num"],
+      ["declare const BindMode: 'attached';", "typeof BindMode", "String"],
+      ["declare const flag: true;", "typeof flag", "bool"],
+      // Not a literal type, but still a primitive the checker can name.
+      ["declare const n: number;", "typeof n", "num"],
+      ["declare const s: string;", "typeof s", "String"],
+    ])("%s: %s -> %s", (context, snippet, expected) => {
+      expect(emitType(parseIn(context, snippet))).toBe(expected);
+    });
+
+    test("keeps the literal value, not just the kind", () => {
+      const ir = parseIn("declare const NearestFilter: 1003;", "typeof NearestFilter");
+
+      expect(ir.kind).toBe(TypeKind.NumberLiteral);
+      expect(ir.literalValue).toBe(1003);
+    });
+
+    // three.js's `src/constants.d.ts` is 221 nodes of exactly this shape.
+    test("a union of const typeofs collapses to one primitive", () => {
+      const ir = parseIn(
+        "declare const A: 0; declare const B: 1; declare const C: 2;",
+        "typeof A | typeof B | typeof C",
+      );
+
+      expect(emitType(ir)).toBe("num");
+    });
+
+    // `typeof Foo` is the *constructor* type, not `Foo`. Emitting `Foo` would
+    // be confidently wrong; degrading is correct, and S1.7 gives it a name.
+    test.each([
+      ["declare class Widget {}", "typeof Widget"],
+      ["declare function build(): void;", "typeof build"],
+      ["declare const ns: { a: number };", "typeof ns"],
+    ])("%s: %s stays unsupported", (context, snippet) => {
+      const ir = parseIn(context, snippet);
+
+      expect(ir.kind).toBe(TypeKind.Unsupported);
+      expect(ir.unsupportedReason).toBe(UnsupportedReason.TypeQuery);
+      expect(ir.originalText).toBe(snippet);
+    });
+
+    // The checker answers `any` for a name it cannot resolve. Reporting that
+    // as `TypeKind.Any` would claim the author asked for a dynamic type when
+    // in fact dartify just failed to look it up — the exact conflation
+    // `TypeKind.Unsupported` exists to prevent (`T-01`).
+    test("an unresolvable reference is Unsupported, not Any", () => {
+      const ir = parseIn("", "typeof doesNotExist");
+
+      expect(ir.kind).toBe(TypeKind.Unsupported);
+      expect(ir.unsupportedReason).toBe(UnsupportedReason.TypeQuery);
     });
   });
 

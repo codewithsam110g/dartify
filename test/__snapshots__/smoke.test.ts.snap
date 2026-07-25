@@ -3468,7 +3468,7 @@ external dynamic idx;
 external bool Function(dynamic) predicateHolder;
 
 @JS("typeofThing")
-external dynamic typeofThing;
+external num typeofThing;
 
 typedef Mapped = dynamic;
 

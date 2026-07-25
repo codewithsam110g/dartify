@@ -13,6 +13,7 @@ import { sourceTextOf } from "./sourceText";
 import { makeUnsupported } from "./unsupported";
 import { handleThisType } from "./thisType";
 import { handleTypeOperator, handleTypePredicate } from "./typeOperator";
+import { handleTypeQuery } from "./typeQuery";
 
 /**
  * Parses `ts.TypeNode`s into `IRType`.
@@ -203,6 +204,11 @@ export class TypeParser {
       // x is T → bool (js_facade_gen §6.6)
       case ts.SyntaxKind.TypePredicate:
         result = handleTypePredicate();
+        break;
+
+      // typeof x → whatever the checker says x is, when that is a primitive
+      case ts.SyntaxKind.TypeQuery:
+        result = handleTypeQuery(typeNode as ts.TypeQueryNode);
         break;
 
       // Everything with no case above. Previously this collapsed to `Any`,

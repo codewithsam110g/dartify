@@ -42,7 +42,7 @@ pnpm test                           # one-shot suite (test:run is the same)
 pnpm test:watch                     # watch mode
 pnpm test:ui                        # browser UI at localhost:51204/__vitest__/
 pnpm test:update                    # accept snapshot changes (vitest run -u)
-pnpm test:stress                    # opt-in full 1,648-file corpus, ~4.5 min
+pnpm test:stress                    # opt-in full 1,649-file corpus, ~5.5 min
 pnpm exec tsc --noEmit              # typecheck — must stay at 0 errors
 pnpm dev -d "<glob>" -o <outdir>    # run the CLI from source
 pnpm dev -d "<file>" -o <out> -l    # + verbose: resolution summary, linker report
@@ -148,6 +148,15 @@ Consequences worth holding on to:
   relative imports — most of DefinitelyTyped — silently resolve to nothing
   (`R-01`). And the linker's fuzzy name matcher masks a systematic wrong-file
   FQN bug (`L-01`).
+- **The type checker is available and it is cheap — use it before declaring
+  something unrepresentable.** The parser is otherwise syntax-only, which makes
+  it easy to conclude a construct "can't be known statically". `T-14` is the
+  cautionary tale: `typeof x` was written off from syntax and turned out to be
+  87% resolvable, because DefinitelyTyped is full of
+  `export const NearestFilter: 1003`. Calling `node.getType()` on every one of
+  three.js's 449 `typeof` nodes cost ~60 ms end-to-end. The question is never
+  "can this be represented in Dart" — it is "can dartify *find out* what it
+  means".
 - **`refactor/orchestration` is the working branch.** `main` is what ships to
   npm. Broken states on the working branch are fine.
 

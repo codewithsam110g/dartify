@@ -40,3 +40,23 @@ export function createTypeNode(typeSnippet: string): ts.TypeNode {
   const typeAlias = sourceFile.getTypeAlias("__DUMMY")!;
   return typeAlias.getTypeNode()!;
 }
+
+/**
+ * Same, but with declarations in scope. Needed for anything the type checker
+ * has to resolve rather than read off the syntax — `typeof x` is meaningless
+ * without an `x` (`T-14`).
+ *
+ * @param context statements placed before the alias, e.g. "declare const x: 1;"
+ */
+export function createTypeNodeInContext(
+  context: string,
+  typeSnippet: string,
+): ts.TypeNode {
+  const sourceFile = project.createSourceFile(
+    "__virtual_context.ts",
+    `${context}\ntype __DUMMY = ${typeSnippet};`,
+    { overwrite: true },
+  );
+
+  return sourceFile.getTypeAliasOrThrow("__DUMMY").getTypeNodeOrThrow();
+}

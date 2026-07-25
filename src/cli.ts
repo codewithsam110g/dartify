@@ -11,6 +11,7 @@ import fg from "fast-glob";
 import { promises as fsPromises, constants as fsConstants } from "fs";
 import path from "path";
 import { Transpiler, TranspilerOptions } from "./transpiler";
+import pkg from "../package.json";
 
 interface CliOptions {
   defFiles: string[];
@@ -61,7 +62,7 @@ const argv = yargs(hideBin(process.argv))
   )
   .help()
   .alias("help", "h")
-  .version("v0.3")
+  .version(pkg.version)
   .alias("version", "v")
   .parseSync() as CliOptions;
 

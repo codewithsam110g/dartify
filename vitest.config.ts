@@ -7,8 +7,14 @@ export default defineConfig({
   test: {
     // Enable snapshot testing
     resolveSnapshotPath: (testPath, snapExtension) => {
-      // Organize snapshots in a dedicated folder
-      return testPath.replace("/test/", "/test/__snapshots__/") + snapExtension;
+      // Organize snapshots in a dedicated folder.
+      // Normalise separators first: on Windows testPath uses "\", so a literal
+      // "/test/" replace silently no-ops and snapshots land beside the tests
+      // instead of under __snapshots__ (X-05).
+      const posixPath = testPath.split("\\").join("/");
+      return (
+        posixPath.replace("/test/", "/test/__snapshots__/") + snapExtension
+      );
     },
 
     // Update snapshots with --update flag

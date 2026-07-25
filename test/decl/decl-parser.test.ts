@@ -62,7 +62,7 @@ describe("AST Parsers to IR", () => {
       const node = createStatementNode(
         "export declare const PI: 3.14159;",
       ) as ts.VariableStatement;
-      const ir = parseVariableStmt(node);
+      const ir = parseVariableStmt("", node);
       expect(ir).toMatchSnapshot();
     });
   });

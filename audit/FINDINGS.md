@@ -49,9 +49,9 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `E-11` **[FIXED]** | ~~Emission coupled to `fs`~~ — split into `renderAllFiles()` / `writeAllFiles()` in S0.1 | `phase/emitterPhase.ts` | 🔍 |
 | `T-09` | Intersections parsed correctly, then dropped to `dynamic` at emit | `emitter/old/type/emit.ts:129-132` | ✅ |
 | `X-06` | **Zero test coverage of symbol table, linker, or emitter phase** | `test/` | ✅ |
-| `D-01` | 5-pass pipeline orphaned but still type-checked (5 of 15 `tsc` errors) | `engine/{passes,transformers}` | ✅ |
+| `D-01` *(quarantined)* | 5-pass pipeline orphaned. Excluded from `tsconfig` in S0.7 so its 5 stale errors stop masking real ones. **Still on disk** — S4 mines `transformers/` before deleting both | `engine/{passes,transformers}` | ✅ |
 | `D-07` **[FIXED]** | ~~**95% of `dist/cli.js` was `@viz-js/viz`**~~ — a devDependency made reachable by a live import in `linkerPhase`. S0.4: **1.59 MB → 73.3 KB** | `tools/graph.ts` | ✅ |
-| `X-03` | `tsc --noEmit` → 15 errors (none in live `src`) | — | ✅ |
+| `X-03` **[FIXED]** | ~~`tsc --noEmit` → 15 errors~~ — now **0**. Dead dirs excluded from `tsconfig` (kept on disk for S4 mining), test signatures fixed | `tsconfig.json` | ✅ |
 
 ## S3 — Latent hazards & design debt
 
@@ -73,7 +73,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `T-08` | Intersection dispatch compares source text instead of `SyntaxKind` | `type/intersection.ts:17-32` | 🔍 |
 | `R-03` | `inputRoot` from first input file only → sibling trees collide in `outDir` | `transpiler.ts:142-144` | 🔍 |
 | `R-02` | Unresolved deps reported only under `--enable-logs` | `transpiler.ts:113-116` | 🔍 |
-| `X-02` | 1,648 whole-library snapshots + 27 obsolete — not a reviewable diff | `test/snapshot.test.ts:9-10` | ✅ |
+| `X-02` **[FIXED]** | ~~1,648 whole-library snapshots~~ — retiered in S0.6 into sanity / smoke (3 files) / opt-in stress. **4.3 MB → 128 KB** of snapshots | `test/{simple,smoke,stress}.test.ts` | ✅ |
 | `X-09` | Nothing runs `dart analyze` on the output — v1's key claim is unmeasurable | — | 🔍 |
 | `I-07` / `D-03` | `IRLiteral` vestigial since hoisting moved to parse time | `ir/literal.ts` | ✅ |
 | `I-08` | Two incompatible shapes for "constructor" | `ir/{class,interface}.ts` | 🔍 |
@@ -93,14 +93,15 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `L-07` **[FIXED]** | ~~Visualiser wired into the production linker phase~~ — moved to `tools/graph.ts` (`pnpm graph`), consuming the `LinkReport` `runLinker` now returns. Stray logs gone; SVG untracked and gitignored | `tools/graph.ts` |
 | `L-06` **[FIXED]** | ~~`resolveRealFQN` duplicated~~ — extracted to `src/symbol/resolve.ts`, shared by the linker and the graph tool | `symbol/resolve.ts` |
 | `R-06` | `isStdlib` substring list duplicated with a different list | `transpiler.ts:211-216`, `typeRefernce.ts:47-53` |
-| `R-07` | CLI `--version` hardcoded `v0.3` vs `package.json` `0.5.0` | `cli.ts:64` |
 | `R-08` / `D-05` | `-l` no longer produces the IR dump the README advertises; `log.ts` unused (251 lines) | `cli.ts`, `src/log.ts` |
 | `E-13` | `stripQuotes` strips quotes globally, not just delimiters | `utils/utils.ts:2` |
 | `R-04` | Emission order depends on `Map` insertion order — latent snapshot flake | `transpiler.ts:118-123` |
 | `R-05` | Every program file materialised as a ts-morph object, including 51 stdlib files | `transpiler.ts:184-196` |
-| `X-05` | Snapshot path rewrite assumes POSIX separator | `vitest.config.ts:9-12` |
-| `X-07` | `pnpm test` is watch mode; `test:run` is the one-shot | `package.json` |
-| `X-08` | `test:cli` uses a placeholder path and wrong flag names | `package.json` |
+| `X-05` **[FIXED]** | ~~Snapshot path rewrite assumes POSIX separator~~ — normalises separators first | `vitest.config.ts` |
+| `X-07` **[FIXED]** | ~~`pnpm test` is watch mode~~ — repointed at `vitest run`; `test:watch` unchanged | `package.json` |
+| `X-08` **[FIXED]** | ~~`test:cli` placeholder path and wrong flags~~ — now `-d def_files/h3/h3.d.ts -o ./output` | `package.json` |
+| `R-07` **[FIXED]** | ~~CLI `--version` hardcoded `v0.3`~~ — read from `package.json` | `cli.ts` |
+| `X-10` **[FIXED]** | ~~Probe fixture only in the audit~~ — promoted to `def_files/synthetic/probe.d.ts`, now a smoke-tier snapshot | `def_files/synthetic/probe.d.ts` |
 | `E-15` | Redundant `isReadonly` branch emitting identical getters | `emitter/old/interface.ts:35-44` |
 | `T-12` | Single-member unions keep a meaningless `Union` wrapper | `type/unions.ts:16-21` |
 | `T-10` | `OptionalType` in tuples unreachable (ts-morph wrapping) — known, documented | `type/tuple.ts:21-26` |

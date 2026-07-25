@@ -50,7 +50,7 @@ class SymbolGenerator {
   ) {
     for (const statement of statements) {
       try {
-        await this.processStatementDeclaration(statement, filePath);
+        await this.processStatementDeclaration(statement, filePath, errors);
       } catch (error) {
         const transpileError =
           error instanceof TranspileException
@@ -70,6 +70,7 @@ class SymbolGenerator {
   private async processStatementDeclaration(
     statement: ts.Statement,
     filePath: string,
+    errors: TranspileException[],
   ): Promise<void> {
     switch (statement.getKind()) {
       case ts.SyntaxKind.InterfaceDeclaration:
@@ -115,6 +116,7 @@ class SymbolGenerator {
         await this.processModuleDeclaration(
           statement as ts.ModuleDeclaration,
           filePath,
+          errors,
         );
         break;
 
@@ -239,6 +241,7 @@ class SymbolGenerator {
   private async processModuleDeclaration(
     node: ts.ModuleDeclaration,
     filePath: string,
+    errors: TranspileException[],
   ): Promise<void> {
     const moduleName = node.getName();
     const previousPrefix = this.modulePrefix;
@@ -246,7 +249,12 @@ class SymbolGenerator {
     try {
       this.modulePrefix += moduleName + "|";
       const statements = node.getStatements();
-      await this.walkStatements(statements, [], filePath);
+      // The caller's array, not a fresh one. This used to pass `[]`, so every
+      // error raised inside a `declare module` or `namespace` was pushed into
+      // a value nothing could read — unreported even with `--enable-logs`, and
+      // invisible to the stress tier, which only sees what escapes the run
+      // (`R-12`). leaflet alone has 15 namespaces.
+      await this.walkStatements(statements, errors, filePath);
     } finally {
       this.modulePrefix = previousPrefix;
     }

@@ -8,11 +8,13 @@ import { transpilerContext } from "./context";
  * (`R-11`) and two tests in one process contaminate each other.
  *
  * This is the single reset seam. It stayed a module of its own after the type
- * cache was removed (`T-13`) because everything S1 adds that holds per-run
- * state — the minted-alias registry above all — resets here too, and because
- * `context.ts` must not import from the parser: the parser's handlers import
- * `context`, and the cycle would put those bindings in the temporal dead zone
- * during module initialisation.
+ * cache was removed (`T-04`) so that entry points have one thing to call as
+ * more global state appears.
+ *
+ * It does **not** reset the minted-alias registry, and an earlier version of
+ * this comment claimed it did. `AliasRegistry` is constructed per file inside
+ * `registerAliasSymbols` and never outlives it, so there is nothing global to
+ * clear. If that ever changes, this is where it goes.
  */
 export function resetTranspilerState(): void {
   transpilerContext.reset();

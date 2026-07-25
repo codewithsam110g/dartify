@@ -24,8 +24,8 @@ class TranspilerContext {
   /**
    * Returns context-owned state to its initial condition.
    *
-   * Prefer `resetTranspilerState()` from `@/reset` — it also clears the type
-   * cache, which lives outside the context but has the same lifetime.
+   * Prefer `resetTranspilerState()` from `@/reset`, which is the single reset
+   * seam every entry point calls.
    */
   public reset(): void {
     this.symbolTable.clear();

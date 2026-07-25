@@ -210,3 +210,24 @@ an initialiser, so `function x(a = 42)` loses the default.
 `js_facade_gen` §6.2 renders defaults as optional params (`external x([a, b]);`)
 and §12.1 renders destructuring as `Object p_d /*{p = null, d = false}*/`.
 Low frequency; noted for conformance completeness.
+
+---
+
+## P-12 — Classes drop index signatures entirely `[verified]`
+
+`parseInterface` reads `interfaceDecl.getIndexSignatures()` and populates
+`IRInterface.indexSignatures`. `parseClass` does neither: it never calls
+`getIndexSignatures()`, and **`IRClass` has no field to hold them**. The
+`IRIndexSignatures` type is imported at `parser/class.ts:5` and never used —
+the import is the fossil of an intent that was not carried through.
+
+```ts
+declare class Bag { [key: string]: number; }
+```
+
+The index signature is gone before the IR exists, so no emitter rewrite can
+recover it (design principle 3). Interfaces with the same member survive as far
+as `E-14`, which at least emits a placeholder `operator []`.
+
+Fix requires an IR change (`IRClass.indexSignatures`), so it lands with the
+declaration work in S3, not as a parser patch.

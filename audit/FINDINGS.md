@@ -27,6 +27,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `X-01` **[FIXED]** | ~~Test suite calls removed `Transpiler.transpileFromString`~~ — restored in S0.2 as a static wrapper over the three phases | `transpiler.ts` | ✅ |
 | `E-16` **[FIXED]** | ~~No type-definitions section; degradation to `dynamic` is anonymous and unnamed~~ — minted, documented typedefs with named use sites, S1.5–S1.7. 68 typedefs over three.js + leaflet, 0 dangling, 0 duplicates; no `dart analyze` issue names one | `engine/alias/*`, `phase/emitterPhase.ts` | ✅ |
 | `E-18` | Multi-member unions emit `js_facade_gen`'s inline `dynamic /* A\|B */` at every use site — pre-existing, conformant, but the pattern principle 2 replaces. Dedup is computed then discarded (`"a"\|"b"\|number` → `String\|String\|num`). Needs a Dart-side name derivation, not `E-16`'s text-side one | `emitter/old/type/emit.ts:70-92` | ✅ |
+| `R-12` **[FIXED]** | ~~Errors inside `declare module`/`namespace` were pushed into a throwaway array~~ — `processModuleDeclaration` passed a literal `[]`, so failures in the construct most of DefinitelyTyped is written in were unreachable. Threaded through in the audit pass; corpus probe shows nothing was being swallowed | `phase/symbolGeneration.ts` | ✅ |
 | `E-19` | TS `object` and `undefined` keywords have no `emitType` case and fall to `default:` → bare `dynamic`. 28 nodes over three.js + leaflet + h3. Dart's `Object` is a close match for the former | `emitter/old/type/emit.ts` | ✅ |
 | `E-17` **[FIXED]** | ~~`dynamic?` emitted for nullable unions collapsing to dynamic~~ — guard bypassed by an early `return` (S1.4); the guard's exact-equality test then missed the commented form `dynamic /* A\|B */?`, live in 3 three.js files until S1.9. **Severity corrected: this is an analyzer *warning*, not a compile error** — `void?` is the hard error, and was already excluded | `emitter/old/type/emit.ts` | ✅ |
 
@@ -45,6 +46,8 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `T-01` / `I-03` *(partial)* | ~~No `TypeKind` for unsupported constructs; all collapse to `Any`~~ — `TypeKind.Unsupported` + `UnsupportedReason` (S1.3). **Census 1,410 → 503 after Tier A (S1.4), 0 unclassified.** Remainder is 88% `typeof x`, which needs the checker and moves to Tier B | `type/unsupported.ts` | ✅ |
 | `P-07` **[FIXED]** | ~~`this` type → `dynamic`, 900 occurrences — the #1 type gap~~ — resolves to the enclosing class/interface per js_facade_gen §3.10 (S1.4). Owner found via AST ancestors, not by parsing `currentFQN` | `type/thisType.ts` | ✅ |
 | `E-09` | No Dart keyword escaping (`external bool get static;`) | all emitters | ✅ |
+| `P-12` | Classes drop index signatures entirely — `parseClass` never calls `getIndexSignatures()` and `IRClass` has no field. Interfaces do parse them | `parser/class.ts`, `ir/class.ts` | ✅ |
+| `E-20` | `IRClass.isAbstract` parsed and never emitted — abstract classes emit as concrete | `emitter/old/class.ts:16` | ✅ |
 | `E-10` | Namespace flattening collides (two `abstract class ZoomOptions` in leaflet) | `phase/emitterPhase.ts:198-211` | ✅ |
 | `E-05` | Variables emit mutable fields; `isReadonly`/`isConst` ignored | `emitter/old/variable.ts:13` | ✅ |
 | `L-05` | Overload grouping + augmentation not implemented in the new pipeline | `phase/linkerPhase.ts` | ✅ |
@@ -66,7 +69,11 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `T-14` **[FIXED]** | ~~`typeof x` classified from syntax alone and written off as unrepresentable~~ — the checker resolves **393 of 449 (87%)** to a primitive, mostly the enum-as-consts idiom. Unsupported nodes 505 → 112 (S1.5b) | `type/typeQuery.ts` | ✅ |
 | `T-15` **[FIXED]** | ~~`null \| undefined` left an empty `unionTypes` and `emitType` reached for `[0]`~~ — threw, and the emitter's per-symbol try/catch turned the declaration into a comment. Returns a nullable `Any` (S1.9) | `type/unions.ts` | ✅ |
 | `T-16` **[FIXED]** | ~~`{}` synthesised a cyclic `typedef anon_dynamic = anon_dynamic;` registered under a non-FQN key~~ — emitted into 1 file while **117** use sites across **34** files referenced it. **Live in three.js.** `{}` is now `dynamic` (S1.9) | `type/typeLiterals.ts` | ✅ |
-| `R-09` | `currentFQN` save/restore is manual and not `try/finally` — one parse error poisons every later FQN in the file | 31 sites across parsers | 🔍 |
+| `T-17` **[FIXED]** | ~~`ParenthesizedType` and the `readonly` operator forwarded `depth` unchanged~~ — **`T-05` was closed prematurely**; `(((…)))` was unbounded at any nesting. Verified: 40 nested parens never tripped the guard. Fixed in the audit pass | `type/type.ts`, `type/typeOperator.ts` | ✅ |
+| `I-13` | `IRParameter` declared twice with different rest-flag names (`isRest` vs `isRestParameter`), one per half of the pipeline; `emitType` ignores rest on function types entirely | `ir/function.ts`, `ir/type.ts` | ✅ |
+| `I-14` | `ir/literal.ts` is dead but imported by the live IR — `IRType.objectLiteral` is never written by any parser, and the file re-declares 5 interfaces `ir/interface.ts` already has | `ir/literal.ts` | ✅ |
+| `X-12` | The stress tier asserts only that nothing *escaped* `transpileFromString`; `result.errors` and `// ERROR emitting` comments are never inspected. Measured 0/0/0 today, so nothing is hidden — but this is how `T-15` survived a green run | `test/stress.test.ts` | ✅ |
+| `R-09` | `currentFQN` save/restore is manual and not `try/finally` — one parse error poisons every later FQN in the file. **Re-counted: 52 save/restore pairs**, not 31 | 52 sites across parsers | ✅ |
 | `I-11` | `deepCloneIRDeclaration` JSON round-trips — **throws on bigint literals** | `ir/declaration.ts:28-32` | 🔍 latent |
 | `R-11` **[FIXED]** | ~~Context singleton never reset between runs~~ — `resetTranspilerState()` (`src/reset.ts`) called at the start of every run, S0.3. Verified: two `transpileFromString` calls no longer contaminate each other | `src/reset.ts` | ✅ |
 | `T-06` **[FIXED]** | ~~`IRType.name` has three incompatible meanings; Dart names leak into the IR~~ — TS-side names only, guarded by an invariant test (S1.8). Surfaced a live defect: `name: "BigInt"` was the only thing separating a bigint literal from a number literal, so `10n` emitted `num` | `type/literals.ts` | ✅ |
@@ -76,7 +83,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `I-06` / `P-06` | No JSDoc anywhere except an unread `IRConstructor.jsDoc` | `ir/class.ts:24` | 🔍 |
 | `I-10` | No source location on IR nodes — diagnostics cannot point at source | `ir/*` | 🔍 |
 | `I-09` | No `export`/`declare`/visibility modifiers in the IR | `ir/*` | 🔍 |
-| `T-05` **[FIXED]** | ~~Depth not propagated through function types — recursion guard leaks~~ — `depth + 1` on both the return type and each parameter (S1.9); verified the guard now trips on 30 nested return positions | `type/function.ts` | ✅ |
+| `T-05` **[FIXED]** | ~~Depth not propagated through function types — recursion guard leaks~~ — `depth + 1` on the return type and each parameter (S1.9). **Closed too early**: two other handlers had the same defect, see `T-17` | `type/function.ts` | ✅ |
 | `T-08` **[FIXED]** | ~~Intersection dispatch compares source text instead of `SyntaxKind`~~ — shared kind predicates in `type/keywords.ts`, now used by both the union and intersection handlers (S1.9) | `type/intersection.ts`, `type/keywords.ts` | ✅ |
 | `R-03` | `inputRoot` from first input file only → sibling trees collide in `outDir` | `transpiler.ts:142-144` | 🔍 |
 | `R-02` | Unresolved deps reported only under `--enable-logs` | `transpiler.ts:113-116` | 🔍 |
@@ -110,6 +117,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `R-07` **[FIXED]** | ~~CLI `--version` hardcoded `v0.3`~~ — read from `package.json` | `cli.ts` |
 | `X-10` **[FIXED]** | ~~Probe fixture only in the audit~~ — promoted to `def_files/synthetic/probe.d.ts`, now a smoke-tier snapshot | `def_files/synthetic/probe.d.ts` |
 | `E-15` | Redundant `isReadonly` branch emitting identical getters | `emitter/old/interface.ts:35-44` |
+| `E-21` | Emitter dead code and unused params: `getOverloadFuncs` (dead), `returnTypeAliasName` (passthrough), `emitInterface`'s unused `prefix`, 4 unused `returnTypeNode` locals, `@typeParser//type` double slashes | `emitter/**`, `parser/**` | ✅ |
 | `T-12` **[FIXED]** | ~~Single-member unions keep a meaningless `Union` wrapper~~ — normalised in the parser (S1.9); this is what exposed `E-17`'s commented-form residue | `type/unions.ts` |
 | `T-10` | `OptionalType` in tuples unreachable (ts-morph wrapping) — known, documented | `type/tuple.ts:21-26` |
 | `T-11` | String literal values unquoted but not unescaped | `type/literals.ts:43` |

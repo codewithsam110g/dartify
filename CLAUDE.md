@@ -72,13 +72,13 @@ variable set separately.
 Test tiers: `simple` (sanity) · `smoke` (3 files, byte-exact snapshots) ·
 `stress` (whole corpus, opt-in, asserts only that nothing throws).
 
-Useful corpora in `def_files/` (1,648 `.d.ts` files, not shipped to npm):
+Useful corpora in `def_files/` (1,649 `.d.ts` files, not shipped to npm):
 
 | Path | Why |
 |---|---|
 | `h3/h3.d.ts` | **the motivating use case, not a demo** — see below |
 | `leaflet/*.d.ts` | namespaces + qualified names — exercises `L-02` |
-| `three/src/Three.Core.d.ts` | 420-file transitive resolution, ~10 s |
+| `three/src/Three.Core.d.ts` | 420-file transitive resolution, ~5 s |
 | `legacy_tests/*.d.ts` | the `js_facade_gen` conformance fixtures |
 | `synthetic/probe.d.ts` | **hand-written.** One run reproduces ~16 findings |
 
@@ -87,7 +87,8 @@ Useful corpora in `def_files/` (1,648 `.d.ts` files, not shipped to npm):
 ```
 cli.ts → transpiler.ts
            ├ PHASE 1  phase/symbolGeneration.ts  → parser/* → IR → SymbolTable
-           ├ PHASE 2  phase/linkerPhase.ts       → dep graph, (future) overloads + augmentation
+           ├ PHASE 2  phase/linkerPhase.ts       → mints alias symbols, dep graph,
+           │                                        (future) overloads + augmentation
            └ PHASE 3  phase/emitterPhase.ts      → emitter/old/* → .dart
 
 Transpiler seams:  analyze()   phases 1-2, returns LinkReport, no emission
@@ -130,12 +131,17 @@ Consequences worth holding on to:
 
 ## Non-obvious things that will bite you
 
-- **~4,300 of ~7,900 `src` lines are dead.** `engine/passes/**`,
-  `engine/transformers/**`, `legacy/**`, `log.ts`, `ir/literal.ts`. The first
-  two are excluded from `tsconfig` but still on disk.
-- **Do not delete `engine/transformers/**` yet.** It holds the only working
-  overload grouper and recursive IR walker. Mine it during S4, then delete
-  (`D-02`).
+- **~4,400 of ~9,100 `src` lines are dead.** `engine/passes/**` (880),
+  `engine/transformers/**` (804), `legacy/**` (2,450), `log.ts` (251). The
+  first two are excluded from `tsconfig` but still on disk; `legacy/**` is
+  **not** excluded, so it is typechecked on every run.
+  `ir/literal.ts` (44) is the awkward one: dead in effect but **imported by the
+  live `ir/type.ts`**, so it cannot just be deleted — `IRType.objectLiteral`
+  has to go first, and no parser has ever written it (`I-14`).
+- **Do not delete `engine/transformers/**` yet.** It holds the overload grouper
+  worth keeping and a recursive IR walker. Mine it during S4, then delete
+  (`D-02`). There is a *second*, trivial grouper dead inside
+  `emitter/old/class.ts` behind a commented-out block — mine both (`E-21`).
 - **`src/legacy/**` is the author's original 3-day implementation.** Self-contained,
   compiles clean, deliberately kept as an architectural exhibit. Do not "clean
   it up".
@@ -173,6 +179,12 @@ Consequences worth holding on to:
   three.js's 449 `typeof` nodes cost ~60 ms end-to-end. The question is never
   "can this be represented in Dart" — it is "can dartify *find out* what it
   means".
+- **A finding's wording is not its defect class.** `T-05` said "depth is not
+  propagated through function types". It was fixed exactly as worded and marked
+  `[FIXED]` — while `ParenthesizedType` and `readonly` had the same bug, leaving
+  `(((…)))` unbounded (`T-17`). Before closing a finding, enumerate every site
+  of the *class* it describes; here that was one grep over `parseType(` call
+  sites.
 - **"Nothing throws" is a much weaker guarantee than it sounds.**
   `emitFileContent` wraps each symbol in a `try/catch` that turns a thrown
   error into a `// ERROR emitting ...` comment. The stress tier asserts the

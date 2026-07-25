@@ -132,8 +132,8 @@ export class Transpiler {
    */
   public async analyze(): Promise<LinkReport> {
     return this.guard(async () => {
-      // Both the context and the type cache are singletons; clear them so
-      // repeated runs in one process stay independent (R-11, T-04).
+      // The context is a singleton; clear it so repeated runs in one process
+      // stay independent (`R-11`).
       resetTranspilerState();
 
       await this.validateFiles();

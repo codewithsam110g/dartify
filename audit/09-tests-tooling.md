@@ -234,3 +234,45 @@ Worth promoting into `def_files/synthetic/` as a permanent regression fixture.
 > **Still open**, and the reason this stays unticked: nothing automates it. It
 > is a manual gate, so it cannot catch a regression between runs. Wiring an
 > opt-in `pnpm test:analyze` tier belongs with S6.
+
+---
+
+## X-12 — The stress tier asserts less than its name implies `[verified]`
+
+`test/stress.test.ts` runs all 1,649 files and asserts exactly one thing:
+
+```ts
+expect(failures).toEqual([]);   // failures = things that ESCAPED transpileFromString
+```
+
+Three layers swallow failure before it can reach that array:
+
+1. `transpileFromString` has its own `try/catch` and reports through
+   `result.errors` — **never inspected by the test**.
+2. `emitFileContent` catches per symbol and substitutes
+   `// ERROR emitting <fqn>: <msg>` into the output — **never inspected**.
+3. `generateSymbols` only prints its error list when `--enable-logs` is on, and
+   the stress run passes `debug: false`.
+
+So a file in which every declaration failed to emit would render a document of
+`// ERROR` comments and pass. This is exactly the mechanism that let `T-15`
+(`null | undefined` throwing at emit) survive a green stress tier.
+
+**Measured, so the finding is not alarmist.** Over all 1,649 files:
+
+| | count |
+|---|---:|
+| threw out of `transpileFromString` | 0 |
+| files with `result.errors` non-empty | **0** |
+| files containing `// ERROR emitting` | **0** |
+| files rendering empty | 710 |
+
+Nothing is currently hiding. The guard is still weaker than it reads, and the
+fix is one line — assert on `result.errors` and on the absence of `// ERROR`
+comments, not merely on the absence of an exception.
+
+**`X-11`'s empty-render claim is confirmed.** All 710 are barrels or
+comment-only files: 708 classify automatically as import/export-only, and the
+2 that did not (`three/src/Three.d.ts`, `three/src/nodes/Nodes.d.ts`) are
+`export * from` / `export { default as X } from` barrels that the classifier's
+line matcher did not recognise. Zero are real content loss.

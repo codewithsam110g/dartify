@@ -21,7 +21,9 @@ export function handleTypeOperator(
   depth: number,
 ): IRType {
   if (node.getOperator() === ts.SyntaxKind.ReadonlyKeyword) {
-    return parseType(node.getTypeNode(), depth);
+    // `depth + 1`. Unwrapping is still a level of nesting, and the `depth > 15`
+    // guard is the only recursion protection there is (`T-17`).
+    return parseType(node.getTypeNode(), depth + 1);
   }
 
   return makeUnsupported(node);

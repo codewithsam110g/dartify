@@ -642,3 +642,41 @@ external InterleavedBuffer clone(anon_dynamic data);   // undefined in this libr
 `{}` in TypeScript means "any non-null value", so there is no structure to hoist
 and `dynamic` says everything there is to say. The special case is gone.
 Occurrences of `anon_dynamic` in emitted output: **117 → 0**.
+
+---
+
+## T-17 — Two type nodes consume nesting without charging depth `[verified]` **[FIXED — audit pass]**
+
+Found by re-reading every `parseType` call site after `T-05` was marked fixed.
+**`T-05` was closed prematurely.** S1.9 fixed the function-type positions and
+nothing else, but two handlers still forwarded `depth` unchanged:
+
+```ts
+// type.ts — ParenthesizedType
+result = this.parseType(node.getTypeNode(), depth);   // unwrap is free
+// typeOperator.ts — readonly T[]
+return parseType(node.getTypeNode(), depth);
+```
+
+Measured, before the fix:
+
+```
+40 nested parens        -> GUARD NEVER TRIPS
+40 nested readonly[]    -> guard tripped   (the inner ArrayType pays for it)
+40 nested plain arrays  -> guard tripped
+```
+
+Parenthesised types were therefore **unbounded**: `((((…))))` recursed as deep
+as the source nested, no matter the `depth > 15` guard. `readonly` only escaped
+because `readonly T[]` always wraps an `ArrayType`, which does increment — the
+bug was masked by its neighbour, not absent.
+
+Both now pass `depth + 1`. No corpus output changes: nothing in `def_files/`
+nests parentheses anywhere near 15 deep. The point is that the guard is the
+program's only recursion protection, and it had a hole in it.
+
+**Lesson for the audit process, not just the code.** `T-05` read "depth is not
+propagated through function types" and was fixed exactly as literally worded.
+The defect class is "a handler that recurses without charging depth", and the
+right close-out was to enumerate every `parseType` call site — which takes one
+grep and would have caught both.

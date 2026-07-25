@@ -163,11 +163,16 @@ export class TypeParser {
         break;
 
       // ParenthesizedType: (str | num) is not union, it has union internally tho
-      // Just unwrap it and process it again
+      // Just unwrap it and process it again.
+      //
+      // `depth + 1`, not `depth`. Passing `depth` made this the one path the
+      // recursion guard could not see: `(((…)))` nested to any depth never
+      // tripped it, because unwrapping consumed a level without charging for
+      // one (`T-17`). Verified — 40 nested parens used to sail straight past.
       case ts.SyntaxKind.ParenthesizedType:
         result = this.parseType(
           (typeNode as ts.ParenthesizedTypeNode).getTypeNode(),
-          depth,
+          depth + 1,
         );
         break;
 

@@ -196,3 +196,36 @@ imports once `E-08` (import emission) lands.
 never called by `Transpiler`. Two `Transpiler` instances in one process share
 one symbol table. Only reachable from tests and programmatic API use today —
 but `X-01` (restoring `transpileFromString`) makes it immediately reachable.
+
+---
+
+## R-12 — Errors inside `declare module` / `namespace` were discarded `[verified]` **[FIXED — audit pass]**
+
+**`phase/symbolGeneration.ts`**, `processModuleDeclaration`:
+
+```ts
+await this.walkStatements(statements, [], filePath);
+//                                    ^^ a fresh array, never read again
+```
+
+`walkStatements` catches per-statement failures and pushes them into the array
+it is handed. Every other caller passes the run's `errors`; the module handler
+passed a literal `[]`. So a parse failure anywhere inside a `declare module` or
+`namespace` was pushed into a value with no reader and vanished — not logged,
+not surfaced by `--enable-logs`, and invisible to the stress tier, which only
+observes what escapes `transpileFromString` entirely.
+
+This is a silent-failure hole in the exact construct the corpus leans on:
+leaflet has 15 namespaces, and `declare module` is how most of DefinitelyTyped
+is written.
+
+**Nothing was actually being swallowed today.** `errors` is now threaded through
+`processStatementDeclaration` to the module handler, and a `--enable-logs` run
+over leaflet reports nothing new. A whole-corpus probe agrees: over 1,649 files,
+`result.errors` is empty for every one. The hole was real; it just had nothing
+in it.
+
+**Related, and still open:** even at the top level, `errors` is only printed
+`if (transpilerContext.getIsLogging())`. Without `-l`, a parse failure produces
+a silently smaller symbol table. That is design principle 1's problem, and it
+belongs with the diagnostics work in S6 rather than being papered over here.

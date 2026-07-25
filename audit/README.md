@@ -65,3 +65,50 @@ the finding in the same commit. When you add a subsystem, add a section.
 `CLAUDE.md` instructs future sessions to do the same.
 
 Audit performed against commit `fc57961` (`feat: implement linker system`).
+
+
+---
+
+## Audit pass — full re-read, post-S1
+
+Every live source file was read line by line and cross-checked against these
+documents, rather than inferred from the S1 work. Nine new findings, three
+corrections to existing ones, and four stale claims in `CLAUDE.md`.
+
+**New, fixed in the pass** (all behaviour-neutral on the current corpus — the
+holes were real, nothing was falling through them):
+
+| ID | Summary |
+|---|---|
+| `R-12` | Errors inside `declare module`/`namespace` were pushed into a throwaway `[]` |
+| `T-17` | `ParenthesizedType` and `readonly` consumed nesting without charging depth — `(((…)))` was unbounded |
+
+**New, filed for a stage:**
+
+| ID | Summary | Lands in |
+|---|---|---|
+| `P-12` | Classes drop index signatures; `IRClass` has no field | S3 |
+| `I-13` | `IRParameter` declared twice with different rest-flag names | S3 |
+| `I-14` | `ir/literal.ts` dead but imported by the live IR | S3 |
+| `E-20` | `isAbstract` parsed, never emitted | S5 |
+| `E-21` | Emitter dead code and unused parameters | S4/S5 |
+| `X-12` | Stress tier asserts only that nothing *escaped* | S6 |
+
+**Corrections to existing findings:**
+
+- `T-05` was marked `[FIXED]` after S1.9 fixed the function-type positions only.
+  Two other handlers had the same defect — see `T-17`.
+- `R-09` says "31 sites". Re-counted: **52** `currentFQN` save/restore pairs.
+- `X-11`'s claim that all 710 empty renders are barrels is **confirmed** by
+  classification, not just assertion.
+
+**Measured during the pass**, and worth not re-deriving:
+
+| | |
+|---|---|
+| `src` lines | 9,107 total · 4,722 live · ~4,400 dead |
+| corpus | 1,649 `.d.ts` files |
+| files with `result.errors` set, whole corpus | **0** |
+| files containing `// ERROR emitting` | **0** |
+| empty renders | 710, all barrels or comment-only |
+| unpushed commits | **23** — the entire branch, S0 and S1 |

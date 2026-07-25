@@ -610,3 +610,41 @@ reopening a closed stage for.
 > Bare `dynamic` was hiding them. Honest output that exposes a known gap beats
 > quiet output that conceals it — and `E-03` was already leaflet's largest
 > single category at 141.
+
+---
+
+## E-20 — `isAbstract` is parsed and never emitted `[verified]`
+
+`parseClass` reads `classDecl.isAbstract()` into `IRClass.isAbstract`.
+`emitClass` emits `class ${irClass.name} {` unconditionally. An abstract class
+therefore emits as a concrete one, and Dart will happily let a consumer try to
+construct it.
+
+Same shape as `E-03`/`E-04`: the parser did its half, the emitter never read the
+field. Cheap to fix, but it belongs with the S5 rewrite that also handles
+heritage — emitting `abstract` without `extends`/`implements` produces a class
+that is unconstructible *and* unrelated to its base.
+
+---
+
+## E-21 — Dead code and unused parameters in the emitter layer `[verified]`
+
+Not bugs; recorded so the S5 rewrite starts from an accurate picture.
+
+- **`emitter/old/class.ts:115`** — `getOverloadFuncs` is referenced only from a
+  32-line commented-out block above it. It is a second, trivial overload
+  grouper (group by name, no renaming), which makes `CLAUDE.md`'s "`transformers/`
+  holds the *only* working overload grouper" imprecise. Mine both in S4.
+- **`emitter/shared/shared.ts:5`** — `returnTypeAliasName(t)` is
+  `return emitType(t)`. A passthrough with a name that promises alias
+  resolution it does not do; used in four places where `emitType` would read
+  more honestly.
+- **`emitter/old/interface.ts:10`** — `emitInterface` accepts `prefix` and never
+  uses it, so the namespace path never reaches the annotation. Harmless *today*
+  because every interface is emitted `@JS() @anonymous`, where the name is
+  ignored — but it silently pre-breaks any future non-anonymous path, and it
+  reads as though scoping were handled.
+- **`parser/{interface,class,function}.ts`** — `returnTypeNode` is assigned and
+  never read at four sites.
+- **`parser/{class,typealias}.ts`** — `@typeParser//type` imports carry a double
+  slash.

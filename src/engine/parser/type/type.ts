@@ -127,11 +127,11 @@ export class TypeParser {
         break;
 
       case ts.SyntaxKind.NeverKeyword:
-        result = { kind: TypeKind.Never, name: "Never", isNullable: false };
+        result = { kind: TypeKind.Never, name: TypeKind.Never, isNullable: false };
         break;
 
       case ts.SyntaxKind.ObjectKeyword:
-        result = { kind: TypeKind.Object, name: "Object", isNullable: false };
+        result = { kind: TypeKind.Object, name: TypeKind.Object, isNullable: false };
         break;
 
       // Literals: "abc", 1, -2n, false

@@ -42,7 +42,7 @@ export function handleTypeQuery(node: ts.TypeQueryNode): IRType {
   if (resolved.isNumberLiteral()) {
     return {
       kind: TypeKind.NumberLiteral,
-      name: "double",
+      name: TypeKind.NumberLiteral,
       literalValue: resolved.getLiteralValue() as number,
       isNullable: false,
     };
@@ -51,7 +51,7 @@ export function handleTypeQuery(node: ts.TypeQueryNode): IRType {
   if (resolved.isStringLiteral()) {
     return {
       kind: TypeKind.StringLiteral,
-      name: "String",
+      name: TypeKind.StringLiteral,
       literalValue: resolved.getLiteralValue() as string,
       isNullable: false,
     };
@@ -62,7 +62,7 @@ export function handleTypeQuery(node: ts.TypeQueryNode): IRType {
   if (resolved.isBooleanLiteral()) {
     return {
       kind: TypeKind.BooleanLiteral,
-      name: "bool",
+      name: TypeKind.BooleanLiteral,
       literalValue: resolved.getText() === "true",
       isNullable: false,
     };

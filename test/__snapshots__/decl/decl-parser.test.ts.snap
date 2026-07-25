@@ -197,7 +197,7 @@ exports[`AST Parsers to IR > parseVariableStmt() > should parse a variable state
       "isNullable": false,
       "kind": "numberLiteral",
       "literalValue": 3.14159,
-      "name": "double",
+      "name": "numberLiteral",
       "originalText": "3.14159",
     },
   },

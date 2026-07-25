@@ -301,7 +301,7 @@ same type parses to different cache slots depending on the path taken.
 
 ---
 
-## T-06 — `IRType.name` has three incompatible meanings `[inspection]`
+## T-06 — `IRType.name` has three incompatible meanings `[inspection]` **[FIXED — S1.8]**
 
 Across the parsers, `name` is variously:
 
@@ -321,6 +321,27 @@ vocabulary it cannot use.
 
 **Fix direction:** `name` should be the TS-side name only; all Dart mapping
 belongs in the emitter's string table.
+
+> **Resolved.** `name` is now the TypeScript-side name everywhere: for every
+> kind except `TypeReference` it equals `kind`, and `TypeReference` keeps the
+> declared TS name. `literals.ts`, `typeQuery.ts`, `type.ts` and
+> `intersection.ts` no longer contain a Dart identifier.
+>
+> Guarded by an invariant test rather than a case list (`test/type/irNaming.test.ts`),
+> so a new `SyntaxKind` handler cannot quietly reintroduce it. The test was
+> checked against a deliberately reintroduced `name: "String"` and fails on it.
+>
+> **This surfaced a live defect.** `name: "BigInt"` was the *only* thing
+> distinguishing a bigint literal from a number literal — both were
+> `TypeKind.NumberLiteral` — and `name` is read by nothing outside the
+> `TypeReference` branch of `emitType`. So `10n` in type position emitted `num`
+> while a plain `bigint` emitted `BigInt`. Purging the name forced the
+> distinction into `kind`, where the emitter can see it: bigint literals are now
+> `TypeKind.BigInt`.
+>
+> Emitted output over three.js + leaflet + h3 + probe is byte-identical, because
+> none of them contains a bigint literal type (verified). The fix is real but
+> latent in this corpus.
 
 ---
 

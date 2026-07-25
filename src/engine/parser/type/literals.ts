@@ -1,7 +1,14 @@
 import * as ts from "ts-morph";
 import { IRType, TypeKind } from "@ir/type";
 
-
+/**
+ * Literal types: `"success"`, `42`, `-2n`, `true`.
+ *
+ * `name` is the TypeScript-side kind, never a Dart type (`T-06`). This file
+ * used to say `"double"`, `"String"` and `"bool"`, which made it a partial
+ * emitter living in the parser — and left a second backend inheriting Dart
+ * vocabulary it cannot use. All Dart mapping belongs in `emitType`'s table.
+ */
 export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRType {
   const literal = node.getLiteral();
   const kind = literal.getKind();
@@ -16,7 +23,7 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
       const num = Number(operand.getText());
       return {
         kind: TypeKind.NumberLiteral,
-        name: "double",
+        name: TypeKind.NumberLiteral,
         literalValue: operatorToken === ts.SyntaxKind.MinusToken ? -num : num,
         isNullable: false,
       };
@@ -26,8 +33,8 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
       const bigintText = operand.getText().replace(/n$/, "");
       const val = BigInt(bigintText);
       return {
-        kind: TypeKind.NumberLiteral,
-        name: "BigInt",
+        kind: TypeKind.BigInt,
+        name: TypeKind.BigInt,
         literalValue: operatorToken === ts.SyntaxKind.MinusToken ? -val : val,
         isNullable: false,
       };
@@ -39,7 +46,7 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
     case ts.SyntaxKind.NoSubstitutionTemplateLiteral:
       return {
         kind: TypeKind.StringLiteral,
-        name: "String",
+        name: TypeKind.StringLiteral,
         literalValue: (literal as ts.StringLiteral).getText().slice(1, -1), // Remove quotes
         isNullable: false,
       };
@@ -47,7 +54,7 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
     case ts.SyntaxKind.NumericLiteral:
       return {
         kind: TypeKind.NumberLiteral,
-        name: "double",
+        name: TypeKind.NumberLiteral,
         literalValue: Number((literal as ts.NumericLiteral).getText()),
         isNullable: false,
       };
@@ -55,7 +62,7 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
     case ts.SyntaxKind.TrueKeyword:
       return {
         kind: TypeKind.BooleanLiteral,
-        name: "bool",
+        name: TypeKind.BooleanLiteral,
         literalValue: true,
         isNullable: false,
       };
@@ -63,15 +70,19 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
     case ts.SyntaxKind.FalseKeyword:
       return {
         kind: TypeKind.BooleanLiteral,
-        name: "bool",
+        name: TypeKind.BooleanLiteral,
         literalValue: false,
         isNullable: false,
       };
 
+    // A bigint literal is `TypeKind.BigInt`, not a `NumberLiteral` carrying the
+    // string "BigInt" in `name`. The old shape leaned on an unread Dart name to
+    // hold the distinction, so the emitter saw `NumberLiteral` and emitted
+    // `num` for `10n` while emitting `BigInt` for a plain `bigint` (`T-06`).
     case ts.SyntaxKind.BigIntLiteral:
       return {
-        kind: TypeKind.NumberLiteral,
-        name: "BigInt",
+        kind: TypeKind.BigInt,
+        name: TypeKind.BigInt,
         literalValue: BigInt(
           (literal as ts.BigIntLiteral).getText().replace(/n$/, ""),
         ),
@@ -92,7 +103,7 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
     default:
       return {
         kind: TypeKind.Any,
-        name: "dynamic",
+        name: TypeKind.Any,
         isNullable: false,
       };
   }

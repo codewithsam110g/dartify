@@ -40,7 +40,7 @@ export function handleIntersectionType(
   if (hasNever) {
     return {
       kind: TypeKind.Never,
-      name: "Never",
+      name: TypeKind.Never,
       isNullable,
     };
   }

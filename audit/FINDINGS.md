@@ -39,8 +39,8 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `E-07` | Hoisted anonymous classes get no factory → unconstructible | `emitter/old/interface.ts:21-29` | ✅ |
 | `I-01` | Type params absent from IR except `IRClass` (and unemitted there) | `ir/{interface,function,typealias}.ts` | ✅ |
 | `I-04` | Heritage stored as raw strings — loses generic args, dep edges, qualified names | `ir/interface.ts:9`, `ir/class.ts:13-14` | ✅ |
-| `T-01` / `I-03` | No `TypeKind` for unsupported constructs; all collapse to `Any` | `parser/type/type.ts:187-189` | ✅ |
-| `P-07` | `this` type → `dynamic`. **~1,100 corpus occurrences — the #1 type gap** | `parser/type/type.ts` | ✅ |
+| `T-01` / `I-03` *(partial)* | ~~No `TypeKind` for unsupported constructs; all collapse to `Any`~~ — `TypeKind.Unsupported` + `UnsupportedReason` added in S1.3, carrying `originalText`. **Census: 1,410 nodes over three.js+leaflet, 0 unclassified.** Emission is still `dynamic`; representing them is S1.4/S1.5 | `type/unsupported.ts` | ✅ |
+| `P-07` | `this` type → `dynamic`. **900 occurrences in three.js+leaflet alone — confirmed the #1 type gap.** Now named (`Unsupported/thisType`) but still unrepresented — S1.4 | `parser/type/type.ts` | ✅ |
 | `E-09` | No Dart keyword escaping (`external bool get static;`) | all emitters | ✅ |
 | `E-10` | Namespace flattening collides (two `abstract class ZoomOptions` in leaflet) | `phase/emitterPhase.ts:198-211` | ✅ |
 | `E-05` | Variables emit mutable fields; `isReadonly`/`isConst` ignored | `emitter/old/variable.ts:13` | ✅ |

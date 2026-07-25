@@ -7,7 +7,49 @@ module owns one `SyntaxKind` family.
 
 ---
 
-## T-01 — Unsupported type nodes collapse to bare `dynamic` with no trace `[verified]`
+## T-01 — Unsupported type nodes collapse to bare `dynamic` with no trace `[verified]` **[PARTIALLY FIXED — S1.3]**
+
+> **The "with no trace" half is fixed.** The `default:` branch now produces
+> `TypeKind.Unsupported` carrying `originalText` and a machine-readable
+> `UnsupportedReason`, instead of being indistinguishable from a genuine `any`.
+> Emitted Dart is still `dynamic` — S1.5/S1.7 turn these into named typedefs.
+> The remaining work is representing them, tracked as S1.4 (Tier A) and S1.5
+> (Tier B).
+>
+> ### Measured census — the number the table below was missing
+>
+> `three.js + leaflet + synthetic/probe`, **1,410 Unsupported nodes**:
+>
+> | reason | count | example |
+> |---|---:|---|
+> | `thisType` | 900 | `this` |
+> | `typeQuery` | **443** | `typeof Class` |
+> | `indexedAccess` | 22 | `HTMLElementTagNameMap[T]` |
+> | `conditional` | 19 | `string extends number ? true : false` |
+> | `mapped` | 8 | `{ [K in keyof T]: T[K] }` |
+> | `templateLiteral` | 7 | `` `pre-${string}` `` |
+> | `readonlyOperator` | 5 | `readonly [...T]` |
+> | `keyOf` | 3 | `keyof Box<string>` |
+> | `optionalMember` | 1 | `number?` |
+> | `typePredicate` | 1 | `x is string` |
+> | `constructorType` | 1 | `(new() => NodeMaterial)` |
+> | `unclassified` | **0** | — |
+>
+> **`typeof x` is the surprise.** The occurrence table below counts it by
+> *files* (43) and so ranks it as a minor item; by *occurrences* it is 443 —
+> second only to `this` and 20× `keyof`. Both belong in Tier A. `keyof`'s 1,728
+> figure below is a whole-corpus count dominated by `typescript.d.ts` and
+> `vscode.d.ts`; in the two libraries that actually gate v1 it appears 3 times.
+>
+> **`unclassified` is the metric to watch.** It reaching 0 means every
+> degradation in these libraries has a name. Two constructs were found this way
+> and would otherwise have been silently lumped together: `ConstructorType`
+> (`new () => T`) and bare `OptionalType` (`[string?]`, see `T-10`).
+
+Original finding follows.
+
+---
+
 
 **`parser/type/type.ts:187-189`**
 ```ts
@@ -309,6 +351,23 @@ The parser work is done and correct; the result is thrown away at emit.
   // so we cant parseType and it will return any
 ```
 Known and documented. Retained here for completeness.
+
+**Re-checked against ts-morph 26.0.0 (S1.3) — the gap is still real:**
+
+```
+isOptionalTypeNode:  undefined
+OptionalTypeNode:    undefined
+isConstructorTypeNode: function     ← for contrast, this one exists
+```
+
+So the author's comment stands and this is not stale. It is no longer *silent*,
+though: `[string?]` now parses to `Unsupported/optionalMember` rather than a
+nameless `any`, and `test/type/unsupported.test.ts` asserts that. When ts-morph
+adds the wrapper, that test is the thing that should start failing.
+
+Two routes when it is fixed properly in S1.4: file the upstream issue (the same
+route that got rest params wrapped — see `CLAUDE.md`), or reach the inner node
+positionally via `forEachChildAsArray()`, which does expose it.
 
 ---
 

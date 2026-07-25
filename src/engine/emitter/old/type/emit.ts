@@ -126,6 +126,14 @@ export function emitType(type: IRType): string {
       break;
     }
     
+    // Something with no Dart representation yet. Still bare `dynamic` here —
+    // S1.7 replaces this with a reference to a minted, documented typedef
+    // (`E-16`), which is the whole reason the parser now preserves
+    // `originalText` and `unsupportedReason` on these nodes.
+    case TypeKind.Unsupported:
+      baseType = "dynamic";
+      break;
+
     // Default fallback for Intersection, unhandled TypeLiterals, etc.
     default:
       baseType = "dynamic";

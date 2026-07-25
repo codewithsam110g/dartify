@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { IRType, TypeKind, IRParameter, IRProperty } from "@ir/type";
+import { IRType, TypeKind, UnsupportedReason } from "@ir/type";
 import { handleLiteralType } from "./literals";
 import { handleUnionType } from "./unions";
 import { handleDirectArrayType } from "./array";
@@ -10,6 +10,7 @@ import { handleTupleType } from "./tuple";
 import { handleIntersectionType } from "./intersection";
 import { handleRestType } from "./restType";
 import { sourceTextOf } from "./sourceText";
+import { makeUnsupported } from "./unsupported";
 
 /**
  * Parses `ts.TypeNode`s into `IRType`.
@@ -58,13 +59,10 @@ export class TypeParser {
     }
 
     if (depth > 15) {
-      console.log("Recursion Depth Reached: ", typeNode.getText());
-      return {
-        kind: TypeKind.Any,
-        name: TypeKind.Any,
-        isNullable: false,
-        originalText: sourceTextOf(typeNode),
-      };
+      // Recorded in the IR rather than logged to stdout: an Unsupported node
+      // carrying RecursionLimit surfaces as a documented typedef at emit
+      // (`E-16`), which beats a console.log a library consumer cannot suppress.
+      return makeUnsupported(typeNode, UnsupportedReason.RecursionLimit);
     }
 
     let result: IRType;
@@ -190,8 +188,11 @@ export class TypeParser {
         result = handleRestType(typeNode as ts.RestTypeNode, depth);
         break;
 
+      // Everything with no case above. Previously this collapsed to `Any`,
+      // making a genuine `any` in the source indistinguishable from a
+      // construct dartify simply could not handle (`T-01`).
       default:
-        result = { kind: TypeKind.Any, name: TypeKind.Any, isNullable: false };
+        result = makeUnsupported(typeNode);
         break;
     }
 

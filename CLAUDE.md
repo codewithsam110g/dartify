@@ -130,9 +130,12 @@ Consequences worth holding on to:
   looks right — check leaflet (92 `extends`, 15 namespaces) and three.js
   (420 files) before believing anything.
 - **`ts-morph`'s tuple wrapper covers rest params because of this project** —
-  the author filed the upstream issue. Worth re-checking `T-10` (unreachable
-  `OptionalType` in tuples) against current ts-morph rather than assuming the
-  gap is still there.
+  the author filed the upstream issue. `T-10` (unreachable `OptionalType` in
+  tuples) was **re-checked at ts-morph 26.0.0 in S1.3 and the gap is still
+  real**: no `Node.isOptionalTypeNode`, no `OptionalTypeNode` class, while
+  `isConstructorTypeNode` exists. Don't re-check without a version bump —
+  `test/type/unsupported.test.ts` fails when it lands. Either file the upstream
+  issue again or reach the inner node via `forEachChildAsArray()`.
 - **three.js reporting "0 broken links" is not proof multi-file works.** It
   passes because it is modern ESM with explicit `.js` extensions. Extensionless
   relative imports — most of DefinitelyTyped — silently resolve to nothing

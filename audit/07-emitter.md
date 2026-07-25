@@ -579,3 +579,34 @@ those types took. The guard is now `isDynamicLike`, covering the commented form,
 and `TypeKind.Unsupported` returns early for the same reason: a minted alias is
 a typedef for `dynamic`, so `KeyOfBoxString?` is the same construct wearing a
 name.
+
+---
+
+## E-19 — `object` and `undefined` fall through to bare `dynamic` `[verified]`
+
+Found while attributing S1's residual `dynamic` at the IR level rather than by
+grepping output.
+
+`emitType` has no `case TypeKind.Object` and no `case TypeKind.Undefined`, so
+both land in `default:` and emit bare `dynamic`. Over three.js + leaflet + h3
+that is **22** `object` nodes and **6** `undefined` — the entire remainder of
+S1's "zero bare `dynamic` outside genuine `any`/`unknown`" criterion, once the
+727 genuine `any`s and the 84 typedef right-hand sides are set aside.
+
+TypeScript's `object` means "any non-primitive"; Dart's `Object` means "any
+non-null". Not identical, but far closer than `dynamic`, and it is a real type
+the analyser can check. `undefined` in a non-union position is `Null`, which the
+parser already models (`T-07`) — the keyword case in `parseType` maps it to
+`TypeKind.Undefined` rather than `TypeKind.Null`, which is the second half of
+`T-07` recorded as still open.
+
+Left for S5 rather than fixed in S1.9: both are one-line emitter cases, but
+`undefined` is entangled with the `T-07` IR question and neither is worth
+reopening a closed stage for.
+
+> **`T-09`'s fix raised leaflet's analyzer count, on purpose.** 507 → 510, and
+> all three additions are `undefined_class`: the intersections' first members
+> are type parameters (`TEventData`, `BaseEvent<T>`) that `E-03` does not emit.
+> Bare `dynamic` was hiding them. Honest output that exposes a known gap beats
+> quiet output that conceals it — and `E-03` was already leaflet's largest
+> single category at 141.

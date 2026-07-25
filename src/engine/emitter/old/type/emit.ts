@@ -151,7 +151,33 @@ export function emitType(type: IRType): string {
       // subsumed — `dynamic` admits null.
       return type.aliasName ?? "dynamic";
 
-    // Default fallback for Intersection, unhandled TypeLiterals, etc.
+    // Intersections: `Foo & Bar` *is* a `Foo`, so the first member is a real
+    // supertype and strictly more useful than `dynamic` — the reader gets
+    // `Foo`'s API instead of nothing. `js_facade_gen` §5.3 does the same. The
+    // comment keeps the discarded members on the record (principle 1).
+    //
+    // Note this is deliberately *not* a minted alias. A named `dynamic` would
+    // satisfy principle 2 to the letter while telling the reader less than the
+    // supertype does; naming beats anonymity, but a usable type beats both.
+    //
+    // The *first* member as written, not the most specific one. `any & Foo` is
+    // `any` in TypeScript, so promoting `Foo` out of it would hand callers a
+    // `Foo` API over a value the source never promised was one.
+    case TypeKind.Intersection: {
+      const members = type.intersectionTypes!.map(emitType);
+      const unique = [...new Set(members)];
+
+      // Deduped in the comment as well as the test — the sibling union branch
+      // computes its unique set and then joins the original list anyway
+      // (`E-18`), and repeating that here would be repeating a known defect.
+      baseType =
+        unique.length === 1
+          ? unique[0]
+          : `${members[0]} /* ${unique.join("&")} */`;
+      break;
+    }
+
+    // Default fallback for unhandled TypeLiterals, etc.
     default:
       baseType = "dynamic";
       break;

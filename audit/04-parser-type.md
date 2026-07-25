@@ -397,7 +397,7 @@ problem (`:29-32`).
 
 ---
 
-## T-09 — Intersections have no emitter representation `[verified]`
+## T-09 — Intersections have no emitter representation `[verified]` **[FIXED — S1.9]**
 
 `handleIntersectionType` builds a proper `TypeKind.Intersection` IR node with
 all members, but `emitType` has no `case TypeKind.Intersection` — it falls to
@@ -406,6 +406,21 @@ all members, but `emitType` has no `case TypeKind.Intersection` — it falls to
 The parser work is done and correct; the result is thrown away at emit.
 `js_facade_gen` §5.3 emits the first member plus a comment:
 `Foo /*Foo&Bar*/ foo()`.
+
+> **Resolved.** `emitType` now has an `Intersection` case emitting exactly that
+> form. Not a minted alias: a named `dynamic` would satisfy design principle 2
+> to the letter while telling the reader less than the supertype does — `Foo &
+> Bar` *is* a `Foo`, so `Foo` hands them a real API. Naming beats anonymity, a
+> usable type beats both.
+>
+> The **first** member as written, not the most specific: `any & T` is `any` in
+> TypeScript, so promoting `T` out of it would give callers a `T` API over a
+> value the source never promised was one. Leaflet's dominant shape is exactly
+> that — `any & typeof Class`, which correctly stays `dynamic /*dynamic&TypeOfClass*/`.
+>
+> The comment is deduplicated. `E-18` computes a unique set for its union
+> comment and then joins the original list anyway; repeating that here would be
+> repeating a known defect.
 
 ---
 

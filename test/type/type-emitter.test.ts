@@ -240,8 +240,12 @@ describe("Type Emitter", () => {
         ],
       };
       const dartType = emitType(irType);
-      // Intersection is often best represented by `dynamic` in package:js
-      expect(dartType).toBe("dynamic");
+      // Was `dynamic`, with a comment claiming that was the right answer for
+      // package:js. It was not — it was `T-09`, and it threw away members the
+      // parser had already resolved. `A & B` is an `A`, so the first member is
+      // a usable supertype and the comment keeps the rest on the record
+      // (js_facade_gen §5.3).
+      expect(dartType).toBe("A /* A&B */");
     });
   });
 });

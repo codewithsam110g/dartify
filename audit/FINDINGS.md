@@ -27,6 +27,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `X-01` **[FIXED]** | ~~Test suite calls removed `Transpiler.transpileFromString`~~ — restored in S0.2 as a static wrapper over the three phases | `transpiler.ts` | ✅ |
 | `E-16` **[FIXED]** | ~~No type-definitions section; degradation to `dynamic` is anonymous and unnamed~~ — minted, documented typedefs with named use sites, S1.5–S1.7. 68 typedefs over three.js + leaflet, 0 dangling, 0 duplicates; no `dart analyze` issue names one | `engine/alias/*`, `phase/emitterPhase.ts` | ✅ |
 | `E-18` | Multi-member unions emit `js_facade_gen`'s inline `dynamic /* A\|B */` at every use site — pre-existing, conformant, but the pattern principle 2 replaces. Dedup is computed then discarded (`"a"\|"b"\|number` → `String\|String\|num`). Needs a Dart-side name derivation, not `E-16`'s text-side one | `emitter/old/type/emit.ts:70-92` | ✅ |
+| `E-19` | TS `object` and `undefined` keywords have no `emitType` case and fall to `default:` → bare `dynamic`. 28 nodes over three.js + leaflet + h3. Dart's `Object` is a close match for the former | `emitter/old/type/emit.ts` | ✅ |
 | `E-17` **[FIXED]** | ~~`dynamic?` emitted for nullable unions collapsing to dynamic~~ — guard bypassed by an early `return` (S1.4); the guard's exact-equality test then missed the commented form `dynamic /* A\|B */?`, live in 3 three.js files until S1.9. **Severity corrected: this is an analyzer *warning*, not a compile error** — `void?` is the hard error, and was already excluded | `emitter/old/type/emit.ts` | ✅ |
 
 ## S2 — Obviously broken / blocks a phase
@@ -49,7 +50,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `L-05` | Overload grouping + augmentation not implemented in the new pipeline | `phase/linkerPhase.ts` | ✅ |
 | `L-08` | `LinkState` computed then discarded — emitter cannot use the graph | `phase/linkerPhase.ts:98-169` | 🔍 |
 | `E-11` **[FIXED]** | ~~Emission coupled to `fs`~~ — split into `renderAllFiles()` / `writeAllFiles()` in S0.1 | `phase/emitterPhase.ts` | 🔍 |
-| `T-09` | Intersections parsed correctly, then dropped to `dynamic` at emit | `emitter/old/type/emit.ts:129-132` | ✅ |
+| `T-09` **[FIXED]** | ~~Intersections parsed correctly, then dropped to `dynamic` at emit~~ — emits `Foo /*Foo&Bar*/` per js_facade_gen §5.3 (S1.9). It was the one gap making dartify *worse* than the tool it replaces | `emitter/old/type/emit.ts` | ✅ |
 | `X-06` | **Zero test coverage of symbol table, linker, or emitter phase** | `test/` | ✅ |
 | `D-01` *(quarantined)* | 5-pass pipeline orphaned. Excluded from `tsconfig` in S0.7 so its 5 stale errors stop masking real ones. **Still on disk** — S4 mines `transformers/` before deleting both | `engine/{passes,transformers}` | ✅ |
 | `D-07` **[FIXED]** | ~~**95% of `dist/cli.js` was `@viz-js/viz`**~~ — a devDependency made reachable by a live import in `linkerPhase`. S0.4: **1.59 MB → 73.3 KB** | `tools/graph.ts` | ✅ |
@@ -169,20 +170,21 @@ Re-measure after each phase in `PLAN.md`.
 
 | Metric | S0 | S1 |
 |---|---|---|
-| `pnpm test:run` | 57 passed | **192 passed** / 1 skipped |
+| `pnpm test:run` | 57 passed | **217 passed** / 1 skipped |
 | `tsc --noEmit` | 0 | **0** |
 | `dist/cli.js` | 73.3 KB | **90.6 KB** (+17 KB: alias derivation, registry, registration) |
 | unsupported IR nodes (three.js + leaflet + probe) | 1,410 | **112** |
 | — of which `unclassified` | — | **0** |
 | minted typedefs (three.js + leaflet) | n/a | **68**, 0 dangling, 0 duplicate |
-| bare `dynamic` tokens (three.js + leaflet) | 2,239 | **402**, classified in `PLAN.md` |
+| IR nodes emitting exactly `dynamic` | not attributed | **839** — 727 genuine `any` (allowed), 84 typedef right-hand sides, 22 `object`, 6 `undefined` |
+| — unrepresentable **use sites** emitting bare `dynamic` | all of them | **0** |
 | `anon_dynamic` occurrences in output | 117 | **0** (`T-16`) |
 | uncompilable `dynamic /* … */?` | 3 files | **0** (`E-17`) |
 | h3 | 0 broken links | 0 broken, **`dart analyze` clean** (unchanged since pre-S1) |
-| leaflet | 42 broken | **44 broken** (`T-13` unmasked 2, `L-02`), 507 analyzer issues |
+| leaflet | 42 broken | **44 broken** (`T-13` unmasked 2, `L-02`), **510** analyzer issues |
 | three.js | 0 broken | 0 broken, 5.2 s end-to-end |
 | full-corpus stress | 1,649 files, 0 crashes, 262 s | 1,649 files, **0 crashes**, 336 s |
-| `dart analyze` clean outputs | **unmeasured** | h3 ✅ · probe 19 · leaflet 507 — both dominated by `E-03`, `L-05`/`E-10` |
+| `dart analyze` clean outputs | **unmeasured** | h3 ✅ · probe 19 · leaflet 510 — both dominated by `E-03`, `L-05`/`E-10` |
 
 **The `dart analyze` row is the one that changed character.** `X-09` recorded it
 as unmeasured; it is now the standing acceptance measure, and `CLAUDE.md`

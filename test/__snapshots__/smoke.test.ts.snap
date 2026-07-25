@@ -261,15 +261,15 @@ extension Anon_Class_extendExtension on Anon_Class_extend {
 @JS("Class")
 class Class {
   @JS("extend")
-  external dynamic extend(dynamic props);
+  external Anon_Class_extend /* Anon_Class_extend&TypeOfClass */ extend(dynamic props);
   @JS("include")
-  external dynamic include(dynamic props);
+  external dynamic /* dynamic&TypeOfClass */ include(dynamic props);
   @JS("mergeOptions")
-  external dynamic mergeOptions(dynamic props);
+  external dynamic /* dynamic&TypeOfClass */ mergeOptions(dynamic props);
   @JS("addInitHook")
-  external dynamic addInitHook(void Function() initHookFn);
+  external dynamic /* dynamic&TypeOfClass */ addInitHook(void Function() initHookFn);
   @JS("addInitHook")
-  external dynamic addInitHook(String methodName, [/* rest */ List<dynamic> args]);
+  external dynamic /* dynamic&TypeOfClass */ addInitHook(String methodName, [/* rest */ List<dynamic> args]);
   @JS("callInitHooks")
   external void callInitHooks();
 }
@@ -2218,7 +2218,7 @@ class Control {
   external Options get options;
   external set options(Options value);
   @JS("extend")
-  external dynamic extend(T props);
+  external Anon_Control_extend /* Anon_Control_extend&TypeOfControlOptions */ extend(T props);
   @JS("getPosition")
   external ControlPosition getPosition();
   @JS("setPosition")
@@ -2963,7 +2963,7 @@ class Map {
   @JS("getPane")
   external HTMLElement? getPane(dynamic /* String|HTMLElement */ pane);
   @JS("getPanes")
-  external dynamic getPanes();
+  external Anon_Map_getPanes /* Anon_Map_getPanes&DefaultMapPanes */ getPanes();
   @JS("getContainer")
   external HTMLElement getContainer();
   @JS("whenReady")
@@ -3276,13 +3276,13 @@ external bool svg;
 external bool vml;
 
 @JS("Util.extend")
-external dynamic extend(D dest, [S1 src]);
+external D /* D&S1 */ extend(D dest, [S1 src]);
 
 @JS("Util.extend")
-external dynamic extend(D dest, S1 src1, S2 src2);
+external D /* D&S1&S2 */ extend(D dest, S1 src1, S2 src2);
 
 @JS("Util.extend")
-external dynamic extend(D dest, S1 src1, S2 src2, S3 src3);
+external D /* D&S1&S2&S3 */ extend(D dest, S1 src1, S2 src2, S3 src3);
 
 @JS("Util.extend")
 external dynamic extend(dynamic dest, [/* rest */ List<dynamic> src]);

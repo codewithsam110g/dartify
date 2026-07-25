@@ -136,6 +136,53 @@ describe("intersection dispatch (T-08)", () => {
   });
 });
 
+/**
+ * `T-09`. The parser built a correct `Intersection` node with all its members
+ * and `emitType` had no case for it, so it fell to `default:` and emitted bare
+ * `dynamic` — no name, no comment. That was strictly worse than the tool
+ * dartify replaces, which emits the first member plus a comment (§5.3).
+ */
+describe("intersections reach the output (T-09)", () => {
+  test.each([
+    ["Foo & Bar", "Foo /* Foo&Bar */"],
+    ["Foo & Bar & Baz", "Foo /* Foo&Bar&Baz */"],
+    // `Foo & Bar` is a `Foo`, so nullability composes normally; the comment is
+    // stripped by the Dart parser, leaving `Foo?`.
+    ["(Foo & Bar) | null", "Foo /* Foo&Bar */?"],
+  ])("%s -> %s", (source, expected) => {
+    expect(emitType(parseType(createTypeNode(source)))).toBe(expected);
+  });
+
+  test("members that all emit the same type need no comment", () => {
+    expect(emitType(parseType(createTypeNode("Foo & Foo")))).toBe("Foo");
+  });
+
+  // The sibling union branch computes a unique set and then joins the original
+  // list anyway (`E-18`); this must not repeat that.
+  test("the comment is deduped, not just the test that gates it", () => {
+    expect(emitType(parseType(createTypeNode("Foo & Bar & Foo")))).toBe(
+      "Foo /* Foo&Bar */",
+    );
+  });
+
+  // `any & T` is `any` in TypeScript. Promoting `T` out of it would hand
+  // callers a `T` API over a value the source never promised was one.
+  test("the first member is taken as written, not the most specific", () => {
+    expect(emitType(parseType(createTypeNode("any & Foo")))).toBe(
+      "dynamic /* dynamic&Foo */",
+    );
+  });
+
+  test("no intersection reaches the output as bare dynamic", async () => {
+    const { content } = await Transpiler.transpileFromString(
+      "declare function f(): Foo & Bar;",
+      { fileName: "t.d.ts" },
+    );
+
+    expect(content).toContain("external Foo /* Foo&Bar */ f();");
+  });
+});
+
 describe("depth propagation through function types (T-05)", () => {
   // The `depth > 15` guard is the only recursion protection there is. Nesting
   // through return positions used to reset depth to 0 and slip past it.

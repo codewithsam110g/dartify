@@ -218,3 +218,19 @@ declare enum E { A = 1, B }
 
 Covers `E-01`, `E-02`, `E-03`, `E-04`, `E-05`, `E-06`, `P-03`, `T-01`.
 Worth promoting into `def_files/synthetic/` as a permanent regression fixture.
+
+> **Partially addressed — S1.6/S1.10.** `dart analyze` is installed on the
+> development machine and is now run by hand against generated output; the
+> throwaway-package harness is recorded in `CLAUDE.md`. First measurements:
+> **h3 clean**, probe 19 issues, leaflet 507 — the latter two dominated by
+> `E-03` (type parameters) and `L-05`/`E-10` (declaration merging and namespace
+> flattening), which between them account for well over 400 of leaflet's 507.
+>
+> It found two things reading could not: `E-09` produces hard parse errors for
+> `class`/`extends` but *not* for `static`, which is exactly the §10.3 built-in
+> identifier distinction; and `E-17`'s "uncompilable Dart" claim was wrong —
+> `dynamic?` is a warning, `void?` is the error.
+>
+> **Still open**, and the reason this stays unticked: nothing automates it. It
+> is a manual gate, so it cannot catch a regression between runs. Wiring an
+> opt-in `pnpm test:analyze` tier belongs with S6.

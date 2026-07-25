@@ -80,7 +80,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `R-03` | `inputRoot` from first input file only → sibling trees collide in `outDir` | `transpiler.ts:142-144` | 🔍 |
 | `R-02` | Unresolved deps reported only under `--enable-logs` | `transpiler.ts:113-116` | 🔍 |
 | `X-02` **[FIXED]** | ~~1,648 whole-library snapshots~~ — retiered in S0.6 into sanity / smoke (3 files) / opt-in stress. **4.3 MB → 128 KB** of snapshots | `test/{simple,smoke,stress}.test.ts` | ✅ |
-| `X-09` | Nothing runs `dart analyze` on the output — v1's key claim is unmeasurable | — | 🔍 |
+| `X-09` *(partial)* | ~~Nothing runs `dart analyze` on the output~~ — measured from S1.6 and the harness is in `CLAUDE.md`: **h3 clean**, probe 19, leaflet 507. Still **not automated** — no test tier runs it, so it is a manual gate, not a regression guard | — | ✅ |
 | `I-07` / `D-03` | `IRLiteral` vestigial since hoisting moved to parse time | `ir/literal.ts` | ✅ |
 | `I-08` | Two incompatible shapes for "constructor" | `ir/{class,interface}.ts` | 🔍 |
 | `E-14` | Index signatures ignore parsed key/value types | `emitter/old/interface.ts:70-73` | 🔍 |
@@ -164,3 +164,28 @@ fix. The ROADMAP schedules `this` for v0.7; the data says v0.6.
 | full-corpus stress (post-S0) | 1,649 files, **0 crashes**, 262 s; 710 empty renders — all barrels/comment-only, 0 real (`X-11`) |
 
 Re-measure after each phase in `PLAN.md`.
+
+## After S1 — the type layer
+
+| Metric | S0 | S1 |
+|---|---|---|
+| `pnpm test:run` | 57 passed | **192 passed** / 1 skipped |
+| `tsc --noEmit` | 0 | **0** |
+| `dist/cli.js` | 73.3 KB | **90.6 KB** (+17 KB: alias derivation, registry, registration) |
+| unsupported IR nodes (three.js + leaflet + probe) | 1,410 | **112** |
+| — of which `unclassified` | — | **0** |
+| minted typedefs (three.js + leaflet) | n/a | **68**, 0 dangling, 0 duplicate |
+| bare `dynamic` tokens (three.js + leaflet) | 2,239 | **402**, classified in `PLAN.md` |
+| `anon_dynamic` occurrences in output | 117 | **0** (`T-16`) |
+| uncompilable `dynamic /* … */?` | 3 files | **0** (`E-17`) |
+| h3 | 0 broken links | 0 broken, **`dart analyze` clean** (unchanged since pre-S1) |
+| leaflet | 42 broken | **44 broken** (`T-13` unmasked 2, `L-02`), 507 analyzer issues |
+| three.js | 0 broken | 0 broken, 5.2 s end-to-end |
+| full-corpus stress | 1,649 files, 0 crashes, 262 s | 1,649 files, **0 crashes**, 336 s |
+| `dart analyze` clean outputs | **unmeasured** | h3 ✅ · probe 19 · leaflet 507 — both dominated by `E-03`, `L-05`/`E-10` |
+
+**The `dart analyze` row is the one that changed character.** `X-09` recorded it
+as unmeasured; it is now the standing acceptance measure, and `CLAUDE.md`
+carries the harness. h3 clean is *necessary and nowhere near sufficient* — h3
+has no generics, no heritage, no `interface`s and one file, so `E-03`, `E-04`
+and `E-08` are all structurally invisible from it.

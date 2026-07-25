@@ -119,7 +119,9 @@ Consequences worth holding on to:
 
 - `def_files/h3/h3.d.ts` is **not** an arbitrary fixture. It is the real
   consumer. "h3 bindings pass `dart analyze` cleanly" is the true v1
-  acceptance test and h3 is the first adopter.
+  acceptance test and h3 is the first adopter. **h3 has passed cleanly since
+  before S1** — its output has been byte-identical since `4879732`. Treat that
+  as a floor you must not break, never as evidence anything works.
 - This independently confirms the `package:js` v1 target: h3 is exactly a
   codebase whose `package:js` dependency extends past the generated bindings.
 - Public positioning should say it — "written by an h3 maintainer to replace
@@ -171,6 +173,13 @@ Consequences worth holding on to:
   three.js's 449 `typeof` nodes cost ~60 ms end-to-end. The question is never
   "can this be represented in Dart" — it is "can dartify *find out* what it
   means".
+- **"Nothing throws" is a much weaker guarantee than it sounds.**
+  `emitFileContent` wraps each symbol in a `try/catch` that turns a thrown
+  error into a `// ERROR emitting ...` comment. The stress tier asserts the
+  corpus never throws, and it never did — while `null | undefined` was
+  silently emitting that comment instead of a declaration (`T-15`). When you
+  add a stress-style assertion, assert on the *output*, not on the absence of
+  an exception.
 - **`refactor/orchestration` is the working branch.** `main` is what ships to
   npm. Broken states on the working branch are fine.
 

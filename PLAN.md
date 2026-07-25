@@ -138,8 +138,13 @@ run prints no debug noise and writes nothing outside `outDir` · `dist/cli.js`
 ## S1 — The type layer: nothing is anonymous
 
 *The first real feature, and the one that defines what dartify is. Every type
-either translates properly or becomes a named, documented symbol. No bare
-`dynamic` survives this stage.*
+either translates properly or becomes a named, documented symbol.*
+
+> The original framing here — "no bare `dynamic` survives this stage" — turned
+> out to be wrong about scope, not about intent. The **parser and linker** halves
+> deliver it in full; three **emitter** paths do not, because they predate this
+> stage and were never rewritten: unions (`E-18`), index signatures (`E-14`) and
+> intersections (`T-09`). See the gap table under *Done when*.
 
 The emitter half of this stage is ~40 lines and is absorbed into the S5 rewrite;
 the parser, IR and linker halves are permanent. That is a deliberate trade — it
@@ -162,6 +167,32 @@ small enough to reason about.
 **Done when:** a run over `def_files/` emits **zero bare `dynamic`** outside
 genuine `any`/`unknown` · every `dynamic` typedef carries its source text · the
 same type expression twice in one file yields one typedef.
+
+**Stages 1.1–1.10 are complete. The criterion is not, and the gap is named
+rather than papered over.** Two of the three clauses hold: every minted typedef
+carries its source text, and a repeated expression yields exactly one typedef
+(verified — 0 duplicates, 0 dangling references over three.js + leaflet +
+probe). The first clause does not. Over three.js + leaflet, 402 `dynamic`
+tokens remain:
+
+| origin | count | finding |
+|---|---:|---|
+| union use sites — `dynamic /* A\|B */` | 90 | `E-18` |
+| index signatures — key/value types ignored | 26 | `E-14` |
+| minted/author typedef right-hand sides | 12 | `E-16`, intended |
+| **intersections — bare, unnamed, uncommented** | 10 | `T-09` |
+| genuine `any` in the source (leaflet's `context?: any` alone is 222) | rest | — |
+
+`T-09` is the one that matters. The parser builds a correct
+`TypeKind.Intersection` node with all its members and `emitType` has no case for
+it, so `Foo & Bar` falls to `default:` and emits bare `dynamic` — no name, no
+comment, nothing. That is **worse than `js_facade_gen`**, which emits
+`Foo /*Foo&Bar*/` (§5.3), and it is the only remaining place in the type layer
+where information is destroyed at emit rather than degraded on the record.
+
+`E-18` and `E-14` are use-site quality; `T-09` is a correctness-of-record
+failure. All three want the same machinery S1 just built, so they belong with
+the emitter rewrite in S5 rather than reopening S1.
 
 **Deferred to post-v1 (Tier C):** evaluate `Partial<X>`→`X`, `Readonly<X>`→`X`,
 `Record<K,V>` through `ts.TypeChecker`. ~330 corpus occurrences; real payoff, no
@@ -322,7 +353,7 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 | Stage | Status | Notes |
 |---|---|---|
 | S0 floor | ☑ **done** | suite 1654 failed → **57 passed**; `tsc` 15 errors → **0**; `dist` 1.59 MB → **75 KB**; snapshots 4.3 MB → **128 KB** |
-| S1 types | ☐ not started | |
+| S1 types | ☑ **done** | unsupported nodes 1,410 → 112; 68 minted typedefs over three.js + leaflet, 0 dangling / 0 duplicate; suite 57 → **192 passed**; `dist` 75 KB → **90.6 KB**. Fixed `T-01`–`T-16` bar `T-09`/`T-11`, `P-07`, `E-16`, `E-17`. h3 `dart analyze` clean (was already); leaflet 507, probe 19 — both dominated by `E-03` and `L-05`/`E-10`. **Exit criterion not fully met — see the gap table above (`T-09`)** |
 | S2 links | ☐ not started | |
 | S3 decls | ☐ not started | |
 | S4 semantics | ☐ not started | |

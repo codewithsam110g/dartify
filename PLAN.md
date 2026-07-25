@@ -123,6 +123,16 @@ the tree.*
 run prints no debug noise and writes nothing outside `outDir` · `dist/cli.js`
 ≈ 0.5 MB, down from 1.59 MB.
 
+**✅ Done.** All gates met, and the bundle beat the estimate:
+
+| | before | after |
+|---|---|---|
+| `pnpm test:run` | 1654 failed / 48 passed | **57 passed / 1 skipped**, 3.1 s |
+| `tsc --noEmit` | 15 errors | **0** |
+| `dist/cli.js` | 1,671,733 B | **75,065 B** |
+| snapshots on disk | 4.3 MB | **128 KB** |
+| stray writes to `cwd` | `dependency_graph.svg` every run | none |
+
 ---
 
 ## S1 — The type layer: nothing is anonymous
@@ -284,7 +294,7 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 
 | Stage | Status | Notes |
 |---|---|---|
-| S0 floor | ◐ in progress | 0.1–0.4 done: render/write split, `transpileFromString`, context reset, graph decoupled (**dist 1.59 MB → 73.3 KB**) |
+| S0 floor | ☑ **done** | suite 1654 failed → **57 passed**; `tsc` 15 errors → **0**; `dist` 1.59 MB → **75 KB**; snapshots 4.3 MB → **128 KB** |
 | S1 types | ☐ not started | |
 | S2 links | ☐ not started | |
 | S3 decls | ☐ not started | |

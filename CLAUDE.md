@@ -38,12 +38,18 @@ the audit with a new ID rather than reporting it only in chat.
 Use `pnpm` — the repo has a `pnpm-lock.yaml` and `packageManager` pinned.
 
 ```bash
-pnpm test:run                       # one-shot suite  (pnpm test is WATCH mode)
-pnpm exec tsc --noEmit              # typecheck
+pnpm test:run                       # one-shot suite (pnpm test is the same now)
+pnpm test:watch                     # watch mode
+pnpm exec tsc --noEmit              # typecheck — must stay at 0 errors
 pnpm dev -d "<glob>" -o <outdir>    # run the CLI from source
 pnpm dev -d "<file>" -o <out> -l    # + verbose: resolution summary, linker report
+pnpm graph -d "<glob>" -o g.svg     # dependency graph SVG (internal tooling)
 pnpm build                          # tsup → dist/
+DARTIFY_STRESS=1 pnpm test:run test/stress.test.ts   # full 1,648-file corpus
 ```
+
+Test tiers: `simple` (sanity) · `smoke` (3 files, byte-exact snapshots) ·
+`stress` (whole corpus, opt-in, asserts only that nothing throws).
 
 Useful corpora in `def_files/` (1,648 `.d.ts` files, not shipped to npm):
 
@@ -53,6 +59,7 @@ Useful corpora in `def_files/` (1,648 `.d.ts` files, not shipped to npm):
 | `leaflet/*.d.ts` | namespaces + qualified names — exercises `L-02` |
 | `three/src/Three.Core.d.ts` | 420-file transitive resolution, ~10 s |
 | `legacy_tests/*.d.ts` | the `js_facade_gen` conformance fixtures |
+| `synthetic/probe.d.ts` | **hand-written.** One run reproduces ~16 findings |
 
 ## Architecture
 
@@ -61,6 +68,13 @@ cli.ts → transpiler.ts
            ├ PHASE 1  phase/symbolGeneration.ts  → parser/* → IR → SymbolTable
            ├ PHASE 2  phase/linkerPhase.ts       → dep graph, (future) overloads + augmentation
            └ PHASE 3  phase/emitterPhase.ts      → emitter/old/* → .dart
+
+Transpiler seams:  analyze()   phases 1-2, returns LinkReport, no emission
+                   render()    + phase 3, returns Map<path, RenderedFile>
+                   transpile()  + writes to disk
+                   static transpileFromString()  one virtual file → string
+
+tools/graph.ts consumes analyze(); it is NOT part of the shipped bundle.
 ```
 
 FQN scheme: `<abs file path>::<scope|segments|>Name`. `::` splits physical from
@@ -73,8 +87,8 @@ This replaced a 5-pass architecture. `src/engine/passes/**` and
 ## Non-obvious things that will bite you
 
 - **~4,300 of ~7,900 `src` lines are dead.** `engine/passes/**`,
-  `engine/transformers/**`, `legacy/**`, `log.ts`, `ir/literal.ts`. They still
-  typecheck, and 5 of the 15 current `tsc` errors are in them.
+  `engine/transformers/**`, `legacy/**`, `log.ts`, `ir/literal.ts`. The first
+  two are excluded from `tsconfig` but still on disk.
 - **Do not delete `engine/transformers/**` yet.** It holds the only working
   overload grouper and recursive IR walker. Mine it during S4, then delete
   (`D-02`).
@@ -82,13 +96,14 @@ This replaced a 5-pass architecture. `src/engine/passes/**` and
   compiles clean, deliberately kept as an architectural exhibit. Do not "clean
   it up".
 - **The dependency graph is deliberate tooling, not cruft** — it is how linker
-  regressions get spotted, and it stays. But it is currently *wired into the
-  production pipeline*: `linkerPhase.ts:2` imports the visualiser, which drags
-  the `@viz-js/viz` devDependency into the bundle — **~70% of `dist/cli.js`'s
-  1.59 MB** (`D-07`). S0.4 moves it to `tools/graph.ts` as a consumer of
-  `LinkState`. Keep the instrument, cut the coupling (`L-07`).
-- **The test suite is currently red** (1654/1703) because the refactor removed
-  `Transpiler.transpileFromString`. Expected mid-refactor; S0 fixes it.
+  regressions get spotted. It lives in `tools/graph.ts` and must stay out of
+  `src/`: when it was imported from `linkerPhase`, the `@viz-js/viz`
+  devDependency it pulls in was **95% of the shipped bundle** (`D-07`).
+  Instruments consume phase output; they are never steps inside it.
+- **`ts-morph`'s tuple wrapper covers rest params because of this project** —
+  the author filed the upstream issue. Worth re-checking `T-10` (unreachable
+  `OptionalType` in tuples) against current ts-morph rather than assuming the
+  gap is still there.
 - **three.js reporting "0 broken links" is not proof multi-file works.** It
   passes because it is modern ESM with explicit `.js` extensions. Extensionless
   relative imports — most of DefinitelyTyped — silently resolve to nothing

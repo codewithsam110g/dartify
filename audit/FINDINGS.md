@@ -170,7 +170,7 @@ Re-measure after each phase in `PLAN.md`.
 
 | Metric | S0 | S1 |
 |---|---|---|
-| `pnpm test:run` | 57 passed | **217 passed** / 1 skipped |
+| `pnpm test:run` | 57 passed | **199 passed** / 1 skipped |
 | `tsc --noEmit` | 0 | **0** |
 | `dist/cli.js` | 73.3 KB | **90.6 KB** (+17 KB: alias derivation, registry, registration) |
 | unsupported IR nodes (three.js + leaflet + probe) | 1,410 | **112** |

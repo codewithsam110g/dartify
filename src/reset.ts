@@ -1,21 +1,19 @@
 import { transpilerContext } from "./context";
-import { TypeParser } from "./engine/parser/type/type";
 
 /**
  * Returns every piece of mutable global state to its initial condition.
  *
- * Both the transpiler context and the type parser are singletons, so without
- * this each run inherits the previous one's state: symbols from an earlier
- * `Transpiler` stay in the table (`R-11`), and cached `IRType`s keyed only on
- * source text stay visible across files and runs (`T-04`). Two tests in one
- * process would contaminate each other.
+ * The transpiler context is a singleton, so without this each run inherits the
+ * previous one's state — symbols from an earlier `Transpiler` stay in the table
+ * (`R-11`) and two tests in one process contaminate each other.
  *
- * This module exists separately from `context.ts` on purpose: `context` must
- * not import the type parser, because the parser's handlers import `context`
- * and the cycle would put `TypeParser` in the temporal dead zone during module
- * initialisation.
+ * This is the single reset seam. It stayed a module of its own after the type
+ * cache was removed (`T-13`) because everything S1 adds that holds per-run
+ * state — the minted-alias registry above all — resets here too, and because
+ * `context.ts` must not import from the parser: the parser's handlers import
+ * `context`, and the cycle would put those bindings in the temporal dead zone
+ * during module initialisation.
  */
 export function resetTranspilerState(): void {
   transpilerContext.reset();
-  TypeParser.getInstance().clearCache();
 }

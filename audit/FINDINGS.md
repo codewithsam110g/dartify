@@ -31,7 +31,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 
 | ID | Finding | Where | Ev. |
 |---|---|---|---|
-| `L-02` | Dotted qualified names never match table keys — 42/42 of leaflet's broken links | `phase/linkerPhase.ts:57-63` | ✅ |
+| `L-02` | Dotted qualified names never match table keys — 44/44 of leaflet's broken links (was 42; `T-13`'s fix exposed 2 more) | `phase/linkerPhase.ts:57-63` | ✅ |
 | `E-02` | Constructor counter never incremented → duplicate factory names | `emitter/old/class.ts:25-31` | ✅ |
 | `E-06` | Enum members unreachable (`static` in an `extension`) with per-member type drift | `emitter/old/enum.ts:19-29` | ✅ |
 | `P-04` | Enum values always parsed as strings, never numbers | `parser/enum.ts:11` | ✅ |
@@ -57,8 +57,9 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 
 | ID | Finding | Where | Ev. |
 |---|---|---|---|
-| `T-03` | Handlers mutate objects returned by reference from the shared cache | `type/restType.ts:6-8`, `type/tuple.ts:9-20` | 🔍 latent |
-| `T-04` *(partial)* | Type cache is global and text-keyed with no file/scope component. It is now **cleared between runs** (S0.3), but the key is still wrong *within* a run — S1.1 fixes that before `originalText` makes it observable | `type/type.ts:15,46` | 🔍 latent |
+| `T-03` **[FIXED]** | ~~Handlers mutate objects returned by reference from the shared cache~~ — **was not latent**: verified that `[x?: string]` made a later `[string]` optional. Cache removed (S1.1) and both handlers now spread instead of mutating | `type/{restType,tuple}.ts` | ✅ |
+| `T-04` **[FIXED]** | ~~Type cache is global and text-keyed with no file/scope component~~ — cache removed entirely in S1.1 rather than re-keyed; a correct key needed `currentFQN`, which changes per declaration, so the hit rate would have collapsed anyway | `type/type.ts` | ✅ |
+| `T-13` **[FIXED]** | ~~Cache hits skipped `collectTypeDep` for nested nodes, so the **second** occurrence of a generic type in a file contributed **zero** dep edges~~ — removed with the cache (S1.1) | `type/type.ts` | ✅ |
 | `R-09` | `currentFQN` save/restore is manual and not `try/finally` — one parse error poisons every later FQN in the file | 31 sites across parsers | 🔍 |
 | `I-11` | `deepCloneIRDeclaration` JSON round-trips — **throws on bigint literals** | `ir/declaration.ts:28-32` | 🔍 latent |
 | `R-11` **[FIXED]** | ~~Context singleton never reset between runs~~ — `resetTranspilerState()` (`src/reset.ts`) called at the start of every run, S0.3. Verified: two `transpileFromString` calls no longer contaminate each other | `src/reset.ts` | ✅ |

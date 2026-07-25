@@ -68,12 +68,19 @@ string `"L.Control.Attribution"` and never matches.
 
 ```
 pnpm dev -d "def_files/leaflet/*.d.ts" -l
-→ ✅ Graph Verification Complete: 276 valid, 42 broken.
+→ ✅ Graph Verification Complete: 274 valid, 44 broken.
 ```
 
-All 42 failures are qualified names — `Control.Attribution`, `Control.Layers`,
+All 44 failures are qualified names — `Control.Attribution`, `Control.Layers`,
 `Control.Scale`, `Control.Zoom`, `L.Control.Attribution`, `L.Coords`,
 `TileLayer.WMS`. Zero are genuinely-absent symbols.
+
+> **Baseline moved 42 → 44 in S1.1, and that is an improvement.** Fixing `T-13`
+> restored dependency edges that cache hits had been dropping, which exposed two
+> more symbols (`Marker`, `marker`) that transitively depend on
+> `L.Control.Attribution` via `Handler → Map`. They were never actually linked;
+> the linker just could not see the edge. Do not read the increase as a
+> regression — the fix for `L-02` should take all 44 to zero.
 
 **Fix direction:** normalise `.` → `|` on the dep side before matching, and
 strip a leading `export as namespace` alias (`L.`) when it matches the file's

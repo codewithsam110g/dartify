@@ -3,16 +3,37 @@ import { IRType, TypeKind, IRParameter, IRProperty } from "@ir/type";
 import { handleLiteralType } from "./literals";
 import { handleUnionType } from "./unions";
 import { handleDirectArrayType } from "./array";
-import { handleTypeReferences, collectTypeDep } from "./typeRefernce";
+import { handleTypeReferences } from "./typeRefernce";
 import { handleFunctionTypes } from "./function";
 import { handleTypeLiterals } from "./typeLiterals";
 import { handleTupleType } from "./tuple";
 import { handleIntersectionType } from "./intersection";
 import { handleRestType } from "./restType";
 
+/**
+ * Parses `ts.TypeNode`s into `IRType`.
+ *
+ * **There is deliberately no memoisation here.** An earlier version cached on
+ * `${typeNode.getText()}_depth_${depth}`, which was wrong three ways and worth
+ * less than it cost:
+ *
+ * - handlers mutated the objects it handed back, so `[x?: string]` made a later
+ *   `[string]` optional (`T-03`);
+ * - the key had no file or scope component, so identical text in different
+ *   files shared an entry (`T-04`);
+ * - parsing has a side effect — `collectTypeDep` — and a cache hit skipped it
+ *   for every nested node, so the *second* occurrence of `Map<Foo, Bar>` in a
+ *   file contributed no dependency edges at all (`T-13`).
+ *
+ * Measured cost of removal: `analyze()` over three.js (420 files, the largest
+ * thing in the corpus) went 836ms → 987ms; leaflet was unchanged at 31ms. A
+ * correct key would have had to include file + `currentFQN`, and `currentFQN`
+ * changes per declaration, so the hit rate would have collapsed to "same type
+ * twice in one declaration" and bought back almost none of that 151ms anyway.
+ * Re-introduce only against a fresh measurement.
+ */
 export class TypeParser {
   private static instance: TypeParser;
-  private cache: Map<string, IRType> = new Map();
 
   private constructor() { }
 
@@ -35,30 +56,13 @@ export class TypeParser {
       };
     }
 
-    // Always collect deps for TypeReference nodes, even on cache hit.
-    // The cache prevents handleTypeReferences from being called on repeat visits,
-    // but we still need to record the dependency for the current declaration.
-    if (typeNode.getKind() === ts.SyntaxKind.TypeReference) {
-      collectTypeDep(typeNode as ts.TypeReferenceNode);
-    }
-
-    // Generate cache key using the type node text and depth
-    const cacheKey = `${typeNode.getText()}_depth_${depth}`;
-
-    // Check cache first
-    if (this.cache.has(cacheKey) && typeNode.getKind() != ts.SyntaxKind.TypeLiteral) {
-      return this.cache.get(cacheKey)!;
-    }
-
     if (depth > 15) {
       console.log("Recursion Depth Reached: ", typeNode.getText());
-      const result = {
+      return {
         kind: TypeKind.Any,
         name: TypeKind.Any,
         isNullable: false,
       };
-      this.cache.set(cacheKey, result);
-      return result;
     }
 
     let result: IRType;
@@ -189,40 +193,12 @@ export class TypeParser {
         break;
     }
 
-    // Cache the result before returning
-    this.cache.set(cacheKey, result);
     return result;
-  }
-
-  // Utility methods for cache management
-
-  /**
-   * Drops every cached IRType.
-   *
-   * The cache is keyed on `${typeNode.getText()}_depth_${depth}` with no file
-   * or scope component, so entries from one run stay visible to the next and
-   * identical text in different files collides (`T-04`). Clearing between runs
-   * makes repeated transpilations independent — see `resetTranspilerState()`.
-   * The key itself is fixed in S1, before `originalText` starts carrying
-   * per-site data and the collision stops being benign.
-   */
-  public clearCache(): void {
-    this.cache.clear();
-  }
-
-  public getCacheSize(): number {
-    return this.cache.size;
-  }
-
-  public getCacheStats(): { size: number; keys: string[] } {
-    return {
-      size: this.cache.size,
-      keys: Array.from(this.cache.keys()),
-    };
   }
 }
 
-// Create a global instance for optimal performance
+// The parser is stateless; the singleton exists only to keep the historical
+// import surface stable.
 const globalTypeParser = TypeParser.getInstance();
 
 // Export a convenience function that maintains backward compatibility

@@ -68,7 +68,28 @@ symbol table (the alias is just another registered symbol). See `PLAN.md` P2.
 
 ---
 
-## T-03 — Handlers mutate objects returned from the shared cache `[inspection] [latent]`
+## T-03 — Handlers mutate objects returned from the shared cache `[verified]` **[FIXED — S1.1]**
+
+> **Resolved.** The audit called this latent; it was not. Direct probe:
+>
+> ```
+> parseType("[x?: string]") → member { isOptional: true }
+> parseType("[string]")     → member { isOptional: true }   ← wrong, and the same object
+> parseType("[...number[]]")→ member { isRestParameter: true }
+> parseType("[number[]]")   → member { isRestParameter: true } ← wrong
+> ```
+>
+> The reasoning below ("latent because tuples emit as `List<...>`") was right
+> about the *emitter* and wrong about the *IR* — the corruption was real and
+> observable at the IR boundary, which is what the linker and any future emitter
+> read. Fixed by removing the cache (`T-04`) and rewriting both handlers to
+> spread into a fresh object. Post-fix the same probe gives
+> `isOptional: undefined` for `[string]` and distinct object identities.
+
+Original finding follows.
+
+---
+
 
 `TypeParser.parseType` caches by value **and returns the cached object by
 reference** (`type.ts:49-51`, `:193`). Several handlers then mutate what they
@@ -107,7 +128,32 @@ values and require handlers to spread.
 
 ---
 
-## T-04 — The type cache is global, text-keyed, and never cleared `[inspection] [latent]`
+## T-04 — The type cache is global, text-keyed, and never cleared `[inspection]` **[FIXED — S1.1]**
+
+> **Resolved by deleting the cache, not by re-keying it.**
+>
+> `PLAN.md` S1.1 said "key on file+scope+text+depth, or drop it — measure".
+> Measured, via `analyze()` in-process (no tsx startup), best of 3:
+>
+> | corpus | with cache | without |
+> |---|---|---|
+> | three.js (420 files) | 836 ms | 987 ms |
+> | leaflet | 31 ms | 31 ms |
+>
+> 151 ms on the largest library in the corpus. And the re-key option was worse
+> than it looks: a correct key needs the scope, the only scope handle is
+> `transpilerContext.currentFQN`, and that changes per declaration — so the hit
+> rate would have collapsed to "the same type twice inside one declaration" and
+> recovered very little of the 151 ms while keeping all the machinery.
+>
+> Removing it also deleted the workaround at the top of `parseType` that called
+> `collectTypeDep` on every cache hit, which meant two type-checker resolutions
+> per type reference. See `T-13` for the bug that workaround was masking.
+
+Original finding follows.
+
+---
+
 
 **`parser/type/type.ts:15, 46`**
 ```ts
@@ -252,3 +298,50 @@ after null-filtering leaves one member. `emitType` compensates at
 `emit.ts:73-79` by unwrapping. Correct output, but the IR carries a node that
 means nothing — and any second backend must reimplement the same unwrapping.
 Normalise in the parser instead.
+
+---
+
+## T-13 — Cache hits dropped dependency edges for nested types `[verified]` **[FIXED — S1.1]**
+
+Found while fixing `T-03`/`T-04`; not present in the original audit.
+
+`parseType` had a side effect — `collectTypeDep`, which records a pseudo-FQN
+into `transpilerContext.currentDeps` — and a cache that skipped it. The
+workaround at the top of `parseType` re-collected the dep for the *outermost*
+node on every hit:
+
+```ts
+if (typeNode.getKind() === ts.SyntaxKind.TypeReference) {
+  collectTypeDep(typeNode as ts.TypeReferenceNode);
+}
+```
+
+Nested nodes got no such treatment. So the second and every later occurrence of
+a generic type expression in a file contributed **no** dep edges from its type
+arguments. Probe, two declarations of `Map<Foo, Bar>` in one file:
+
+```
+one  deps: [ 'Bar', 'Foo' ]
+two  deps: []                 ← Map is stdlib-filtered; Foo and Bar are simply lost
+```
+
+**Impact.** This silently under-reported the dependency graph, which is the
+input to link verification and (in S3) to import emission — so `E-08` would have
+inherited it as missing imports. Fixed by removing the cache; both declarations
+now report `[ 'Bar', 'Foo' ]`.
+
+**It was also masking `L-02`.** With the edges restored, leaflet's link
+verification moved from 276 valid / 42 broken to **274 valid / 44 broken**. The
+two newly-broken symbols are `Marker` and `marker`, and the reason is a
+pre-existing defect, not a regression:
+
+```
+❌ Broken Link: leaflet.d.ts::Marker
+   Missing 'leaflet.d.ts::L.Control.Attribution'
+   via [Handler -> Map -> L.Control.Attribution]
+```
+
+The symbol table holds `leaflet.d.ts::Control|Attribution`; the dep records
+`L.Control.Attribution` — wrong separator *and* a stray `L.` prefix. That is
+`L-02`. The count going **up** here is the linker becoming more truthful, and
+`44` is the correct new baseline for leaflet.

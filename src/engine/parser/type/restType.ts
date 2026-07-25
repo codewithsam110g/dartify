@@ -1,9 +1,12 @@
 import * as ts from "ts-morph";
-import { IRType, TypeKind } from "@ir/type";
+import { IRType } from "@ir/type";
 import { parseType } from "./type";
 
 export function handleRestType(node: ts.RestTypeNode, depth: number): IRType {
-  let res = parseType(node.getTypeNode(), depth + 1);
-    res.isRestParameter = true;
-    return res;
+  // Spread rather than mutate: the flag belongs to this position, not to the
+  // inner type, and `parseType`'s result must never be assumed unshared (T-03).
+  return {
+    ...parseType(node.getTypeNode(), depth + 1),
+    isRestParameter: true,
+  };
 }

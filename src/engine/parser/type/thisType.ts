@@ -11,10 +11,9 @@ import { makeUnsupported } from "./unsupported";
  * lost — a subclass's `bar()` still reports the base type — but the alternative
  * is `dynamic`, and a named supertype is strictly more useful than that.
  *
- * The owner is found by walking ancestors rather than by parsing
- * `transpilerContext.currentFQN`. The FQN is nested per member and per
- * parameter (`file::Foo|bar|arg`), so recovering "the enclosing *type*" from it
- * means guessing which segment is a type — the AST already knows.
+ * The owner is found by walking ancestors rather than by parsing a generated
+ * FQN. Recovering "the enclosing *type*" from scope text means guessing which
+ * segment is a type — the AST already knows.
  *
  * Generic arguments are deliberately not reproduced: `class Box<T>` yields
  * `Box`, not `Box<T>`, because type parameters are not emitted yet (`E-03`) and

@@ -10,26 +10,32 @@ import {
 import { IRParameter } from "@ir/function";
 import { parseType } from "@typeParser//type";
 import { IRDeclKind } from "@ir/index";
-import { transpilerContext } from "@/context";
+import { declarationParseContext, ParseContext } from "./context";
 
-export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
+export function parseClass(
+  classDecl: ts.ClassDeclaration,
+  context: ParseContext = declarationParseContext(
+    classDecl,
+    classDecl.getName() || "Error_Class",
+  ),
+): IRClass {
   let name = classDecl.getName() || "";
   const extendsNode = classDecl.getExtends();
-  const extenders = extendsNode ? parseType(extendsNode) : undefined;
-  const implementers = classDecl.getImplements().map((heritage) =>
-    parseType(heritage),
+  const extenders = extendsNode
+    ? parseType(extendsNode, 0, context)
+    : undefined;
+  const implementers = classDecl.getImplements().map((heritage, index) =>
+    parseType(heritage, 0, context),
   );
   let isAbstract = classDecl.isAbstract();
   let typeParams = classDecl.getTypeParameters().map((tp) => tp.getName());
 
   // Properties
   let properties: IRProperties[] = [];
-  for (let prop of classDecl.getProperties()) {
+  for (const [propertyIndex, prop] of classDecl.getProperties().entries()) {
     let name = prop.getName();
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + name;
-    let type = parseType(prop.getTypeNode());
-    transpilerContext.currentFQN = prevFQN;
+    const propertyContext = context.child(name);
+    let type = parseType(prop.getTypeNode(), 0, propertyContext);
     let isReadonly = prop.isReadonly();
     let isOptional = prop.hasQuestionToken();
     let isStatic = prop.isStatic();
@@ -45,25 +51,25 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
 
   // Methods
   let methods: IRMethod[] = [];
-  for (let method of classDecl.getMethods()) {
+  for (const [methodIndex, method] of classDecl.getMethods().entries()) {
     let name = method.getName();
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + name;
+    const methodContext = context.child(name);
     let parameters: IRParameter[] = [];
-    let returnType = parseType(method.getReturnTypeNode());
-    let returnTypeNode = method.getReturnTypeNode();
+    let returnType = parseType(
+      method.getReturnTypeNode(),
+      0,
+      methodContext,
+    );
     let isOptional = method.hasQuestionToken();
     let isStatic = method.isStatic();
 
-    for (let param of method.getParameters()) {
+    for (const [paramIndex, param] of method.getParameters().entries()) {
       // Do not parse `this` param
       if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
 
       let pName = param.getName();
-      const paramPrevFQN = transpilerContext.currentFQN;
-      transpilerContext.currentFQN = paramPrevFQN + "|" + pName;
-      let type = parseType(param.getTypeNode());
-      transpilerContext.currentFQN = paramPrevFQN;
+      const paramContext = methodContext.child(pName);
+      let type = parseType(param.getTypeNode(), 0, paramContext);
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
@@ -73,7 +79,6 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
         isRest: isRest,
       });
     }
-    transpilerContext.currentFQN = prevFQN;
     methods.push({
       name,
       parameters,
@@ -85,25 +90,24 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
 
   // Constructors
   let constructors: IRConstructor[] = [];
-  for (let constructor of classDecl.getConstructors()) {
+  for (const [constructorIndex, constructor] of classDecl
+    .getConstructors()
+    .entries()) {
     let parameters: IRParameter[] = [];
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|constructor";
+    const constructorContext = context.child("constructor");
     let jsDoc =
       constructor
         .getJsDocs()
         .map((doc) => doc.getText())
         .join("\n") || undefined;
 
-    for (let param of constructor.getParameters()) {
+    for (const [paramIndex, param] of constructor.getParameters().entries()) {
       // Do not parse `this` param
       if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
 
       let pName = param.getName();
-      const paramPrevFQN = transpilerContext.currentFQN;
-      transpilerContext.currentFQN = paramPrevFQN + "|" + pName;
-      let type = parseType(param.getTypeNode());
-      transpilerContext.currentFQN = paramPrevFQN;
+      const paramContext = constructorContext.child(pName);
+      let type = parseType(param.getTypeNode(), 0, paramContext);
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
@@ -113,7 +117,6 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
         isRest: isRest,
       });
     }
-    transpilerContext.currentFQN = prevFQN;
     constructors.push({
       parameters,
       jsDoc,
@@ -122,12 +125,10 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
 
   // Get Accessors
   let getAccessors: IRGetAccessor[] = [];
-  for (let ga of classDecl.getGetAccessors()) {
+  for (const [accessorIndex, ga] of classDecl.getGetAccessors().entries()) {
     let name = ga.getName();
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + name;
-    let type = parseType(ga.getReturnTypeNode());
-    transpilerContext.currentFQN = prevFQN;
+    const accessorContext = context.child(name);
+    let type = parseType(ga.getReturnTypeNode(), 0, accessorContext);
     let isStatic = ga.isStatic();
 
     getAccessors.push({
@@ -139,23 +140,21 @@ export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
 
   // Set Accessors
   let setAccessors: IRSetAccessor[] = [];
-  for (let sa of classDecl.getSetAccessors()) {
+  for (const [accessorIndex, sa] of classDecl.getSetAccessors().entries()) {
     let name = sa.getName();
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + name;
+    const accessorContext = context.child(name);
     let param = sa.getParameters()[0];
     let isStatic = sa.isStatic();
     setAccessors.push({
       name: name,
       parameter: {
         name: param.getName(),
-        type: parseType(param.getTypeNode()),
+        type: parseType(param.getTypeNode(), 0, accessorContext),
         isOptional: param.hasQuestionToken(),
         isRest: param.isRestParameter(),
       },
       isStatic,
     });
-    transpilerContext.currentFQN = prevFQN;
   }
 
 

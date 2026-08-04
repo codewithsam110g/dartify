@@ -2,22 +2,29 @@ import * as ts from "ts-morph";
 import { IRFunction, IRParameter } from "@ir/function";
 import { parseType } from "@typeParser/type";
 import { IRDeclKind } from "@ir/index";
-import { transpilerContext } from "@/context";
+import { declarationParseContext, ParseContext } from "./context";
 
-export function parseFunction(funcDecl: ts.FunctionDeclaration): IRFunction {
+export function parseFunction(
+  funcDecl: ts.FunctionDeclaration,
+  context: ParseContext = declarationParseContext(
+    funcDecl,
+    funcDecl.getName() ?? "anonFunc",
+  ),
+): IRFunction {
   let name = funcDecl.getName() ?? "anonFunc";
-  let returnType = parseType(funcDecl.getReturnTypeNode());
-  let returnTypeNode = funcDecl.getReturnTypeNode();
+  let returnType = parseType(
+    funcDecl.getReturnTypeNode(),
+    0,
+    context,
+  );
   let params: IRParameter[] = [];
-  for (let param of funcDecl.getParameters()) {
+  for (const [paramIndex, param] of funcDecl.getParameters().entries()) {
     // Do not parse `this` param
     if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
 
     let pName = param.getName();
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + pName;
-    let type = parseType(param.getTypeNode());
-    transpilerContext.currentFQN = prevFQN;
+    const paramContext = context.child(pName);
+    let type = parseType(param.getTypeNode(), 0, paramContext);
     let isOptional = param.isOptional();
     let isRest = param.isRestParameter();
     params.push({

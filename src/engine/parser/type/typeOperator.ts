@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { IRType, TypeKind } from "@ir/type";
 import { parseType } from "./type";
+import { ParseContext } from "@parser/context";
 import { makeUnsupported } from "./unsupported";
 
 /**
@@ -19,11 +20,12 @@ import { makeUnsupported } from "./unsupported";
 export function handleTypeOperator(
   node: ts.TypeOperatorTypeNode,
   depth: number,
+  context: ParseContext,
 ): IRType {
   if (node.getOperator() === ts.SyntaxKind.ReadonlyKeyword) {
     // `depth + 1`. Unwrapping is still a level of nesting, and the `depth > 15`
     // guard is the only recursion protection there is (`T-17`).
-    return parseType(node.getTypeNode(), depth + 1);
+    return parseType(node.getTypeNode(), depth + 1, context);
   }
 
   return makeUnsupported(node);

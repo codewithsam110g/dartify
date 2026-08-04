@@ -1,11 +1,13 @@
 import * as ts from "ts-morph";
 import { IRType, TypeKind } from "@ir/type";
 import { parseType } from "./type";
+import { ParseContext } from "@parser/context";
 import { isNullOrUndefined, isNever, isVoid } from "./keywords";
 
 export function handleIntersectionType(
   node: ts.IntersectionTypeNode,
   depth: number,
+  context: ParseContext,
 ): IRType {
   const rawTypes = node.getTypeNodes();
 
@@ -33,7 +35,7 @@ export function handleIntersectionType(
       continue; // skip by default
     }
 
-    const parsed = parseType(typeNode, depth + 1);
+    const parsed = parseType(typeNode, depth + 1, context);
     if (parsed) {
       intersectionNodes.push(parsed);
     }

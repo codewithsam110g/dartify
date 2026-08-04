@@ -3,14 +3,12 @@ import { SymbolTable } from "./symbol/table";
 class TranspilerContext {
   private static instance: TranspilerContext;
   private isLogging: boolean;
-  public currentFQN: string;
   public readonly namespaceExports: Map<string, Set<string>>;
   public readonly symbolTable: SymbolTable;
 
   private constructor() {
     this.isLogging = false;
     this.symbolTable = new SymbolTable();
-    this.currentFQN = "";
     this.namespaceExports = new Map();
   }
 
@@ -22,7 +20,6 @@ class TranspilerContext {
    */
   public reset(): void {
     this.symbolTable.clear();
-    this.currentFQN = "";
     this.namespaceExports.clear();
   }
 

@@ -14,6 +14,7 @@ import { makeUnsupported } from "./unsupported";
 import { handleThisType } from "./thisType";
 import { handleTypeOperator, handleTypePredicate } from "./typeOperator";
 import { handleTypeQuery } from "./typeQuery";
+import { ParseContext, typeParseContext } from "@parser/context";
 
 export type ParseableTypeNode =
   | ts.TypeNode
@@ -36,7 +37,7 @@ export type ParseableTypeNode =
  *
  * Measured cost of removal: `analyze()` over three.js (420 files, the largest
  * thing in the corpus) went 836ms → 987ms; leaflet was unchanged at 31ms. A
- * correct key would have had to include file + `currentFQN`, and `currentFQN`
+ * correct key would have had to include file + parse scope, and that scope
  * changes per declaration, so the hit rate would have collapsed to "same type
  * twice in one declaration" and bought back almost none of that 151ms anyway.
  * Re-introduce only against a fresh measurement.
@@ -56,6 +57,7 @@ export class TypeParser {
   public parseType(
     typeNode: ParseableTypeNode | undefined,
     depth: number = 0,
+    context: ParseContext = typeParseContext(typeNode),
   ): IRType {
     if (typeNode == undefined) {
       return {
@@ -145,12 +147,12 @@ export class TypeParser {
 
       // Unions: str | null, str | num | null
       case ts.SyntaxKind.UnionType:
-        result = handleUnionType(typeNode as ts.UnionTypeNode, depth);
+        result = handleUnionType(typeNode as ts.UnionTypeNode, depth, context);
         break;
 
       // Tuples: [string, number], [number, number]
       case ts.SyntaxKind.TupleType:
-        result = handleTupleType(typeNode as ts.TupleTypeNode, depth);
+        result = handleTupleType(typeNode as ts.TupleTypeNode, depth, context);
         break;
 
       // Intersection: T1 & T2
@@ -158,12 +160,13 @@ export class TypeParser {
         result = handleIntersectionType(
           typeNode as ts.IntersectionTypeNode,
           depth,
+          context,
         );
         break;
 
       // Direct Arrays: T[] => string[], num[], (str | num)[]
       case ts.SyntaxKind.ArrayType:
-        result = handleDirectArrayType(typeNode as ts.ArrayTypeNode, depth);
+        result = handleDirectArrayType(typeNode as ts.ArrayTypeNode, depth, context);
         break;
 
       // ParenthesizedType: (str | num) is not union, it has union internally tho
@@ -177,34 +180,36 @@ export class TypeParser {
         result = this.parseType(
           (typeNode as ts.ParenthesizedTypeNode).getTypeNode(),
           depth + 1,
+          context,
         );
         break;
 
       // TypeReferenceType: Array,Promise,Record,Set,Map and other User Defined ones
       case ts.SyntaxKind.TypeReference:
-        result = handleTypeReferences(typeNode as ts.TypeReferenceNode, depth);
+        result = handleTypeReferences(typeNode as ts.TypeReferenceNode, depth, context);
         break;
 
       case ts.SyntaxKind.ExpressionWithTypeArguments:
         result = handleTypeReferences(
           typeNode as ts.ExpressionWithTypeArguments,
           depth,
+          context,
         );
         break;
 
       // FunctionType: what do you want me to say, they are funcs god dammit
       case ts.SyntaxKind.FunctionType:
-        result = handleFunctionTypes(typeNode as ts.FunctionTypeNode, depth);
+        result = handleFunctionTypes(typeNode as ts.FunctionTypeNode, depth, context);
         break;
 
       // TypeLiterals are raw inline interface / objects
       case ts.SyntaxKind.TypeLiteral:
-        result = handleTypeLiterals(typeNode as ts.TypeLiteralNode, depth);
+        result = handleTypeLiterals(typeNode as ts.TypeLiteralNode, depth, context);
         break;
 
       // Rest Type: ...number[] with internal type being number[]
       case ts.SyntaxKind.RestType:
-        result = handleRestType(typeNode as ts.RestTypeNode, depth);
+        result = handleRestType(typeNode as ts.RestTypeNode, depth, context);
         break;
 
       // `this` — resolves to the enclosing class/interface (P-07, 900 sites)
@@ -214,7 +219,7 @@ export class TypeParser {
 
       // readonly T[] → List<T>; keyof / unique symbol stay Unsupported
       case ts.SyntaxKind.TypeOperator:
-        result = handleTypeOperator(typeNode as ts.TypeOperatorTypeNode, depth);
+        result = handleTypeOperator(typeNode as ts.TypeOperatorTypeNode, depth, context);
         break;
 
       // x is T → bool (js_facade_gen §6.6)
@@ -252,8 +257,9 @@ const globalTypeParser = TypeParser.getInstance();
 export function parseType(
   typeNode: ParseableTypeNode | undefined,
   depth: number = 0,
+  context: ParseContext = typeParseContext(typeNode),
 ): IRType {
-  return globalTypeParser.parseType(typeNode, depth);
+  return globalTypeParser.parseType(typeNode, depth, context);
 }
 
 // Export the global instance for direct use when maximum performance is needed

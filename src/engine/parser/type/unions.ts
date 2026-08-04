@@ -1,9 +1,14 @@
 import * as ts from "ts-morph";
 import { IRType, TypeKind } from "@ir/type";
 import { parseType } from "./type";
+import { ParseContext } from "@parser/context";
 import { isNullOrUndefined } from "./keywords";
 
-export function handleUnionType(node: ts.UnionTypeNode, depth: number): IRType {
+export function handleUnionType(
+  node: ts.UnionTypeNode,
+  depth: number,
+  context: ParseContext,
+): IRType {
   const unionNodes = node.getTypeNodes();
 
   const isNullable = unionNodes.some(isNullOrUndefined);
@@ -11,7 +16,9 @@ export function handleUnionType(node: ts.UnionTypeNode, depth: number): IRType {
     (node) => !isNullOrUndefined(node),
   );
 
-  const unionIRs = nonNullUnionNodes.map((uNode) => parseType(uNode, depth + 1));
+  const unionIRs = nonNullUnionNodes.map((uNode) =>
+    parseType(uNode, depth + 1, context),
+  );
 
   // `null | undefined` filters down to nothing. The old shape returned a Union
   // with an empty `unionTypes`, and `emitType` reached straight for `[0]` — so

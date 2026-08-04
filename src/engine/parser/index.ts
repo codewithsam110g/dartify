@@ -4,3 +4,4 @@ export { parseFunction } from "./function";
 export { parseInterface } from "./interface";
 export { parseVariableStmt } from "./variable";
 export { parseEnum } from "./enum";
+export { ParseContext, declarationParseContext } from "./context";

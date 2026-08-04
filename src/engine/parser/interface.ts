@@ -10,24 +10,26 @@ import {
 import { IRParameter } from "@ir/function";
 import { parseType } from "@typeParser/type";
 import { IRDeclKind } from "@ir/index";
-import { transpilerContext } from "@/context";
+import { declarationParseContext, ParseContext } from "./context";
 
 export function parseInterface(
   interfaceDecl: ts.InterfaceDeclaration,
+  context: ParseContext = declarationParseContext(
+    interfaceDecl,
+    interfaceDecl.getName(),
+  ),
 ): IRInterface {
   let name = interfaceDecl.getName();
-  const extenders = interfaceDecl.getExtends().map((heritage) =>
-    parseType(heritage),
+  const extenders = interfaceDecl.getExtends().map((heritage, index) =>
+    parseType(heritage, 0, context),
   );
 
   // Properties
   let properties: IRProperties[] = [];
-  for (let prop of interfaceDecl.getProperties()) {
+  for (const [propertyIndex, prop] of interfaceDecl.getProperties().entries()) {
     let name = prop.getName();
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + name;
-    let type = parseType(prop.getTypeNode());
-    transpilerContext.currentFQN = prevFQN;
+    const propertyContext = context.child(name);
+    let type = parseType(prop.getTypeNode(), 0, propertyContext);
     let isReadonly = prop.isReadonly();
     let isOptional = prop.hasQuestionToken();
 
@@ -42,24 +44,24 @@ export function parseInterface(
 
   // Methods
   let methods: IRMethod[] = [];
-  for (let method of interfaceDecl.getMethods()) {
+  for (const [methodIndex, method] of interfaceDecl.getMethods().entries()) {
     let name = method.getName();
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + name;
+    const methodContext = context.child(name);
     let parameters: IRParameter[] = [];
-    let returnType = parseType(method.getReturnTypeNode());
-    let returnTypeNode = method.getReturnTypeNode();
+    let returnType = parseType(
+      method.getReturnTypeNode(),
+      0,
+      methodContext,
+    );
     let isOptional = method.hasQuestionToken();
 
-    for (let param of method.getParameters()) {
+    for (const [paramIndex, param] of method.getParameters().entries()) {
       // Do not parse `this` param
       if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
 
       let pName = param.getName();
-      const paramPrevFQN = transpilerContext.currentFQN;
-      transpilerContext.currentFQN = paramPrevFQN + "|" + pName;
-      let type = parseType(param.getTypeNode());
-      transpilerContext.currentFQN = paramPrevFQN;
+      const paramContext = methodContext.child(pName);
+      let type = parseType(param.getTypeNode(), 0, paramContext);
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
@@ -69,7 +71,6 @@ export function parseInterface(
         isRest: isRest,
       });
     }
-    transpilerContext.currentFQN = prevFQN;
     methods.push({
       name,
       parameters,
@@ -81,22 +82,24 @@ export function parseInterface(
 
   // Constructors
   let constructors: IRMethod[] = [];
-  for (let constructor of interfaceDecl.getConstructSignatures()) {
+  for (const [constructorIndex, constructor] of interfaceDecl
+    .getConstructSignatures()
+    .entries()) {
     let parameters: IRParameter[] = [];
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|constructor";
-    let returnType = parseType(constructor.getReturnTypeNode());
-    let returnTypeNode = constructor.getReturnTypeNode();
+    const constructorContext = context.child("constructor");
+    let returnType = parseType(
+      constructor.getReturnTypeNode(),
+      0,
+      constructorContext,
+    );
 
-    for (let param of constructor.getParameters()) {
+    for (const [paramIndex, param] of constructor.getParameters().entries()) {
       // Do not parse `this` param
       if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
 
       let pName = param.getName();
-      const paramPrevFQN = transpilerContext.currentFQN;
-      transpilerContext.currentFQN = paramPrevFQN + "|" + pName;
-      let type = parseType(param.getTypeNode());
-      transpilerContext.currentFQN = paramPrevFQN;
+      const paramContext = constructorContext.child(pName);
+      let type = parseType(param.getTypeNode(), 0, paramContext);
       let isOptional = param.isOptional();
       let isRest = param.isRestParameter();
       parameters.push({
@@ -106,7 +109,6 @@ export function parseInterface(
         isRest: isRest,
       });
     }
-    transpilerContext.currentFQN = prevFQN;
     constructors.push({
       name: "constructor",
       parameters,
@@ -118,12 +120,10 @@ export function parseInterface(
 
   // Get Accessors
   let getAccessors: IRGetAccessor[] = [];
-  for (let ga of interfaceDecl.getGetAccessors()) {
+  for (const [accessorIndex, ga] of interfaceDecl.getGetAccessors().entries()) {
     let name = ga.getName();
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + name;
-    let type = parseType(ga.getReturnTypeNode());
-    transpilerContext.currentFQN = prevFQN;
+    const accessorContext = context.child(name);
+    let type = parseType(ga.getReturnTypeNode(), 0, accessorContext);
 
     getAccessors.push({
       name,
@@ -134,32 +134,38 @@ export function parseInterface(
 
   // Set Accessors
   let setAccessors: IRSetAccessor[] = [];
-  for (let sa of interfaceDecl.getSetAccessors()) {
+  for (const [accessorIndex, sa] of interfaceDecl.getSetAccessors().entries()) {
     let name = sa.getName();
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + name;
+    const accessorContext = context.child(name);
     let param = sa.getParameters()[0];
     setAccessors.push({
       name: name,
       parameter: {
         name: param.getName(),
-        type: parseType(param.getTypeNode()),
+        type: parseType(param.getTypeNode(), 0, accessorContext),
         isOptional: param.hasQuestionToken(),
         isRest: param.isRestParameter(),
       },
       isStatic: false,
     });
-    transpilerContext.currentFQN = prevFQN;
   }
 
   // IndexSignatures
   let indexSignatures: IRIndexSignatures[] = [];
-  for (let indexSig of interfaceDecl.getIndexSignatures()) {
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|indexSig";
-    let keyType = parseType(indexSig.getKeyTypeNode());
-    let valueType = parseType(indexSig.getReturnTypeNode());
-    transpilerContext.currentFQN = prevFQN;
+  for (const [index, indexSig] of interfaceDecl
+    .getIndexSignatures()
+    .entries()) {
+    const indexContext = context.child("indexSig");
+    let keyType = parseType(
+      indexSig.getKeyTypeNode(),
+      0,
+      indexContext,
+    );
+    let valueType = parseType(
+      indexSig.getReturnTypeNode(),
+      0,
+      indexContext,
+    );
     let isReadonly = indexSig.isReadonly();
     indexSignatures.push({
       keyType,

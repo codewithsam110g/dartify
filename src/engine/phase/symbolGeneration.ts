@@ -7,6 +7,7 @@ import { IRDeclaration } from "@ir/declaration";
 import { IRReferenceTarget } from "@ir/type";
 import { forEachIRType } from "@ir/visit";
 import { createFQN, createFQNPrefix } from "@/symbol/fqn";
+import { ParseContext } from "@parser/context";
 
 function dependenciesOf(ir: IRDeclaration): IRReferenceTarget[] {
   const dependencies: IRReferenceTarget[] = [];
@@ -30,6 +31,18 @@ export async function generateSymbols(
 
 class SymbolGenerator {
   private moduleScopes: string[] = [];
+
+  private parseContext(fqn: string): ParseContext {
+    return new ParseContext(fqn, (hoistedFQN, declaration) => {
+      transpilerContext.symbolTable.register(hoistedFQN, {
+        type: SymbolType.INTERFACE,
+        ir: declaration,
+        fqn: hoistedFQN,
+        deps: dependenciesOf(declaration),
+        resolvedDeps: [],
+      });
+    });
+  }
 
   public async generateSymbols(fp: string, sourceFile: ts.SourceFile) {
     const errors: TranspileException[] = [];
@@ -158,8 +171,7 @@ class SymbolGenerator {
   ): void {
     const interfaceName = node.getName();
     let fqn = createFQN(filePath, this.moduleScopes, interfaceName);
-    transpilerContext.currentFQN = fqn;
-    const parsedInterface = parser.parseInterface(node);
+    const parsedInterface = parser.parseInterface(node, this.parseContext(fqn));
     let symbol: Symbol = {
       type: SymbolType.INTERFACE,
       ir: parsedInterface,
@@ -176,8 +188,7 @@ class SymbolGenerator {
   ): void {
     const aliasName = node.getName();
     let fqn = createFQN(filePath, this.moduleScopes, aliasName);
-    transpilerContext.currentFQN = fqn;
-    const parsedTypeAlias = parser.parseTypeAlias(node);
+    const parsedTypeAlias = parser.parseTypeAlias(node, this.parseContext(fqn));
     let symbol: Symbol = {
       type: SymbolType.TYPE_ALIAS,
       ir: parsedTypeAlias,
@@ -194,8 +205,7 @@ class SymbolGenerator {
   ): void {
     let className = node.getName() || "Error_Class";
     let fqn = createFQN(filePath, this.moduleScopes, className);
-    transpilerContext.currentFQN = fqn;
-    const parsedClass = parser.parseClass(node);
+    const parsedClass = parser.parseClass(node, this.parseContext(fqn));
     let symbol: Symbol = {
       type: SymbolType.CLASS,
       ir: parsedClass,
@@ -212,8 +222,7 @@ class SymbolGenerator {
   ): void {
     let functionName = node.getName() || "Error_Function";
     let fqn = createFQN(filePath, this.moduleScopes, functionName);
-    transpilerContext.currentFQN = fqn;
-    const parsedFunction = parser.parseFunction(node);
+    const parsedFunction = parser.parseFunction(node, this.parseContext(fqn));
     let symbol: Symbol = {
       type: SymbolType.FUNCTION,
       ir: parsedFunction,
@@ -228,9 +237,19 @@ class SymbolGenerator {
     node: ts.VariableStatement,
     filePath: string,
   ): void {
+    const fqnPrefix = createFQNPrefix(filePath, this.moduleScopes);
     const parsedVariables = parser.parseVariableStmt(
-      createFQNPrefix(filePath, this.moduleScopes),
+      fqnPrefix,
       node,
+      new ParseContext(fqnPrefix, (hoistedFQN, declaration) => {
+        transpilerContext.symbolTable.register(hoistedFQN, {
+          type: SymbolType.INTERFACE,
+          ir: declaration,
+          fqn: hoistedFQN,
+          deps: dependenciesOf(declaration),
+          resolvedDeps: [],
+        });
+      }),
     );
     for (const variable of parsedVariables) {
       let fqn = createFQN(filePath, this.moduleScopes, variable.name);
@@ -251,7 +270,6 @@ class SymbolGenerator {
   ): void {
     const enumName = node.getName();
     let fqn = createFQN(filePath, this.moduleScopes, enumName);
-    transpilerContext.currentFQN = fqn;
     const parsedEnum = parser.parseEnum(node);
     let symbol: Symbol = {
       type: SymbolType.ENUM,

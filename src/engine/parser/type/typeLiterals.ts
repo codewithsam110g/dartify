@@ -12,21 +12,19 @@ import {
 import { IRParameter } from "@ir/function";
 
 import { IRDeclKind } from "@ir/declaration";
-import { transpilerContext } from "@/context";
-import { SymbolType } from "@/symbol";
+import { ParseContext } from "@parser/context";
 
 export function handleTypeLiterals(
   node: ts.TypeLiteralNode,
   depth: number,
+  context: ParseContext,
 ): IRType {
   // Properties
   let properties: IRProperties[] = [];
   for (let prop of node.getProperties()) {
     let name = prop.getName();
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + name;
-    let type = parseType(prop.getTypeNode());
-    transpilerContext.currentFQN = prevFQN;
+    const memberContext = context.child(name);
+    let type = parseType(prop.getTypeNode(), depth + 1, memberContext);
     let isReadonly = prop.isReadonly();
     let isOptional = prop.hasQuestionToken();
     properties.push({
@@ -40,27 +38,27 @@ export function handleTypeLiterals(
 
   // Methods
   let methods: IRMethod[] = [];
-  for (let method of node.getMethods()) {
+  for (const method of node.getMethods()) {
     let name = method.getName();
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + name;
+    const methodContext = context.child(name);
     let parameters: IRParameter[] = [];
-    let returnType = parseType(method.getReturnTypeNode());
+    let returnType = parseType(
+      method.getReturnTypeNode(),
+      depth + 1,
+      methodContext,
+    );
     let isOptional = method.hasQuestionToken();
-    for (let param of method.getParameters()) {
+    for (const [paramIndex, param] of method.getParameters().entries()) {
       if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
       let pName = param.getName();
-      const paramPrevFQN = transpilerContext.currentFQN;
-      transpilerContext.currentFQN = paramPrevFQN + "|" + pName;
+      const paramContext = methodContext.child(pName);
       parameters.push({
         name: pName,
-        type: parseType(param.getTypeNode()),
+        type: parseType(param.getTypeNode(), depth + 1, paramContext),
         isOptional: param.isOptional(),
         isRest: param.isRestParameter(),
       });
-      transpilerContext.currentFQN = paramPrevFQN;
     }
-    transpilerContext.currentFQN = prevFQN;
     methods.push({
       name,
       parameters,
@@ -72,25 +70,27 @@ export function handleTypeLiterals(
 
   // Constructors
   let constructors: IRMethod[] = [];
-  for (let constructor of node.getConstructSignatures()) {
+  for (const [constructorIndex, constructor] of node
+    .getConstructSignatures()
+    .entries()) {
     let parameters: IRParameter[] = [];
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|constructor";
-    let returnType = parseType(constructor.getReturnTypeNode());
-    for (let param of constructor.getParameters()) {
+    const constructorContext = context.child("constructor");
+    let returnType = parseType(
+      constructor.getReturnTypeNode(),
+      depth + 1,
+      constructorContext,
+    );
+    for (const [paramIndex, param] of constructor.getParameters().entries()) {
       if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
       let pName = param.getName();
-      const paramPrevFQN = transpilerContext.currentFQN;
-      transpilerContext.currentFQN = paramPrevFQN + "|" + pName;
+      const paramContext = constructorContext.child(pName);
       parameters.push({
         name: pName,
-        type: parseType(param.getTypeNode()),
+        type: parseType(param.getTypeNode(), depth + 1, paramContext),
         isOptional: param.isOptional(),
         isRest: param.isRestParameter(),
       });
-      transpilerContext.currentFQN = paramPrevFQN;
     }
-    transpilerContext.currentFQN = prevFQN;
     constructors.push({
       name: "constructor",
       parameters,
@@ -102,47 +102,49 @@ export function handleTypeLiterals(
 
   // Get Accessors
   let getAccessors: IRGetAccessor[] = [];
-  for (let ga of node.getGetAccessors()) {
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + ga.getName();
+  for (const [accessorIndex, ga] of node.getGetAccessors().entries()) {
+    const accessorContext = context.child(ga.getName());
     getAccessors.push({
       name: ga.getName(),
-      type: parseType(ga.getReturnTypeNode()),
+      type: parseType(ga.getReturnTypeNode(), depth + 1, accessorContext),
       isStatic: false,
     });
-    transpilerContext.currentFQN = prevFQN;
   }
 
   // Set Accessors
   let setAccessors: IRSetAccessor[] = [];
-  for (let sa of node.getSetAccessors()) {
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|" + sa.getName();
+  for (const [accessorIndex, sa] of node.getSetAccessors().entries()) {
+    const accessorContext = context.child(sa.getName());
     let param = sa.getParameters()[0];
     setAccessors.push({
       name: sa.getName(),
       parameter: {
         name: param.getName(),
-        type: parseType(param.getTypeNode()),
+        type: parseType(param.getTypeNode(), depth + 1, accessorContext),
         isOptional: param.hasQuestionToken(),
         isRest: param.isRestParameter(),
       },
       isStatic: false,
     });
-    transpilerContext.currentFQN = prevFQN;
   }
 
   // Index Signatures
   let indexSignatures: IRIndexSignatures[] = [];
-  for (let indexSig of node.getIndexSignatures()) {
-    const prevFQN = transpilerContext.currentFQN;
-    transpilerContext.currentFQN = prevFQN + "|indexSig";
+  for (const [index, indexSig] of node.getIndexSignatures().entries()) {
+    const indexContext = context.child("indexSig");
     indexSignatures.push({
-      keyType: parseType(indexSig.getKeyTypeNode()),
-      valueType: parseType(indexSig.getReturnTypeNode()),
+      keyType: parseType(
+        indexSig.getKeyTypeNode(),
+        depth + 1,
+        indexContext,
+      ),
+      valueType: parseType(
+        indexSig.getReturnTypeNode(),
+        depth + 1,
+        indexContext,
+      ),
       isReadonly: indexSig.isReadonly(),
     });
-    transpilerContext.currentFQN = prevFQN;
   }
 
   // `{}` — the empty type literal. It means "any non-null value", so `dynamic`
@@ -157,7 +159,7 @@ export function handleTypeLiterals(
     return { kind: TypeKind.Any, name: TypeKind.Any, isNullable: false };
   }
 
-  const fqn = transpilerContext.currentFQN;
+  const fqn = context.scopeFQN;
 
   // 1. Split the FQN into the physical File Path and the logical Scope Path
   const [filePath, scopePath] = fqn.split("::");
@@ -186,13 +188,7 @@ export function handleTypeLiterals(
   };
 
   // 4. Wrap it in your Symbol struct and register it directly to the global Table
-  transpilerContext.symbolTable.register(fullAnonFqn, {
-    type: SymbolType.INTERFACE,
-    fqn: fullAnonFqn,
-    ir: anonInterface,
-    deps: [],
-    resolvedDeps: [],
-  });
+  context.registerHoisted(fullAnonFqn, anonInterface);
 
   // 5. Return a TypeRef pointing at the newly hoisted anonymous interface
   return {

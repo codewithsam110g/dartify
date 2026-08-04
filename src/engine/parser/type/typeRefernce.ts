@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { IRReferenceTarget, IRType, TypeKind } from "@ir/type";
 import { parseType } from "./type";
+import { ParseContext } from "@parser/context";
 import { declarationFQN } from "@/symbol/fqn";
 import { isStdlibFile } from "@/resolution/stdlib";
 
@@ -117,6 +118,7 @@ export function collectTypeDep(
 export function handleTypeReferences(
   node: ReferenceLikeNode,
   depth: number,
+  context: ParseContext,
 ): IRType {
   const name = referenceNameNode(node).getText();
   const reference = collectTypeDep(node);
@@ -124,7 +126,7 @@ export function handleTypeReferences(
   const typeArgs = node.getTypeArguments();
   let genericArgs: IRType[] = [];
   for (let typeArg of typeArgs) {
-    let res = parseType(typeArg, depth + 1);
+    let res = parseType(typeArg, depth + 1, context);
     genericArgs.push(res);
   }
   return {

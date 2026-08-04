@@ -8,7 +8,11 @@ downstream.
 
 ---
 
-## P-01 — Heritage clauses bypass `parseType`, so inheritance edges never reach the dep graph `[verified]`
+## P-01 — Heritage clauses bypass `parseType`, so inheritance edges never reach the dep graph `[verified]` **[FIXED — S2]**
+
+Class and interface heritage now route through `parseType` and are represented
+as `IRType[]`, preserving generic arguments, qualified references and graph
+edges. Focused tests cover generic `extends` and `implements`.
 
 **`parser/interface.ts:19`**
 ```ts

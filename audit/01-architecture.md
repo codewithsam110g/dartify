@@ -11,11 +11,12 @@ Transpiler (transpiler.ts)
   │
   ├─ PHASE 1  generateSymbols()   (phase/symbolGeneration.ts)
   │     walks statements → parser/* → IR → SymbolTable.register(fqn, Symbol)
-  │     side-channel: transpilerContext.currentDeps collects type deps
+  │     structural IR walk derives checker-backed reference dependencies
   │
   ├─ PHASE 2  runLinker()         (phase/linkerPhase.ts)
   │     DFS over dep graph, memoised, cycle-safe
-  │     → LinkReport (state per symbol)
+  │     → LinkReport (states, resolved edges, diagnostics)
+  │     → writes resolvedDeps + IR use-site resolvedFQN
   │
   └─ PHASE 3  renderAllFiles() → writeAllFiles()  (phase/emitterPhase.ts)
         group symbols by source file → emitter/old/* → optionally write .dart
@@ -36,11 +37,12 @@ Any sufficiently annotation-friendly target language could be added the same way
 `::` separates physical location from logical scope. `|` separates scope
 segments. Anonymous hoisted types get `<file>::Anon_<sanitised scope path>`.
 
-Dep edges are recorded as *pseudo*-FQNs (`<file>::<name as written>`) and
-resolved to real FQNs by the linker's fuzzy matcher. See `L-01`/`L-02` — this
-indirection is currently hiding wrong-file, wrong-name and qualified-name bugs.
-The result is not attached back to the `IRType` use site (`L-14`), so even a
-correct file-level edge cannot yet drive renamed-reference emission.
+Reference nodes carry their written lookup plus a checker-backed target identity
+when TypeScript can provide one. Phase 1 derives symbol deps by structurally
+walking completed IR; Phase 2 resolves those targets without arbitrary fuzzy
+selection and writes both symbol-level `resolvedDeps` and use-site
+`resolvedFQN`. Namespace-prefix stripping is allowed only for a captured
+`export as namespace` declaration.
 
 ## Live vs. dead inventory
 
@@ -50,9 +52,11 @@ correct file-level edge cannot yet drive renamed-reference emission.
 |---|---|
 | `src/cli.ts` | arg parsing, globbing |
 | `src/transpiler.ts` | orchestration, file resolution/categorisation |
-| `src/context.ts` | singleton: symbol table, `currentFQN`, `currentDeps`, logging flag |
+| `src/context.ts` | resettable module-owned context: symbol table, namespace metadata, `currentFQN`, logging flag |
 | `src/reset.ts` | per-run singleton reset |
-| `src/symbol/{index,table,resolve}.ts` | `Symbol` type, table, pseudo-FQN resolution |
+| `src/symbol/{index,table,resolve,fqn}.ts` | symbol model, table, FQN construction and structured resolution |
+| `src/resolution/*` | shared stdlib classification, module host and resolution reports |
+| `src/ir/visit.ts` | structural type-reference walker used by generation/linking |
 | `src/engine/phase/symbolGeneration.ts` | Phase 1 |
 | `src/engine/phase/linkerPhase.ts` | Phase 2 |
 | `src/engine/phase/emitterPhase.ts` | Phase 3 |

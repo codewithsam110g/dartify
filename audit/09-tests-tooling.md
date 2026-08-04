@@ -109,7 +109,12 @@ Node on all platforms and `transpiler.ts:204` already has a
 
 ---
 
-## X-06 — No test asserts linker or symbol-table behaviour `[verified]`
+## X-06 — No test asserts linker or symbol-table behaviour `[verified]` **[FIXED — S2]**
+
+S2 adds 14 focused tests across FQN construction, aliased/qualified/renamed
+references, direct and indirect misses, cycles, heritage, ambiguity, graph-ID
+uniqueness, module fallback, tsconfig authority, roots and collisions. The
+opt-in `pnpm test:s2` gate analyzes Leaflet and three.js.
 
 `test/` now contains 13 test files after S0/S1, including reset, smoke/stress,
 alias registration and type normalisation coverage. The emitter is exercised

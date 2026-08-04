@@ -12,7 +12,9 @@
 
 **`dart_bindgen` is currently in active development and should be considered beta software.**
 
-This `v0.5.0` "Stability" release is a stability update giving a major bug fix and Adding Important Per run based Logs that output Full IR. However, please be aware that:
+`v0.5.0` is the current npm release. The orchestration branch is the active
+post-release line and is being completed directly toward v1.0.0. However,
+please be aware that:
 
 *   **APIs are not yet stable:** The generated code and CLI usage may change as we approach v1.0.
 *   **Bugs are expected:** While core features are well-tested, you may encounter issues with the new transformer logic or esoteric TypeScript types.
@@ -28,10 +30,10 @@ For Dart developers working with the web, the official `js_facade_gen` was found
 
 **`dart_bindgen` is a complete, modern successor designed for the future of Dart on the web.**
 
-*   **Intelligent & Type-Safe:** Goes beyond simple translation. It understands complex patterns like **anonymous object types** and **function overloads**, generating strong, idiomatic Dart code where other tools produce `dynamic`.
-*   **Blazingly Fast:** A new 5-pass compiler architecture with intelligent caching processes massive libraries like `lib.dom.d.ts` in under 3 seconds.
-*   **Robust & Hardened:** The entire pipeline is covered by a comprehensive suite of unit and snapshot tests, ensuring reliability and preventing regressions.
-*   **Modern Architecture:** Uses a `Parser -> IR -> Transformer -> Emitter` pipeline for accurate and maintainable code generation, built on the excellent [`ts-morph`](https://ts-morph.com/) library.
+*   **Intelligent & Type-Safe:** Unsupported TypeScript constructs become named, documented aliases rather than anonymous degradation.
+*   **Whole-program linking:** Checker-backed reference targets, persisted dependency edges, honest ambiguity and missing states, and module-resolution reports make multi-file analysis inspectable.
+*   **Robust & Hardened:** Unit, smoke, linker, resolution and opt-in real-corpus gates protect the active pipeline.
+*   **Modern Architecture:** Uses `symbol generation → linker → emission` around a language-independent IR, built on [`ts-morph`](https://ts-morph.com/).
 
 ---
 
@@ -58,10 +60,12 @@ Usage: dart_bindgen [options]
 Options:
   -d, --def-files <patterns...>   TypeScript definition files or glob patterns (required)
   -o, --output <directory>        Output directory for generated .dart files
-  -l, --enable-logs               Enable verbose logging during transpilation
+  -p, --tsconfig <path>           Use a tsconfig for authoritative module resolution
+  -l, --enable-logs               Enable phase and module-resolution logging
+  -v, --verbose                   Print structured linker details; implies -l
       --dry-run                   Show what would be processed without writing files
   -h, --help                      Show help
-  -v, --version                   Show version number
+      --version                   Show version number
 ```
 
 **Examples**
@@ -73,8 +77,12 @@ dart_bindgen -d "**/*.d.ts"
 # Process files from multiple specific locations and output them to a 'generated' folder
 dart_bindgen -d "src/types/**/*.d.ts" -d "vendor/lib.d.ts" -o ./generated
 
-# Run with verbose logging to see the new 5-pass pipeline in action
-dart_bindgen -d "path/to/my-lib.d.ts" --enable-logs
+# Show phase and module-resolution logs
+dart_bindgen -d "path/to/my-lib.d.ts" -l
+
+# Add every resolved/missing/ambiguous linker edge and failure chain
+# (-v implies log mode, and the boolean flags compose as -lv)
+dart_bindgen -d "path/to/my-lib.d.ts" -lv
 
 # See which files would be processed without actually generating any code
 dart_bindgen -d "**/*.d.ts" --dry-run
@@ -92,19 +100,11 @@ Rather than patching a decade-old system, `dart_bindgen` was created to be the t
 
 ## Roadmap & Contribution
 
-With the v0.5.0 "Observability & Order" release complete, the focus is on finishing core single-file features and fixing regressions before moving to multi-file project support.
-
-**Next Up (v0.6.0 - The "Intelligence, Part II" Release):**
-* **Declaration Augmentation:** Correctly merge declarations like `interface` + `var`.
-* **Nested Type Hoisting:** Fix hoisting for complex types within unions, arrays, and generics.
-* **Regression Fixes:** Resolve outstanding issues from the v0.4 intelligence pass.
-
-**Long Term:**
-* **(v0.7)** Handle final edge cases like `this` type resolution and Dart keyword escaping.
-* **(v0.8)** Full support for multi-file projects with automatic imports.
-* **(v0.9)** Integration with `package:web` to use existing browser types.
-* **(v1.0)** A stable, feature-complete generator for `package:js`.
-* **(v2.0)** A new emitter for Dart's modern `dart:js_interop` static types.
+The project now moves directly from the published v0.5.0 to v1.0.0. Stage 2's
+truthful multi-file link layer is complete; the next engineering stage fills
+the declaration IR before overload/augmentation semantics and the final emitter
+work. See [`ROADMAP.md`](ROADMAP.md) for the public overview and
+[`PLAN.md`](PLAN.md) for the tracked stage-by-stage implementation plan.
 
 You can help! This is a solo-developer project, and community involvement is vital.
 

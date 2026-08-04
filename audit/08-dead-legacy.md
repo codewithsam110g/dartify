@@ -33,7 +33,8 @@ src/engine/transformers/typeTransformer.ts(50,62):  error TS2339: ...
 ```
 
 `getCurrentFileName` was removed from `TranspilerContext` during the refactor
-(`context.ts` now exposes `currentFQN` / `currentDeps` instead).
+(`context.ts` still exposes `currentFQN`; S2 removed `currentDeps` and derives
+dependencies by walking each completed declaration IR instead).
 
 `tsconfig.json` also still declares `@passes/*` and `@transformers/*` path
 aliases pointing here.
@@ -124,10 +125,11 @@ on it.
 251 lines: singleton `Logger`, five levels, ANSI colours, file output to
 `./logs/<name>.log`. No live module imports it.
 
-The v0.5 CHANGELOG and README describe `-l` / `--enable-logs` as producing a
+The v0.5 CHANGELOG historically described `-l` / `--enable-logs` as producing a
 "Full IR Dump between 5 stages". That feature ran through this logger and the
-5-pass architecture; both are gone, so **`-l` no longer does what the docs say**
-(see `R-08`). Today `-l` only toggles `console.log` verbosity.
+5-pass architecture; both are gone. The current README accurately documents
+`-l` as phase/module logging and `-lv` as the structured linker report. No live
+flag currently emits IR files (see `R-08`).
 
 **Decision needed:** either reconnect it as the IR-dump mechanism for the
 3-phase pipeline (`--emit-ir` writing one JSON per phase), or delete it and

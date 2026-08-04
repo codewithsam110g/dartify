@@ -143,3 +143,30 @@ The earlier post-S1 note saying "52 currentFQN save/restore pairs" was also
 wrong: there are **24 pairs** (48 assignments) plus one one-way assignment in
 the variable parser. The branch has since been pushed; the old "23 unpushed"
 measurement above is historical, not current state.
+
+---
+
+## Stage 2 closure — truthful link graph
+
+S2 is implemented and verified. Reference identity is checker-backed and stored
+on the IR, dependencies are derived by walking completed declarations, linker
+outcomes and edges are persisted, module-resolution issues are public report
+data, and the graph renderer consumes those results without resolving again.
+
+| Gate | Result |
+|---|---|
+| Leaflet | **328/328 symbols**, **1,050/1,050 edges**, 0 ambiguous / 0 missing |
+| three.js | **8,184 resolved edges**, 0 ambiguous, **31 missing** |
+| three.js missing cause | absent `webxr` and `@webgpu/types` type packages; retained as honest failures |
+| focused S2 tests | **15/15**, including structured verbose-report formatting |
+| `pnpm test:s2` | **2/2** corpus gates |
+| normal suite | **214 passed**, 3 skipped |
+| compiler/build | `tsc --noEmit` clean; bundle **107.53 KB** including verbose report formatting |
+| compatibility | h3 smoke output byte-identical; bundled CLI reports 0 unresolved modules |
+
+Closed here: `R-01`–`R-04`, `R-06`, `R-10`, `P-01`, `I-04`, `L-01`–`L-04`,
+`L-08`, `L-12`–`L-15`, and `X-06`. `R-09` remains in S3; `R-13` remains in
+S6 because symbol-generation errors still need to join the public report model.
+The S2 CLI follow-up also partially closes `R-08`: `-l` owns ordinary logs,
+`-lv` adds the structured linker report, and `--version` is long-only. IR-dump
+logging remains the independent `D-05` decision.

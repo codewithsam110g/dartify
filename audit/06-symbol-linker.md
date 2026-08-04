@@ -8,9 +8,18 @@ This is the architecture's centrepiece and the area under active development.
 Phase 2 is where overload resolution and declaration augmentation are intended
 to live — the two problems that defeated both the pre-5-pass and 5-pass designs.
 
+## S2 closure
+
+The link layer now consumes structured checker-backed reference targets,
+persists report edges and use-site identities, and never resolves ambiguity by
+arbitrary selection. Leaflet closes at 328/328 symbols and 1,050/1,050 edges.
+Three.js has 8,184 resolved edges, 0 ambiguous edges and 31 explicit missing
+edges attributable to the absent `webxr` and `@webgpu/types` packages. Those
+misses are intentionally not hidden by name fallback.
+
 ---
 
-## L-01 — Cross-file dep FQNs name the *importing* file, not the *declaring* file `[verified]`
+## L-01 — Cross-file dep FQNs name the *importing* file, not the *declaring* file `[verified]` **[FIXED — S2]**
 
 **`parser/type/typeRefernce.ts:24-30`**
 ```ts
@@ -87,7 +96,7 @@ emitted type (`L-14`).
 
 ---
 
-## L-02 — Dotted qualified names never match table keys `[verified]`
+## L-02 — Dotted qualified names never match table keys `[verified]` **[FIXED — S2]**
 
 Deps record the type name as written: `typeName.getText()`
 (`typeRefernce.ts:19`) yields `"L.Control.Attribution"`. The symbol table stores
@@ -125,7 +134,7 @@ currently verify that `L` is the declared global name.
 
 ---
 
-## L-03 — Ambiguous matches silently resolve to `matches[0]` `[inspection]`
+## L-03 — Ambiguous matches silently resolve to `matches[0]` `[inspection]` **[FIXED — S2]**
 
 **`symbol/resolve.ts:24-68`** — the preference order is: same-file match, then
 non-namespaced primary, then `matches[0]`. The ambiguity callback runs only when
@@ -143,7 +152,7 @@ most ambiguity disappears.
 
 ---
 
-## L-04 — Inheritance edges are absent from the graph `[verified]`
+## L-04 — Inheritance edges are absent from the graph `[verified]` **[FIXED — S2]**
 
 See `P-01`. Recorded here because the consequence is a linker/graph consequence:
 `tools/graph.ts` currently renders a graph that is *missing its most
@@ -259,7 +268,11 @@ the compiler.
 
 ---
 
-## L-08 — Resolved edges are not persisted `[inspection]` **[PARTIALLY FIXED — S0.4]**
+## L-08 — Resolved edges are not persisted `[inspection]` **[FIXED — S2]**
+
+`LinkReport.edges` is the canonical persisted graph, every symbol receives
+`resolvedDeps`, and reference IR nodes receive `resolvedFQN`. The graph renderer
+consumes the report rather than invoking the resolver again.
 
 `runLinker` now returns a `LinkReport` containing the state for every real FQN,
 so the old "computed then discarded" wording is no longer true. What remains:
@@ -327,7 +340,7 @@ module" — this finding is the mechanical half of that item.
 
 ---
 
-## L-12 — A direct missing dependency is reported as indirect `[verified]`
+## L-12 — A direct missing dependency is reported as indirect `[verified]` **[FIXED — S2]**
 
 `checkDeps(missingPseudoFqn)` returns `NotLinkedDirect`, but its caller
 immediately wraps that result as `NotLinkedIndirect` for the owning symbol
@@ -350,7 +363,7 @@ the DFS.
 
 ---
 
-## L-13 — Graph node IDs collapse distinct files with the same basename `[verified]`
+## L-13 — Graph node IDs collapse distinct files with the same basename `[verified]` **[FIXED — S2]**
 
 `tools/graph.ts:61-66` builds a Graphviz node ID from
 `basename(file) + scope`. Two declarations with the same file basename and
@@ -372,7 +385,7 @@ the human-readable label.
 
 ---
 
-## L-14 — Type-reference use sites have no resolved symbol identity `[verified]`
+## L-14 — Type-reference use sites have no resolved symbol identity `[verified]` **[FIXED — S2]**
 
 `IRType` stores a `TypeReference`'s written `name`, while dependency collection
 writes an unrelated string into the owning `Symbol.deps`. The linker can resolve
@@ -397,7 +410,7 @@ substitute for use-site linking.
 
 ---
 
-## L-15 — Dependency-resolution exceptions silently remove graph edges `[inspection]`
+## L-15 — Dependency-resolution exceptions silently remove graph edges `[inspection]` **[FIXED — S2]**
 
 `collectTypeDep` wraps its complete body in `try/catch {}` and returns nothing
 on any exception (`typeRefernce.ts:14-59`). The linker cannot diagnose an edge

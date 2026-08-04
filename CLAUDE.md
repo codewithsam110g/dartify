@@ -45,7 +45,8 @@ pnpm test:update                    # accept snapshot changes (vitest run -u)
 pnpm test:stress                    # opt-in full 1,649-file corpus, ~5.5 min
 pnpm exec tsc --noEmit              # typecheck — must stay at 0 errors
 pnpm dev -d "<glob>" -o <outdir>    # run the CLI from source
-pnpm dev -d "<file>" -o <out> -l    # + verbose: resolution summary, linker report
+pnpm dev -d "<file>" -o <out> -l    # phase + module-resolution logs
+pnpm dev -d "<file>" -o <out> -lv   # + detailed structured linker report
 pnpm graph -d "<glob>" -o g.svg     # dependency graph SVG (internal tooling)
 pnpm build                          # tsup → dist/
 ```
@@ -165,15 +166,13 @@ Consequences worth holding on to:
   distinction that misled a previous session: `RestTypeNode` was *already*
   wrapped at 26, `OptionalTypeNode` is the one that landed later — so "the
   tuple wrapper" is about **optional** members, not rest.
-- **three.js reporting "0 broken links" is not proof multi-file works.** It
-  passes because it is modern ESM with explicit `.js` extensions. Extensionless
-  relative imports — most of DefinitelyTyped — silently resolve to nothing
-  (`R-01`). And the linker's fuzzy name matcher masks a systematic wrong-file
-  FQN bug (`L-01`). The pre-S2 checker-backed audit measured 1,664 wrong-file
-  edges and 19 references selecting the wrong declaration despite the green
-  2,004/2,004 report. A resolved file list is also insufficient: renamed and
-  qualified references need resolved target identity on the IR use site
-  (`L-14`).
+- **Treat the old three.js "0 broken links" result as historical, not a
+  baseline.** S2 removed the fuzzy wrong-file/name fallback, linked checker
+  targets at each IR use site and made missing modules visible. The current
+  corpus result is 8,184 resolved edges, 0 ambiguous edges and 31 honest missing
+  edges caused by the absent `webxr` and `@webgpu/types` packages. Do not make
+  that report artificially green; install/provide those packages or retain the
+  explicit failures. Leaflet is fully linked at 1,050/1,050 edges.
 - **The type checker is available and it is cheap — use it before declaring
   something unrepresentable.** The parser is otherwise syntax-only, which makes
   it easy to conclude a construct "can't be known statically". `T-14` is the

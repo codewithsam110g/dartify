@@ -216,22 +216,24 @@ emit confidently wrong imports.*
 
 | # | Task | Findings |
 |---|---|---|
-| 2.1 | Follow `getAliasedSymbol()` in `collectTypeDep` so deps use the alias target's **declaring file and target name**. Keep the identifier-symbol preference — its alias-to-primitive reasoning is correct. Baseline: 1,664/2,542 three.js edges name the importing file; 19 checker-verified use sites resolve to the wrong declaration | `L-01` |
-| 2.2 | Route heritage clauses through `parseType` — restores inheritance edges to the graph | `P-01`, `L-04` |
-| 2.3 | Normalise dotted names (`.`→`\|`) in `resolveRealFQN`; capture or safely infer the file's `export as namespace` alias before stripping it. Leaflet baseline: 14 raw dotted misses → 44 transitively broken symbols | `L-02` |
-| 2.4 | Make ambiguity a real diagnostic; prefer the checker-derived target from 2.1; stop dependency-collection exceptions disappearing; make direct vs indirect failure states truthful | `L-03`, `L-12`, `L-15` |
+| 2.1 | ✅ Type references carry checker-backed target file **and declared target name**, following aliases without losing alias-to-primitive behaviour. Module augmentations are canonicalised to the primary declaration. Three.js: 0 ambiguous edges and 0 checker-target fallbacks | `L-01` |
+| 2.2 | ✅ Heritage clauses route through `parseType` and are stored as `IRType[]`; generic `extends`/`implements` references now reach the graph | `P-01`, `L-04`, `I-04` |
+| 2.3 | ✅ Qualified names resolve through captured `export as namespace` metadata; only a declared global alias may be stripped. Leaflet: 44 transitively broken symbols → 0 | `L-02` |
+| 2.4 | ✅ Resolution returns structured `resolved`/`missing`/`ambiguous` outcomes, direct and indirect failures are distinct, and dependency-collection failures become diagnostics instead of missing edges. `-lv` renders the structured edge/failure/strategy report; `-v` is verbose and `--version` is long-only | `L-03`, `L-12`, `L-15`, `R-08` |
 | 2.5 | ✅ Extract `resolveRealFQN` to `src/symbol/resolve.ts`; import from linker and from `tools/graph.ts` — landed in S0.4 | `L-06` |
-| 2.5b | Give graph nodes full-FQN-derived unique IDs and keep basename/scope only as labels. Current three.js graph collapses 4 real symbols into 2 nodes | `L-13` |
-| 2.6 | Persist resolved file edges onto `Symbol` (`resolvedDeps: string[]`) **and resolved target identity onto each `IRType` reference use site**. The former is the import set; the latter is required for renamed imports, qualified references and S4 renames | `L-08`, `L-14` |
-| 2.7 | Module-resolution fallback for extensionless imports; unconditional one-line unresolved-dep summary | `R-01`, `R-02` |
-| 2.8 | Single shared `isStdlib` predicate; longest-common-ancestor `inputRoot`; sorted file iteration | `R-06`, `R-03`, `R-04` |
-| 2.9 | **First tests for the linker** — FQN construction, aliased and qualified refs, renamed imports, direct/indirect misses, cycles, heritage, graph ID uniqueness | `X-06` |
+| 2.5b | ✅ Graph IDs derive from the full FQN while labels remain short; graph rendering consumes persisted report edges and no longer re-resolves raw deps | `L-13` |
+| 2.6 | ✅ Symbols persist `resolvedDeps`; every reference use site carries a structured target and receives `resolvedFQN`. Dependency collection walks completed IR, removing the global dependency bucket and its multi-declarator leak | `L-08`, `L-14`, `R-10` |
+| 2.7 | ✅ Default projects use Bundler resolution plus a unique explicit-declaration fallback; explicit tsconfig settings remain authoritative. Resolution results are returned from every public path and the CLI always prints the unresolved count | `R-01`, `R-02` |
+| 2.8 | ✅ One shared stdlib predicate, longest-common-ancestor input root, deterministic file/report ordering, incompatible-root rejection and output-collision detection | `R-03`, `R-04`, `R-06` |
+| 2.9 | ✅ Added 15 focused linker/resolution/graph/reporting tests plus an opt-in `test:s2` corpus gate for Leaflet and three.js | `X-06` |
 | 2.10 | ✅ Measure before adding cross-file alias ownership: three.js + leaflet have 64 aliases with **0 repeated source texts across files**. Keep aliases file-local; centralising them would add imports for no measured gain | `L-05` |
 
-**Done when:** leaflet reports 0 broken links · the extensionless-import fixture
+**Done:** leaflet reports 0 broken links · the extensionless-import fixture
 resolves · heritage edges appear in the graph · a renamed-import fixture links
 `Bar` to `Foo` at the IR use site · direct/indirect states tell the truth · graph
-node IDs are unique · linker unit tests exist.
+node IDs are unique · linker tests and corpus gates pass. Three.js truthfully
+reports 31 missing edges caused by absent `webxr` and `@webgpu/types` packages;
+it has 0 ambiguity and every available checker target links exactly.
 
 ---
 
@@ -242,13 +244,13 @@ node IDs are unique · linker unit tests exist.
 | # | Task | Findings |
 |---|---|---|
 | 3.1 | `IRTypeParam { name, constraint?, default? }` on Interface / Function / TypeAlias / Method / Class | `I-01`, `P-02` |
-| 3.2 | `extends`/`implements` as `IRType[]` — recovers generic args, dep edges, qualified names (builds on 2.2) | `I-04` |
+| 3.2 | ✅ Landed in S2.2: `extends`/`implements` are `IRType[]`, preserving generic args, dep edges and qualified names | `I-04` |
 | 3.3 | `callSignatures` on `IRInterface`; read them in the parser | `I-05`, `P-03` |
 | 3.4 | `jsDoc?: string` on `IRDeclaration` + members + params; capture in all parsers | `I-06`, `P-06` |
 | 3.5 | `loc?: {file,line,col}` on IR nodes — makes S2's diagnostics actionable | `I-10` |
 | 3.6 | `export` / `declare` / visibility modifiers on IR declarations | `I-09` |
 | 3.7 | Fix enum values (number vs string, flag implicit); unify the two constructor shapes; replace the JSON deep-clone (throws on bigint) | `P-04`, `I-08`, `I-11` |
-| 3.8 | Scope handling via `withScope(name, fn)` + `try/finally`, or explicit parameter passing — one parse error currently poisons every later FQN in the file | `R-09`, `R-10`, `P-08` |
+| 3.8 | Scope handling via `withScope(name, fn)` + `try/finally`, or explicit parameter passing — one parse error can poison every later FQN in the file. The dependency side channel (`R-10`) was removed in S2.6 | `R-09`, `P-08` |
 | 3.9 | Construct signatures as a first-class IR shape, not fake-named `IRMethod`s | `P-09` |
 | 3.10 | Delete `IRLiteral` + `IRType.objectLiteral` | `I-07`, `D-03` |
 
@@ -363,7 +365,7 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 |---|---|---|
 | S0 floor | ☑ **done** | suite 1654 failed → **57 passed**; `tsc` 15 errors → **0**; `dist` 1.59 MB → **75 KB**; snapshots 4.3 MB → **128 KB** |
 | S1 types | ☑ **done** | unsupported nodes 1,410 → **112**; 68 minted typedefs (**64 three.js+leaflet + 4 probe**), 0 dangling / 0 duplicate; suite 57 → **199 passed**; `dist` 75 KB → **90.6 KB**. Fixed `T-01`–`T-16` bar `T-11`, plus `P-07`, `E-16`, `E-17`. No unrepresentable use site emits bare `dynamic`. Residual: 28 nodes across `object`/`undefined` (`E-19`), and `E-14`/`E-18` which bypass `emitType` — all S5. h3 `dart analyze` clean (was already); leaflet 510, probe 19, dominated by `E-03` and `L-05`/`E-10` |
-| S2 links | ☐ implementation not started | pre-S2 audit complete; 2.5 already landed in S0, 2.10 measured and dropped |
+| S2 links | ☑ **done** | Leaflet 328/328 symbols and 1,050/1,050 edges resolved; three.js 0 ambiguity and 8,184 resolved edges, with 31 honest misses from two absent external type packages. Suite **214 passed**, focused S2 tests 15/15, corpus 2/2, `tsc` and build clean, h3 byte-identical; `-lv` exposes the structured report |
 | S3 decls | ☐ not started | |
 | S4 semantics | ☐ not started | |
 | S5 emitter | ☐ not started | |

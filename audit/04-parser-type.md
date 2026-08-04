@@ -496,8 +496,9 @@ Normalise in the parser instead.
 
 Found while fixing `T-03`/`T-04`; not present in the original audit.
 
-`parseType` had a side effect — `collectTypeDep`, which records a pseudo-FQN
-into `transpilerContext.currentDeps` — and a cache that skipped it. The
+At the time of this finding, `parseType` had a side effect — `collectTypeDep`,
+which recorded a pseudo-FQN into `transpilerContext.currentDeps` — and a cache
+that skipped it. The
 workaround at the top of `parseType` re-collected the dep for the *outermost*
 node on every hit:
 

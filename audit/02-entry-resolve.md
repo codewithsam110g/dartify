@@ -4,7 +4,12 @@ Covers `src/cli.ts`, `src/transpiler.ts`, `src/context.ts`.
 
 ---
 
-## R-01 — Extensionless relative imports silently fail to resolve `[verified]`
+## R-01 — Extensionless relative imports silently fail to resolve `[verified]` **[FIXED — S2]**
+
+Default projects now use Bundler resolution and a declaration-aware host that
+falls back only when an extensionless relative specifier has one unique
+explicit declaration input. Explicit tsconfig module settings remain
+authoritative. The focused fixture and Leaflet corpus gate pass.
 
 **`src/transpiler.ts:103-113`** — the default (no-tsconfig) project is built with:
 
@@ -59,7 +64,11 @@ runtime project config and the repo's own config disagree.
 
 ---
 
-## R-02 — Unresolved dependencies are reported only under `--enable-logs` `[inspection]`
+## R-02 — Unresolved dependencies are reported only under `--enable-logs` `[inspection]` **[FIXED — S2]**
+
+Resolution is computed on every run, returned in the public analysis/render/
+transpile reports, and summarised unconditionally by the CLI. Verbose mode only
+controls the detailed issue list.
 
 **`src/transpiler.ts:142-145`, `402-480`** — `detectUnresolvedDeps()` is gated
 behind `if (this.debug)`. A default run that resolves nothing looks identical to
@@ -75,7 +84,10 @@ under a `--strict` flag.
 
 ---
 
-## R-03 — `inputRoot` is derived from the first input file only `[inspection]`
+## R-03 — `inputRoot` is derived from the first input file only `[inspection]` **[FIXED — S2]**
+
+The input root is now the longest common ancestor; incompatible filesystem
+roots fail explicitly, and output collisions are rejected before writing.
 
 **`src/transpiler.ts:194-196`**
 
@@ -96,7 +108,10 @@ write wins.
 
 ---
 
-## R-04 — `Map` iteration order is the emission order `[inspection]`
+## R-04 — `Map` iteration order is the emission order `[inspection]` **[FIXED — S2]**
+
+Program files, reports and emission file groups are sorted. Declaration order
+inside each source file remains source order to preserve stable output.
 
 **`src/transpiler.ts:148-153`** — input files then package deps, each in `Map`
 insertion order, which derives from `getProgram().getSourceFiles()` order.
@@ -120,7 +135,10 @@ Low priority; noted because it dominates the fixed cost on small inputs
 
 ---
 
-## R-06 — `isStdlib` is a hardcoded substring list `[inspection]`
+## R-06 — `isStdlib` is a hardcoded substring list `[inspection]` **[FIXED — S2]**
+
+`src/resolution/stdlib.ts` is now the single predicate used by orchestration and
+reference collection.
 
 **`src/transpiler.ts:351-355`**
 
@@ -146,7 +164,12 @@ reported `v0.3` while the package was `0.5.0`.
 
 ---
 
-## R-08 — `TranspilerOptions.debug` conflates two concerns `[inspection]`
+## R-08 — `TranspilerOptions.debug` conflates two concerns `[inspection]` **[PARTIALLY FIXED — S2 CLI]**
+
+The CLI now separates ordinary phase/module logs (`-l`) from the structured,
+per-edge linker report (`-v`, conventionally combined as `-lv`). `-v` implies
+log mode and is no longer the version alias; version is long-only. The public
+README no longer claims that `-l` writes an IR dump.
 
 `debug` drives: verbose console logging, resolution summary, unresolved-dep
 detection, and per-symbol emission logging. `--enable-logs` is documented in the
@@ -154,8 +177,8 @@ README as enabling "IR dump" (a v0.5 feature) — that IR-dump path went through
 `src/log.ts`, which is now unreferenced (`D-05`). So `-l` no longer does what
 the README says it does.
 
-**Fix direction:** separate `--verbose` (console) from `--emit-ir` (IR dump to
-disk) and reconnect the latter to `log.ts`, or drop the README claim.
+What remains is the separate `--emit-ir` decision: reconnect the dead logger to
+the three-phase pipeline or delete it. That is `D-05`, not linker-report work.
 
 ---
 
@@ -163,8 +186,8 @@ disk) and reconnect the latter to `log.ts`, or drop the README claim.
 
 ## R-09 — Parser state is threaded through a mutable global `[inspection]`
 
-`transpilerContext.currentFQN` and `.currentDeps` are set/restored by every
-parser via manual save/restore pairs:
+`transpilerContext.currentFQN` is set/restored by parsers via manual
+save/restore pairs:
 
 ```ts
 const prevFQN = transpilerContext.currentFQN;
@@ -189,7 +212,11 @@ therefore the hoisted anonymous class names — of everything after it.
 **Fix direction:** a `withScope(name, fn)` helper using `try/finally`, or pass
 scope explicitly as a parameter instead of via the singleton.
 
-## R-10 — `currentDeps` is cleared per declaration, not per variable `[inspection]`
+## R-10 — `currentDeps` is cleared per declaration, not per variable `[inspection]` **[FIXED — S2]**
+
+The dependency bucket and its parser side effects were removed. Each completed
+declaration IR is walked independently, so multi-declarator variables receive
+only their own structured reference dependencies.
 
 **`symbolGeneration.ts:202-220`** — `clearDeps()` is called once for a whole
 `VariableStatement`, then every declaration in it is registered with
@@ -201,8 +228,8 @@ imports once `E-08` (import emission) lands.
 
 ## R-11 — The singleton was never reset between runs `[verified]` **[FIXED — S0.3]**
 
-`resetTranspilerState()` now clears the symbol table, current FQN and dependency
-bucket at the start of both `analyze()` and `transpileFromString()`. The sanity
+`resetTranspilerState()` now clears the symbol table, current FQN and namespace
+metadata at the start of both `analyze()` and `transpileFromString()`. The sanity
 suite verifies that two string transpilations in one process do not leak
 symbols into each other. The logging flag deliberately survives reset and is
 owned by the entry point.

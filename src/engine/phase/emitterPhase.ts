@@ -61,6 +61,14 @@ export function renderAllFiles(
     const rendered = new Map<string, RenderedFile>();
     for (const [sourceFile, symbols] of fileGroups) {
         const outputPath = deriveOutputPath(sourceFile, inputRoot, outDir);
+        const collision = rendered.get(outputPath);
+        if (collision) {
+            throw new TranspileException(
+                `Output path collision: ${collision.sourceFile} and ${sourceFile} both map to ${outputPath}`,
+                "OUTPUT_PATH_COLLISION",
+                sourceFile,
+            );
+        }
         rendered.set(outputPath, {
             sourceFile,
             outputPath,
@@ -121,6 +129,9 @@ function groupSymbolsByFile(
 ): Map<string, Symbol[]> {
     const groups = new Map<string, Symbol[]>();
 
+    // Symbol registration already follows sorted file order while preserving
+    // declaration order inside each source file. Do not sort by FQN here:
+    // source order is part of stable generated output (notably the h3 golden).
     for (const [, symbols] of table) {
         for (const symbol of symbols) {
             const sourceFile = extractSourceFile(symbol.fqn);
@@ -130,7 +141,7 @@ function groupSymbolsByFile(
         }
     }
 
-    return groups;
+    return new Map([...groups.entries()].sort(([a], [b]) => a.localeCompare(b)));
 }
 
 /**

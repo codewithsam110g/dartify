@@ -11,6 +11,7 @@ import fg from "fast-glob";
 import { promises as fsPromises, constants as fsConstants } from "fs";
 import path from "path";
 import { Transpiler, TranspilerOptions } from "./transpiler";
+import { formatVerboseLinkReport } from "./reporting/linker";
 import pkg from "../package.json";
 
 interface CliOptions {
@@ -18,6 +19,7 @@ interface CliOptions {
   output?: string;
   tsconfig?: string;
   enableLogs: boolean;
+  verbose: boolean;
   dryRun: boolean;
 }
 
@@ -38,7 +40,13 @@ const argv = yargs(hideBin(process.argv))
   .option("enable-logs", {
     alias: "l",
     type: "boolean",
-    describe: "Enable verbose logging",
+    describe: "Enable phase and module-resolution logging",
+    default: false,
+  })
+  .option("verbose", {
+    alias: "v",
+    type: "boolean",
+    describe: "Show detailed structured linker diagnostics (implies -l)",
     default: false,
   })
   .option("dry-run", {
@@ -57,17 +65,17 @@ const argv = yargs(hideBin(process.argv))
     "Multiple patterns with custom output",
   )
   .example(
-    'dart_bindgen --def-files "types/**/*.d.ts" --enable-logs',
-    "Enable Logging and Writing IR files to Disk",
+    'dart_bindgen --def-files "types/**/*.d.ts" -lv',
+    "Enable logs and print the detailed linker report",
   )
   .help()
   .alias("help", "h")
   .version(pkg.version)
-  .alias("version", "v")
   .parseSync() as CliOptions;
 
 async function main(options: CliOptions): Promise<void> {
   const startTime = Date.now();
+  const logsEnabled = options.enableLogs || options.verbose;
 
   try {
     // Separate explicit paths from glob patterns
@@ -97,7 +105,7 @@ async function main(options: CliOptions): Promise<void> {
 
     const dtsFiles = files.filter((file) => file.endsWith(".d.ts"));
 
-    if (options.enableLogs) {
+    if (logsEnabled) {
       console.log(`Patterns: ${options.defFiles.join(", ")}`);
       console.log(`Found ${dtsFiles.length} .d.ts files`);
     }
@@ -113,7 +121,7 @@ async function main(options: CliOptions): Promise<void> {
           await fsPromises.access(file, fsConstants.R_OK);
           return file;
         } catch {
-          if (options.enableLogs) console.warn(`Cannot read: ${file}`);
+          if (logsEnabled) console.warn(`Cannot read: ${file}`);
           return null;
         }
       }),
@@ -121,7 +129,7 @@ async function main(options: CliOptions): Promise<void> {
 
     const readableFiles = validFiles.filter((f): f is string => Boolean(f));
 
-    if (options.enableLogs || options.dryRun) {
+    if (logsEnabled || options.dryRun) {
       console.log("\nFiles to process:");
       readableFiles.forEach((file, i) => {
         const relative = path.relative(process.cwd(), file);
@@ -156,13 +164,24 @@ async function processFiles(
   let transpilerOptions: TranspilerOptions = {
     files: files,
     outDir: options.output,
-    debug: options.enableLogs,
+    debug: options.enableLogs || options.verbose,
     tsConfigFilePath: options.tsconfig
       ? path.resolve(process.cwd(), options.tsconfig)
       : undefined,
   };
   let transpiler: Transpiler = new Transpiler(transpilerOptions);
-  await transpiler.transpile();
+  const report = await transpiler.transpile();
+  if (options.verbose) {
+    console.log(formatVerboseLinkReport(report.analysis.link));
+  }
+  const unresolved = report.analysis.resolution.unresolved.length;
+  if (unresolved === 0) {
+    console.log("Module resolution: 0 unresolved references");
+  } else {
+    console.warn(
+      `⚠️  Module resolution: ${unresolved} unresolved reference(s); rerun with -l for resolution details or -lv for the full linker report`,
+    );
+  }
 }
 
 main(argv);

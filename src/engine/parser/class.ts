@@ -14,8 +14,11 @@ import { transpilerContext } from "@/context";
 
 export function parseClass(classDecl: ts.ClassDeclaration): IRClass {
   let name = classDecl.getName() || "";
-  let extenders = classDecl.getExtends()?.getText();
-  let implementers = classDecl.getImplements().map((impl) => impl.getText());
+  const extendsNode = classDecl.getExtends();
+  const extenders = extendsNode ? parseType(extendsNode) : undefined;
+  const implementers = classDecl.getImplements().map((heritage) =>
+    parseType(heritage),
+  );
   let isAbstract = classDecl.isAbstract();
   let typeParams = classDecl.getTypeParameters().map((tp) => tp.getName());
 

@@ -1,5 +1,23 @@
 import { IRLiteral } from "./literal";
 
+export type IRReferenceLookup =
+  | { kind: "checker"; candidates: string[] }
+  | {
+      kind: "syntax";
+      pseudoFQN: string;
+      checkerError?: string;
+    };
+
+/** Linkable identity carried by a specific reference use site. */
+export interface IRReferenceTarget {
+  /** Name exactly as written in TypeScript, including aliases/qualification. */
+  writtenName: string;
+  /** Exact checker candidates, or a syntax fallback when no target is known. */
+  lookup: IRReferenceLookup;
+  /** Written by the linker after the target is proven to exist. */
+  resolvedFQN?: string;
+}
+
 /**
  * IR structure for TypeScript .d.ts types to generate Dart bindings
  */
@@ -69,6 +87,9 @@ export interface IRType {
    * refer to itself.
    */
   aliasName?: string;
+
+  /** Present on non-stdlib, non-type-parameter reference use sites. */
+  reference?: IRReferenceTarget;
 }
 
 /**

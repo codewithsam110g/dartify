@@ -15,6 +15,10 @@ import { handleThisType } from "./thisType";
 import { handleTypeOperator, handleTypePredicate } from "./typeOperator";
 import { handleTypeQuery } from "./typeQuery";
 
+export type ParseableTypeNode =
+  | ts.TypeNode
+  | ts.ExpressionWithTypeArguments;
+
 /**
  * Parses `ts.TypeNode`s into `IRType`.
  *
@@ -50,7 +54,7 @@ export class TypeParser {
   }
 
   public parseType(
-    typeNode: ts.TypeNode | undefined,
+    typeNode: ParseableTypeNode | undefined,
     depth: number = 0,
   ): IRType {
     if (typeNode == undefined) {
@@ -181,6 +185,13 @@ export class TypeParser {
         result = handleTypeReferences(typeNode as ts.TypeReferenceNode, depth);
         break;
 
+      case ts.SyntaxKind.ExpressionWithTypeArguments:
+        result = handleTypeReferences(
+          typeNode as ts.ExpressionWithTypeArguments,
+          depth,
+        );
+        break;
+
       // FunctionType: what do you want me to say, they are funcs god dammit
       case ts.SyntaxKind.FunctionType:
         result = handleFunctionTypes(typeNode as ts.FunctionTypeNode, depth);
@@ -220,7 +231,7 @@ export class TypeParser {
       // making a genuine `any` in the source indistinguishable from a
       // construct dartify simply could not handle (`T-01`).
       default:
-        result = makeUnsupported(typeNode);
+        result = makeUnsupported(typeNode as ts.TypeNode);
         break;
     }
 
@@ -239,7 +250,7 @@ const globalTypeParser = TypeParser.getInstance();
 
 // Export a convenience function that maintains backward compatibility
 export function parseType(
-  typeNode: ts.TypeNode | undefined,
+  typeNode: ParseableTypeNode | undefined,
   depth: number = 0,
 ): IRType {
   return globalTypeParser.parseType(typeNode, depth);

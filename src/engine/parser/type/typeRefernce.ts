@@ -1,7 +1,53 @@
 import * as ts from "ts-morph";
-import { IRType, TypeKind } from "@ir/type";
+import { IRReferenceTarget, IRType, TypeKind } from "@ir/type";
 import { parseType } from "./type";
-import { transpilerContext } from "@/context";
+import { declarationFQN } from "@/symbol/fqn";
+import { isStdlibFile } from "@/resolution/stdlib";
+
+export type ReferenceLikeNode =
+  | ts.TypeReferenceNode
+  | ts.ExpressionWithTypeArguments;
+
+function referenceNameNode(node: ReferenceLikeNode): ts.Node {
+  return ts.Node.isTypeReference(node)
+    ? node.getTypeName()
+    : node.getExpression();
+}
+
+function syntaxReference(node: ReferenceLikeNode, error?: unknown): IRReferenceTarget {
+  const writtenName = referenceNameNode(node).getText();
+  const checkerError =
+    error === undefined
+      ? undefined
+      : error instanceof Error
+        ? error.message
+        : String(error);
+  return {
+    writtenName,
+    lookup: {
+      kind: "syntax",
+      pseudoFQN: `${node.getSourceFile().getFilePath()}::${writtenName}`,
+      ...(checkerError ? { checkerError } : {}),
+    },
+  };
+}
+
+function isExternalModuleAugmentation(declaration: ts.Node): boolean {
+  if (!ts.ts.isExternalModule(declaration.getSourceFile().compilerNode)) {
+    return false;
+  }
+  let parent = declaration.getParent();
+  while (parent) {
+    if (
+      ts.Node.isModuleDeclaration(parent) &&
+      ts.Node.isStringLiteral(parent.getNameNode())
+    ) {
+      return true;
+    }
+    parent = parent.getParent();
+  }
+  return false;
+}
 
 /**
  * Resolves a TypeReferenceNode to its source file path using the identifier's symbol,
@@ -11,62 +57,69 @@ import { transpilerContext } from "@/context";
  * (node.getType().getSymbol()) because simple type aliases like `type H3Index = string`
  * resolve through to the primitive, losing the alias source file information.
  */
-export function collectTypeDep(node: ts.TypeReferenceNode): void {
+export function collectTypeDep(
+  node: ReferenceLikeNode,
+): IRReferenceTarget | undefined {
   try {
     if (node.getType().isTypeParameter()) return;
-    const typeName = node.getTypeName();
-    const name = typeName.getText();
+    const nameNode = referenceNameNode(node);
+    const writtenName = nameNode.getText();
 
-    // First try: get the symbol from the name identifier directly.
-    // This correctly handles type aliases that resolve to primitives.
-    let sourceFilePath: string | undefined;
+    let symbol = nameNode.getSymbol();
+    if (symbol?.isAlias()) symbol = symbol.getAliasedSymbol();
 
-    const identSymbol = typeName.getSymbol();
-    if (identSymbol) {
-      const declarations = identSymbol.getDeclarations();
-      if (declarations && declarations.length > 0) {
-        sourceFilePath = declarations[0].getSourceFile().getFilePath() as string;
-      }
-    }
-
-    // Fallback: use the resolved type's symbol (handles complex generics, etc.)
-    if (!sourceFilePath) {
+    if (!symbol) {
       const type = node.getType();
-      const typeSymbol = type.getSymbol() ?? type.getAliasSymbol();
-      if (typeSymbol) {
-        const declarations = typeSymbol.getDeclarations();
-        if (declarations && declarations.length > 0) {
-          sourceFilePath = declarations[0].getSourceFile().getFilePath() as string;
-        }
-      }
+      symbol = type.getAliasSymbol() ?? type.getSymbol();
+      if (symbol?.isAlias()) symbol = symbol.getAliasedSymbol();
     }
 
-    if (!sourceFilePath) return;
+    if (!symbol) return syntaxReference(node);
 
-    // Skip stdlib / TS lib files — we never emit these
+    const declarations = symbol.getDeclarations();
     if (
-      sourceFilePath.includes("typescript/lib/lib.") ||
-      sourceFilePath.includes("@types/node/") ||
-      sourceFilePath.includes("undici-types/")
+      declarations.length > 0 &&
+      declarations.every((declaration) =>
+        isStdlibFile(declaration.getSourceFile().getFilePath()),
+      )
     ) {
-      return;
+      return undefined;
     }
 
-    const pseudoFqn = `${sourceFilePath}::${name}`;
-    transpilerContext.currentDeps.add(pseudoFqn);
-  } catch {
-    // If type resolution fails, silently skip — the dep just won't be tracked
+    const nonStdlibDeclarations = declarations.filter(
+      (declaration) =>
+        !isStdlibFile(declaration.getSourceFile().getFilePath()),
+    );
+    const primaryDeclarations = nonStdlibDeclarations.filter(
+      (declaration) => !isExternalModuleAugmentation(declaration),
+    );
+    const targetDeclarations =
+      primaryDeclarations.length > 0
+        ? primaryDeclarations
+        : nonStdlibDeclarations;
+
+    const candidates = [
+      ...new Set(
+        targetDeclarations
+          .map((declaration) => declarationFQN(declaration, symbol!.getName()))
+          .filter((fqn): fqn is string => fqn !== null),
+      ),
+    ].sort();
+
+    return candidates.length > 0
+      ? { writtenName, lookup: { kind: "checker", candidates } }
+      : syntaxReference(node);
+  } catch (error) {
+    return syntaxReference(node, error);
   }
 }
 
 export function handleTypeReferences(
-  node: ts.TypeReferenceNode,
+  node: ReferenceLikeNode,
   depth: number,
 ): IRType {
-  const name = node.getTypeName().getText();
-
-  // Collect dependency info before proceeding with IR generation
-  collectTypeDep(node);
+  const name = referenceNameNode(node).getText();
+  const reference = collectTypeDep(node);
 
   const typeArgs = node.getTypeArguments();
   let genericArgs: IRType[] = [];
@@ -79,6 +132,6 @@ export function handleTypeReferences(
     name: name,
     isNullable: false,
     genericArgs: genericArgs,
+    ...(reference ? { reference } : {}),
   };
 }
-

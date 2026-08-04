@@ -151,7 +151,9 @@ describe("alias registration", () => {
 
     const report = await transpiler.analyze();
 
-    expect(report.aliasesMinted).toBeGreaterThan(0);
-    expect(report.aliasUseSites).toBeGreaterThanOrEqual(report.aliasesMinted);
+    expect(report.link.aliasesMinted).toBeGreaterThan(0);
+    expect(report.link.aliasUseSites).toBeGreaterThanOrEqual(
+      report.link.aliasesMinted,
+    );
   });
 });

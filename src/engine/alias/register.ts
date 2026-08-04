@@ -3,6 +3,7 @@ import { IRDeclKind } from "@ir/declaration";
 import { IRTypeAlias } from "@ir/typealias";
 import { IRType, TypeKind } from "@ir/type";
 import { AliasRegistry, MintedAlias } from "./registry";
+import { forEachIRType } from "@ir/visit";
 
 /**
  * Turns every unrepresentable type in the symbol table into a real declared
@@ -60,20 +61,6 @@ function declaredNameOf(fqn: string): string {
  * JSON-cloneable (`deepCloneIRDeclaration`), so it is acyclic and this
  * terminates.
  */
-function forEachUnsupported(node: unknown, visit: (type: IRType) => void): void {
-  if (!node || typeof node !== "object") return;
-
-  if (Array.isArray(node)) {
-    for (const item of node) forEachUnsupported(item, visit);
-    return;
-  }
-
-  const record = node as Record<string, unknown>;
-  if (record.kind === TypeKind.Unsupported) visit(record as unknown as IRType);
-
-  for (const value of Object.values(record)) forEachUnsupported(value, visit);
-}
-
 export function registerAliasSymbols(
   table: Map<string, Symbol[]>,
 ): AliasRegistration {
@@ -112,7 +99,8 @@ export function registerAliasSymbols(
           ? (symbol.ir as IRTypeAlias).type
           : undefined;
 
-      forEachUnsupported(symbol.ir, (type) => {
+      forEachIRType(symbol.ir, (type) => {
+        if (type.kind !== TypeKind.Unsupported) return;
         if (type === authorNamed) return;
 
         const alias = registry.mint(
@@ -153,6 +141,7 @@ export function registerAliasSymbols(
         // `dynamic` depends on nothing. Registering it with an empty dep list
         // keeps it `LinkedIndependent` rather than absent from the graph.
         deps: [],
+        resolvedDeps: [],
         minted: true,
       };
 

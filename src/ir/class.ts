@@ -6,12 +6,13 @@ import {
   IRGetAccessor,
   IRSetAccessor,
 } from "./interface";
+import { IRType } from "./type";
 
 export interface IRClass extends IRDeclaration{
   kind: IRDeclKind.Class;
   name: string;
-  extends?: string;
-  implements: string[];
+  extends?: IRType;
+  implements: IRType[];
   isAbstract: boolean;
   typeParams: string[];
 

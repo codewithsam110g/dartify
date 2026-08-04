@@ -16,7 +16,9 @@ export function parseInterface(
   interfaceDecl: ts.InterfaceDeclaration,
 ): IRInterface {
   let name = interfaceDecl.getName();
-  let extenders = interfaceDecl.getExtends().map((e) => e.getText());
+  const extenders = interfaceDecl.getExtends().map((heritage) =>
+    parseType(heritage),
+  );
 
   // Properties
   let properties: IRProperties[] = [];

@@ -5,7 +5,7 @@
  */
 
 import * as ts from "ts-morph";
-import { resolve, dirname } from "path";
+import { resolve, dirname, join, parse as parsePath } from "path";
 import { generateSymbols } from "./engine/phase/symbolGeneration";
 import { runLinker, LinkReport } from "./engine/phase/linkerPhase";
 import {
@@ -15,6 +15,16 @@ import {
 } from "./engine/phase/emitterPhase";
 import { transpilerContext } from "./context";
 import { resetTranspilerState } from "./reset";
+import { isStdlibFile } from "./resolution/stdlib";
+import {
+  ModuleFallbackResolution,
+  ModuleResolutionIssue,
+  ResolutionReport,
+} from "./resolution/types";
+import {
+  createDeclarationResolutionHost,
+  ModuleFallbackAmbiguity,
+} from "./resolution/moduleHost";
 
 export class TranspileException extends Error {
   public readonly code: string;
@@ -76,6 +86,20 @@ export interface TranspileFromStringResult {
   errors: TranspileException[];
 }
 
+export interface AnalysisReport {
+  resolution: ResolutionReport;
+  link: LinkReport;
+}
+
+export interface RenderReport {
+  analysis: AnalysisReport;
+  files: Map<string, RenderedFile>;
+}
+
+export interface TranspileReport extends RenderReport {
+  writtenFiles: string[];
+}
+
 export class Transpiler {
   private readonly files: string[];
   private readonly outDir: string | undefined;
@@ -86,9 +110,11 @@ export class Transpiler {
   private inputFiles = new Map<string, ts.SourceFile>();
   private packageDepFiles = new Map<string, ts.SourceFile>();
   private stdlibFiles = new Map<string, ts.SourceFile>();
+  private moduleFallbacks: ModuleFallbackResolution[] = [];
+  private moduleFallbackAmbiguities: ModuleFallbackAmbiguity[] = [];
 
   constructor(options: TranspilerOptions) {
-    this.files = options.files;
+    this.files = [...new Set(options.files)].sort();
     this.outDir = options.outDir;
     this.debug = options.debug ?? false;
 
@@ -105,11 +131,19 @@ export class Transpiler {
         compilerOptions: {
           target: ts.ts.ScriptTarget.ES2020,
           module: ts.ts.ModuleKind.ESNext,
-          moduleResolution: ts.ts.ModuleResolutionKind.NodeNext,
+          moduleResolution: ts.ts.ModuleResolutionKind.Bundler,
           types: [],
           skipLibCheck: true,
           noEmit: true,
         },
+        resolutionHost: createDeclarationResolutionHost(
+          options.files.map((file) => Transpiler.toForwardSlash(resolve(file))),
+          {
+            resolved: (fallback) => this.moduleFallbacks.push(fallback),
+            ambiguous: (ambiguity) =>
+              this.moduleFallbackAmbiguities.push(ambiguity),
+          },
+        ),
       });
     }
 
@@ -125,23 +159,27 @@ export class Transpiler {
 
   /**
    * Phases 1 and 2 only: resolve inputs, build the symbol table, run the
-   * linker. Returns the linker's report without emitting anything.
+   * linker. Returns explicit resolution and link phase reports without
+   * emitting anything.
    *
    * This is the seam consumers other than the emitter hang off — `tools/graph.ts`
    * uses it to render the dependency graph without producing Dart (`L-07`).
    */
-  public async analyze(): Promise<LinkReport> {
+  public async analyze(): Promise<AnalysisReport> {
     return this.guard(async () => {
       // The context is a singleton; clear it so repeated runs in one process
       // stay independent (`R-11`).
       resetTranspilerState();
+      this.moduleFallbacks = [];
+      this.moduleFallbackAmbiguities = [];
 
       await this.validateFiles();
       this.resolveAndCategorize();
+      const resolution = this.buildResolutionReport();
 
       if (this.debug) {
         this.printResolutionSummary();
-        this.detectUnresolvedDeps();
+        this.printResolutionDetails(resolution);
       }
 
       // Phase 1: Symbol generation
@@ -153,31 +191,38 @@ export class Transpiler {
       }
 
       // Phase 2: Linker — dependency graph, (future) overloads + augmentation
-      return await runLinker(this.debug);
+      const link = await runLinker(this.debug);
+      return { resolution, link };
     });
   }
 
   /**
-   * Phases 1-3, stopping short of the filesystem. Returns the rendered Dart
-   * source keyed by the path it would be written to (`E-11`).
+   * Phases 1-3, stopping short of the filesystem. Returns the analysis report
+   * and rendered Dart source keyed by the path it would be written to (`E-11`).
    */
-  public async render(): Promise<Map<string, RenderedFile>> {
-    await this.analyze();
-    return renderAllFiles(this.resolvedOutDir(), this.resolvedInputRoot(), this.debug);
+  public async render(): Promise<RenderReport> {
+    const analysis = await this.analyze();
+    const files = renderAllFiles(
+      this.resolvedOutDir(),
+      this.resolvedInputRoot(),
+      this.debug,
+    );
+    return { analysis, files };
   }
 
   /**
    * The full pipeline: render, then write to disk.
    */
-  public async transpile(): Promise<void> {
+  public async transpile(): Promise<TranspileReport> {
     const rendered = await this.render();
-    await this.guard(() => writeAllFiles(rendered, this.debug));
+    await this.guard(() => writeAllFiles(rendered.files, this.debug));
 
     if (this.debug) {
       console.log(
-        `\n✅ Emitted ${rendered.size} Dart file(s) to ${this.resolvedOutDir()}`,
+        `\n✅ Emitted ${rendered.files.size} Dart file(s) to ${this.resolvedOutDir()}`,
       );
     }
+    return { ...rendered, writtenFiles: [...rendered.files.keys()].sort() };
   }
 
   private resolvedOutDir(): string {
@@ -192,8 +237,33 @@ export class Transpiler {
    * ancestor computation in S2.
    */
   private resolvedInputRoot(): string {
-    const firstInputFile = this.inputFiles.keys().next().value;
-    return firstInputFile ? dirname(firstInputFile) : ".";
+    const directories = [...this.inputFiles.keys()].map((file) =>
+      resolve(dirname(file)),
+    );
+    if (directories.length === 0) return ".";
+
+    const roots = new Set(directories.map((directory) => parsePath(directory).root));
+    if (roots.size !== 1) {
+      throw new TranspileException(
+        "Input files do not share a filesystem root",
+        "NO_COMMON_INPUT_ROOT",
+      );
+    }
+
+    const root = [...roots][0];
+    const parts = directories.map((directory) =>
+      directory
+        .substring(root.length)
+        .split(/[\\/]/)
+        .filter(Boolean),
+    );
+    const common: string[] = [];
+    for (let index = 0; index < Math.min(...parts.map((value) => value.length)); index++) {
+      const segment = parts[0][index];
+      if (parts.every((value) => value[index] === segment)) common.push(segment);
+      else break;
+    }
+    return join(root, ...common);
   }
 
   /**
@@ -311,9 +381,13 @@ export class Transpiler {
     // @types/ packages resolved via /// <reference types> and import statements.
     const allProgramFiles = this.project
       .getProgram()
-      .compilerObject.getSourceFiles();
+      .compilerObject.getSourceFiles()
+      .slice()
+      .sort((a, b) => a.fileName.localeCompare(b.fileName));
     const inputSet = new Set(
-      this.files.map((f) => Transpiler.toForwardSlash(resolve(f))),
+      addedSourceFiles.map((sourceFile) =>
+        Transpiler.toForwardSlash(sourceFile.getFilePath()),
+      ),
     );
 
     // Reset maps
@@ -326,12 +400,13 @@ export class Transpiler {
         this.project.addSourceFileAtPathIfExists(sf.fileName) ??
         this.project.addSourceFileAtPath(sf.fileName);
 
-      if (inputSet.has(sf.fileName)) {
-        this.inputFiles.set(sf.fileName, morphSf);
-      } else if (Transpiler.isStdlib(sf.fileName)) {
-        this.stdlibFiles.set(sf.fileName, morphSf);
+      const fileName = Transpiler.toForwardSlash(sf.fileName);
+      if (inputSet.has(fileName)) {
+        this.inputFiles.set(fileName, morphSf);
+      } else if (isStdlibFile(fileName)) {
+        this.stdlibFiles.set(fileName, morphSf);
       } else {
-        this.packageDepFiles.set(sf.fileName, morphSf);
+        this.packageDepFiles.set(fileName, morphSf);
       }
     }
   }
@@ -343,16 +418,6 @@ export class Transpiler {
    */
   private static toForwardSlash(p: string): string {
     return p.split("\\").join("/");
-  }
-
-  /**
-   * Classify a file path as stdlib (Node builtins, TS libs, undici internals).
-   */
-  private static isStdlib(filePath: string): boolean {
-    if (filePath.includes("@types/node/")) return true;
-    if (filePath.includes("undici-types/")) return true;
-    if (/typescript\/lib\/lib\..*\.d\.ts$/.test(filePath)) return true;
-    return false;
   }
 
   /**
@@ -396,24 +461,27 @@ export class Transpiler {
     console.log(`\nDelta: ${delta} additional files resolved via dependencies`);
   }
 
-  /**
-   * Scan input source files for unresolved references and report them.
-   */
-  private detectUnresolvedDeps(): void {
+  /** Scan all source files for unresolved references. */
+  private detectUnresolvedDeps(): ModuleResolutionIssue[] {
     const allResolvedPaths = new Set([
       ...this.inputFiles.keys(),
       ...this.packageDepFiles.keys(),
       ...this.stdlibFiles.keys(),
     ]);
 
-    const unresolvedRefs: { file: string; ref: string; kind: string }[] = [];
+    const unresolvedRefs: ModuleResolutionIssue[] = [];
+    const ambiguities = new Map(
+      this.moduleFallbackAmbiguities.map((item) => [
+        `${item.file}\u0000${item.specifier}`,
+        item.candidates,
+      ]),
+    );
 
     for (const sf of this.project.getSourceFiles()) {
       for (const ref of sf.getPathReferenceDirectives()) {
         const refText = ref.getFileName();
-        const resolvedPath = resolve(
-          dirname(String(sf.getFilePath())),
-          refText,
+        const resolvedPath = Transpiler.toForwardSlash(
+          resolve(dirname(String(sf.getFilePath())), refText),
         );
         if (
           !allResolvedPaths.has(resolvedPath) &&
@@ -421,8 +489,9 @@ export class Transpiler {
         ) {
           unresolvedRefs.push({
             file: sf.getFilePath(),
-            ref: refText,
+            specifier: refText,
             kind: "path",
+            reason: "notFound",
           });
         }
       }
@@ -437,8 +506,9 @@ export class Transpiler {
         if (!isResolved) {
           unresolvedRefs.push({
             file: sf.getFilePath(),
-            ref: refText,
+            specifier: refText,
             kind: "types",
+            reason: "notFound",
           });
         }
       }
@@ -446,10 +516,14 @@ export class Transpiler {
       for (const importDecl of sf.getImportDeclarations()) {
         const moduleSpecifier = importDecl.getModuleSpecifierValue();
         if (!importDecl.getModuleSpecifierSourceFile()) {
+          const file = Transpiler.toForwardSlash(sf.getFilePath());
+          const candidates = ambiguities.get(`${file}\u0000${moduleSpecifier}`);
           unresolvedRefs.push({
-            file: sf.getFilePath(),
-            ref: moduleSpecifier,
+            file,
+            specifier: moduleSpecifier,
             kind: "import",
+            reason: candidates ? "ambiguousExplicitInput" : "notFound",
+            candidates,
           });
         }
       }
@@ -457,21 +531,66 @@ export class Transpiler {
       for (const exportDecl of sf.getExportDeclarations()) {
         const moduleSpecifier = exportDecl.getModuleSpecifierValue();
         if (moduleSpecifier && !exportDecl.getModuleSpecifierSourceFile()) {
+          const file = Transpiler.toForwardSlash(sf.getFilePath());
+          const candidates = ambiguities.get(`${file}\u0000${moduleSpecifier}`);
           unresolvedRefs.push({
-            file: sf.getFilePath(),
-            ref: moduleSpecifier,
+            file,
+            specifier: moduleSpecifier,
             kind: "export",
+            reason: candidates ? "ambiguousExplicitInput" : "notFound",
+            candidates,
           });
         }
       }
     }
 
-    if (unresolvedRefs.length > 0) {
-      console.log(`\n⚠️  Unresolved Dependencies (${unresolvedRefs.length}):`);
+    return unresolvedRefs.sort((a, b) =>
+      `${a.file}\u0000${a.kind}\u0000${a.specifier}`.localeCompare(
+        `${b.file}\u0000${b.kind}\u0000${b.specifier}`,
+      ),
+    );
+  }
+
+  private buildResolutionReport(): ResolutionReport {
+    const fallbacks = [
+      ...new Map(
+        this.moduleFallbacks.map((fallback) => [
+          `${fallback.file}\u0000${fallback.specifier}\u0000${fallback.resolvedFile}`,
+          fallback,
+        ]),
+      ).values(),
+    ].sort((a, b) =>
+      `${a.file}\u0000${a.specifier}`.localeCompare(
+        `${b.file}\u0000${b.specifier}`,
+      ),
+    );
+
+    return {
+      inputFiles: [...this.inputFiles.keys()].sort(),
+      packageDependencies: [...this.packageDepFiles.keys()].sort(),
+      stdlibFiles: [...this.stdlibFiles.keys()].sort(),
+      unresolved: this.detectUnresolvedDeps(),
+      fallbacks,
+    };
+  }
+
+  private printResolutionDetails(report: ResolutionReport): void {
+    if (report.fallbacks.length > 0) {
+      console.log(`\n🔁 Module fallbacks (${report.fallbacks.length}):`);
+      for (const fallback of report.fallbacks) {
+        console.log(
+          `  [${fallback.strategy}] ${fallback.specifier} → ${fallback.resolvedFile}`,
+        );
+      }
+    }
+
+    if (report.unresolved.length > 0) {
+      console.log(`\n⚠️  Unresolved Dependencies (${report.unresolved.length}):`);
       console.log(`----------------------------------------`);
-      for (const { file, ref, kind } of unresolvedRefs) {
-        console.log(`  [${kind}] ${ref}`);
+      for (const { file, specifier, kind, candidates } of report.unresolved) {
+        console.log(`  [${kind}] ${specifier}`);
         console.log(`    ↳ from: ${file}`);
+        if (candidates) console.log(`    ↳ candidates: ${candidates.join(", ")}`);
       }
       console.log(`----------------------------------------`);
     } else {

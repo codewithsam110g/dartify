@@ -4,21 +4,14 @@ class TranspilerContext {
   private static instance: TranspilerContext;
   private isLogging: boolean;
   public currentFQN: string;
-  public currentDeps: Set<string>;
+  public readonly namespaceExports: Map<string, Set<string>>;
   public readonly symbolTable: SymbolTable;
 
   private constructor() {
     this.isLogging = false;
     this.symbolTable = new SymbolTable();
     this.currentFQN = "";
-    this.currentDeps = new Set();
-  }
-
-  /**
-   * Clears the deps bucket. Call before parsing each declaration.
-   */
-  public clearDeps(): void {
-    this.currentDeps.clear();
+    this.namespaceExports = new Map();
   }
 
   /**
@@ -30,7 +23,7 @@ class TranspilerContext {
   public reset(): void {
     this.symbolTable.clear();
     this.currentFQN = "";
-    this.currentDeps.clear();
+    this.namespaceExports.clear();
   }
 
   public static getInstance(): TranspilerContext {
@@ -49,7 +42,8 @@ class TranspilerContext {
   }
 }
 
-// Global cached instance for frequent access
+// Module-owned run context. Module caching provides stable identity; entry
+// points reset it through resetTranspilerState() before each analysis run.
 const transpilerContext = TranspilerContext.getInstance();
 
 export default TranspilerContext;

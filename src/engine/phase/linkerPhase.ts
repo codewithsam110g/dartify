@@ -1,202 +1,238 @@
 import { transpilerContext } from "@/context";
-import { resolveRealFQN } from "@/symbol/resolve";
+import {
+  ResolutionResult,
+  resolveReference,
+} from "@/symbol/resolve";
 import { registerAliasSymbols } from "@engine/alias/register";
 
-// 1. The clean interfaces describing all possible link states
 export enum LinkState {
-  LinkedIndependent = "LinkedIndependent", // Has no dependencies
-  LinkedResolved = "LinkedResolved", // Dependencies exist and are fully resolved
-  NotLinkedDirect = "NotLinkedDirect", // A direct dependency is completely missing from the table
-  NotLinkedIndirect = "NotLinkedIndirect", // A dependency of a dependency is missing
+  LinkedIndependent = "LinkedIndependent",
+  LinkedResolved = "LinkedResolved",
+  NotLinkedDirect = "NotLinkedDirect",
+  NotLinkedIndirect = "NotLinkedIndirect",
 }
+
+export type LinkFailure =
+  | { kind: "missing"; reference: string; lookupFQN: string }
+  | {
+      kind: "ambiguous";
+      reference: string;
+      lookupFQN: string;
+      candidates: string[];
+    };
 
 export type LinkResult =
   | { state: LinkState.LinkedIndependent }
   | { state: LinkState.LinkedResolved }
-  | { state: LinkState.NotLinkedDirect; missingDep: string }
+  | { state: LinkState.NotLinkedDirect; failure: LinkFailure }
   | {
       state: LinkState.NotLinkedIndirect;
-      missingDep: string;
+      failure: LinkFailure;
       viaChain: string[];
     };
 
-/**
- * The linker's output. Consumers — the emitter, the graph tool, diagnostics —
- * read this rather than re-deriving the graph (`L-07`, `L-08`).
- */
+export interface LinkEdge {
+  from: string;
+  writtenName: string;
+  resolution: ResolutionResult;
+}
+
+export interface LinkDiagnostic {
+  code: "REFERENCE_CHECKER_FALLBACK";
+  ownerFQN: string;
+  writtenName: string;
+  message: string;
+}
+
 export interface LinkReport {
-  /** Link state per real (resolved) FQN */
   results: Map<string, LinkResult>;
+  edges: LinkEdge[];
+  diagnostics: LinkDiagnostic[];
   valid: number;
   broken: number;
-  /** Typedefs minted for unrepresentable types (`E-16`) */
   aliasesMinted: number;
-  /** Use sites those typedefs replaced a bare `dynamic` at */
   aliasUseSites: number;
+}
+
+function failureOf(edge: LinkEdge): LinkFailure | null {
+  if (edge.resolution.kind === "missing") {
+    return {
+      kind: "missing",
+      reference: edge.writtenName,
+      lookupFQN: edge.resolution.lookupFQN,
+    };
+  }
+  if (edge.resolution.kind === "ambiguous") {
+    return {
+      kind: "ambiguous",
+      reference: edge.writtenName,
+      lookupFQN: edge.resolution.lookupFQN,
+      candidates: edge.resolution.candidates,
+    };
+  }
+  return null;
+}
+
+function edgeSortKey(edge: LinkEdge): string {
+  const target =
+    edge.resolution.kind === "resolved"
+      ? edge.resolution.fqn
+      : edge.resolution.lookupFQN;
+  return `${edge.from}\u0000${edge.writtenName}\u0000${target}`;
 }
 
 export async function runLinker(debug: boolean): Promise<LinkReport> {
   const table = transpilerContext.symbolTable.getSymbolTable();
-
-  if (debug) {
-    console.log("\n🔗 Linker phase: Dependency Graph Verification");
-    // ... your existing summary logging can stay here ...
-  }
-
-  // Before verification, so the minted typedefs are themselves graph nodes and
-  // get link-checked like any other declaration (`L-05`, `E-16`).
   const aliases = registerAliasSymbols(table);
-  if (debug && aliases.total > 0) {
-    console.log(
-      `\n  🏷️  Minted ${aliases.total} typedef(s) for unrepresentable types across ${aliases.byFile.size} file(s), covering ${aliases.useSites} use site(s).`,
+  const edges: LinkEdge[] = [];
+  const diagnostics: LinkDiagnostic[] = [];
+  const edgesByFQN = new Map<string, LinkEdge[]>();
+
+  for (const fqn of [...table.keys()].sort()) {
+    const groupEdges: LinkEdge[] = [];
+    for (const symbol of table.get(fqn) ?? []) {
+      const resolvedDeps = new Set<string>();
+      for (const dependency of symbol.deps) {
+        if (
+          dependency.lookup.kind === "syntax" &&
+          dependency.lookup.checkerError
+        ) {
+          diagnostics.push({
+            code: "REFERENCE_CHECKER_FALLBACK",
+            ownerFQN: fqn,
+            writtenName: dependency.writtenName,
+            message: dependency.lookup.checkerError,
+          });
+        }
+
+        const resolution = resolveReference(
+          dependency,
+          table,
+          transpilerContext.namespaceExports,
+        );
+        if (resolution.kind === "resolved") {
+          dependency.resolvedFQN = resolution.fqn;
+          resolvedDeps.add(resolution.fqn);
+        } else {
+          delete dependency.resolvedFQN;
+        }
+
+        const edge: LinkEdge = {
+          from: fqn,
+          writtenName: dependency.writtenName,
+          resolution,
+        };
+        groupEdges.push(edge);
+        edges.push(edge);
+      }
+      symbol.resolvedDeps = [...resolvedDeps].sort();
+    }
+    edgesByFQN.set(
+      fqn,
+      groupEdges.sort((a, b) =>
+        edgeSortKey(a).localeCompare(edgeSortKey(b)),
+      ),
     );
   }
 
-  // 2. The Cache (LUT) to prevent re-checking symbols we already verified
-  const linkCache = new Map<string, LinkResult>();
+  edges.sort((a, b) => edgeSortKey(a).localeCompare(edgeSortKey(b)));
+  diagnostics.sort((a, b) =>
+    `${a.ownerFQN}\u0000${a.writtenName}`.localeCompare(
+      `${b.ownerFQN}\u0000${b.writtenName}`,
+    ),
+  );
 
-  // 3. Cycle Detection: Keeps track of nodes currently being explored in the current stack
-  const resolvingStack = new Set<string>();
+  const cache = new Map<string, LinkResult>();
+  const resolving = new Set<string>();
 
-  // Fuzzy FQN matcher lives in @/symbol/resolve — shared with tools/graph.ts
-  const onAmbiguous = (pseudoFqn: string, matches: string[]) => {
-    if (!debug) return;
-    console.log(
-      `\n  ⚠️ AMBIGUOUS LINK: Found multiple matches for '${pseudoFqn}'`,
-    );
-    matches.forEach((m) => console.log(`     ↳ ${m}`));
-    console.log(`     (Defaulting to first match: ${matches[0]})`);
-  };
+  function checkDeps(fqn: string): LinkResult {
+    const cached = cache.get(fqn);
+    if (cached) return cached;
+    if (resolving.has(fqn)) return { state: LinkState.LinkedResolved };
 
-  // CORE: The recursive DFS Linker
-  function checkDeps(pseudoFqn: string): LinkResult {
-    // 1. Resolve the Pseudo-FQN to the Real FQN first!
-    const fqn = resolveRealFQN(pseudoFqn, table, onAmbiguous);
-
-    if (!fqn) {
-      // It couldn't be resolved even with fuzzy matching. It's a true missing dep!
-      return { state: LinkState.NotLinkedDirect, missingDep: pseudoFqn };
-    }
-
-    // 2. Return cached result if we've already processed this symbol completely
-    if (linkCache.has(fqn)) {
-      return linkCache.get(fqn)!;
-    }
-
-    // 3. CYCLE DETECTION: Circular dependency check (A -> B -> A).
-    if (resolvingStack.has(fqn)) {
-      return { state: LinkState.LinkedResolved };
-    }
-
-    resolvingStack.add(fqn); // Mark as currently exploring
-
-    // Get the actual symbol(s) from the table
-    const symbols = table.get(fqn)!; // We know it exists because resolveRealFQN succeeded
-
-    // 4. Combine deps across all overloads/augmentations of this FQN
-    const allDeps = new Set<string>();
-    for (const sym of symbols) {
-      if (sym.deps) {
-        sym.deps.forEach((dep: string) => allDeps.add(dep));
-      }
-    }
-
-    // 5. Base Case: No dependencies
-    if (allDeps.size === 0) {
-      resolvingStack.delete(fqn);
+    resolving.add(fqn);
+    const directEdges = edgesByFQN.get(fqn) ?? [];
+    if (directEdges.length === 0) {
+      resolving.delete(fqn);
       const result: LinkResult = { state: LinkState.LinkedIndependent };
-      linkCache.set(fqn, result);
+      cache.set(fqn, result);
       return result;
     }
 
-    // 6. Recursive Step: Check all dependencies
-    for (const depPseudoFqn of allDeps) {
-      const depResult = checkDeps(depPseudoFqn);
-
-      // If ANY dependency fails, this symbol fails.
-      if (depResult.state === LinkState.NotLinkedDirect) {
-        resolvingStack.delete(fqn);
+    for (const edge of directEdges) {
+      const failure = failureOf(edge);
+      if (failure) {
+        resolving.delete(fqn);
         const result: LinkResult = {
-          state: LinkState.NotLinkedIndirect,
-          missingDep: depResult.missingDep,
-          viaChain: [depPseudoFqn],
+          state: LinkState.NotLinkedDirect,
+          failure,
         };
-        linkCache.set(fqn, result);
+        cache.set(fqn, result);
         return result;
-      } else if (depResult.state === LinkState.NotLinkedIndirect) {
-        resolvingStack.delete(fqn);
+      }
+
+      if (edge.resolution.kind !== "resolved") {
+        throw new Error("Unreachable unresolved edge without a link failure");
+      }
+      const target = edge.resolution.fqn;
+      const dependencyResult = checkDeps(target);
+      if (
+        dependencyResult.state === LinkState.NotLinkedDirect ||
+        dependencyResult.state === LinkState.NotLinkedIndirect
+      ) {
+        resolving.delete(fqn);
         const result: LinkResult = {
           state: LinkState.NotLinkedIndirect,
-          missingDep: depResult.missingDep,
-          viaChain: [depPseudoFqn, ...depResult.viaChain],
+          failure: dependencyResult.failure,
+          viaChain: [
+            target,
+            ...(dependencyResult.state === LinkState.NotLinkedIndirect
+              ? dependencyResult.viaChain
+              : []),
+          ],
         };
-        linkCache.set(fqn, result);
+        cache.set(fqn, result);
         return result;
       }
     }
 
-    // 7. If we made it here, all dependencies are fully resolved!
-    resolvingStack.delete(fqn);
+    resolving.delete(fqn);
     const result: LinkResult = { state: LinkState.LinkedResolved };
-    linkCache.set(fqn, result);
+    cache.set(fqn, result);
     return result;
   }
 
-  // 5. Execution: Heuristic Pre-Sort Optimization (Bottom-Up Topological Sort)
-  if (debug) console.log("\n  🔍 Verifying Dependency Graph (Optimized)...");
-
-  let validCount = 0;
-  let invalidCount = 0;
   const results = new Map<string, LinkResult>();
-
-  // Sort entries so symbols with fewest dependencies are processed and cached first
-  // This drastically reduces recursive depth by populating the cache with leaf nodes.
-  const sortedEntries = Array.from(table.entries()).sort((a, b) => {
-    const aDeps = a[1][0]?.deps?.length || 0;
-    const bDeps = b[1][0]?.deps?.length || 0;
-    return aDeps - bDeps;
-  });
-
-  for (const [fqn] of sortedEntries) {
+  let valid = 0;
+  let broken = 0;
+  for (const fqn of [...table.keys()].sort()) {
     const result = checkDeps(fqn);
     results.set(fqn, result);
-
     if (
       result.state === LinkState.NotLinkedDirect ||
       result.state === LinkState.NotLinkedIndirect
     ) {
-      invalidCount++;
-      if (debug) {
-        console.log(`  ❌ Broken Link: ${fqn}`);
-        if (result.state === LinkState.NotLinkedIndirect) {
-          console.log(
-            `     Reason: Missing '${result.missingDep}' via [${result.viaChain.join(" -> ")}]`,
-          );
-        } else {
-          console.log(
-            `     Reason: Direct dependency '${result.missingDep}' is missing.`,
-          );
-        }
-      }
+      broken++;
     } else {
-      validCount++;
+      valid++;
     }
   }
 
   if (debug) {
     console.log(
-      `\n  ✅ Graph Verification Complete: ${validCount} valid, ${invalidCount} broken.\n`,
+      `\n  ✅ Graph Verification Complete: ${valid} valid, ${broken} broken.`,
     );
+    if (diagnostics.length > 0) {
+      console.log(`  ⚠️  ${diagnostics.length} checker fallback diagnostic(s).`);
+    }
   }
 
-  // The graph visualiser is NOT called from here. It is a consumer of this
-  // report, not a step inside the pipeline — see tools/graph.ts (`L-07`).
-  // Importing it here dragged @viz-js/viz (a devDependency) into the shipped
-  // bundle, where it accounted for ~70% of dist/cli.js (`D-07`).
   return {
     results,
-    valid: validCount,
-    broken: invalidCount,
+    edges,
+    diagnostics,
+    valid,
+    broken,
     aliasesMinted: aliases.total,
     aliasUseSites: aliases.useSites,
   };

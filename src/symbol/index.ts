@@ -1,4 +1,5 @@
 import { IRDeclaration } from "@/ir";
+import { IRReferenceTarget } from "@ir/type";
 
 export enum SymbolType {
   FUNCTION,
@@ -13,8 +14,10 @@ export interface Symbol {
   type: SymbolType;
   fqn: string;
   ir: IRDeclaration;
-  /** Pseudo-FQNs of type dependencies (e.g. "sourceFile::TypeName") */
-  deps: string[];
+  /** Reference use sites owned by this declaration. */
+  deps: IRReferenceTarget[];
+  /** Unique, sorted real FQNs produced by the linker. */
+  resolvedDeps: string[];
   /**
    * True when the linker invented this symbol rather than parsing it — the
    * typedefs minted for unrepresentable types (`E-16`).

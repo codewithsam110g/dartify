@@ -5,7 +5,7 @@ import { IRDeclaration,IRDeclKind } from "./declaration";
 export interface IRInterface extends IRDeclaration {
   kind: IRDeclKind.Interface;
   name: string;
-  extends: string[];
+  extends: IRType[];
   properties: IRProperties[];
   methods: IRMethod[];
   constructors: IRMethod[];

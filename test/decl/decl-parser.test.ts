@@ -52,7 +52,12 @@ describe("AST Parsers to IR", () => {
         "export function getUser(id: number): User;",
       ) as ts.FunctionDeclaration;
       const ir = parseFunction(node);
-      expect(ir).toMatchSnapshot();
+      expect(ir.returnType.reference).toEqual(
+        expect.objectContaining({ writtenName: "User" }),
+      );
+      const stable = structuredClone(ir);
+      delete stable.returnType.reference;
+      expect(stable).toMatchSnapshot();
     });
   });
 

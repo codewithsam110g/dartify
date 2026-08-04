@@ -108,7 +108,13 @@ describe("Declaration Emitter Unit Tests", () => {
     const ir: IRInterface = {
       kind:IRDeclKind.Interface,
       name: "User",
-      extends: ["Person"],
+      extends: [
+        {
+          kind: TypeKind.TypeReference,
+          name: "Person",
+          isNullable: false,
+        },
+      ],
       properties: [
         {
           name: "id",
@@ -159,8 +165,18 @@ describe("Declaration Emitter Unit Tests", () => {
     const ir: IRClass = {
       kind: IRDeclKind.Class,
       name: "ApiClient",
-      extends: "BaseClient",
-      implements: ["IClient"],
+      extends: {
+        kind: TypeKind.TypeReference,
+        name: "BaseClient",
+        isNullable: false,
+      },
+      implements: [
+        {
+          kind: TypeKind.TypeReference,
+          name: "IClient",
+          isNullable: false,
+        },
+      ],
       isAbstract: false,
       typeParams: ["T"],
       constructors: [

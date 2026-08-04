@@ -20,12 +20,10 @@ import { hideBin } from "yargs/helpers";
 import fg from "fast-glob";
 import { instance } from "@viz-js/viz";
 import { writeFile } from "fs/promises";
-import { basename, resolve } from "path";
+import { resolve } from "path";
 
 import { Transpiler } from "@/transpiler";
-import { transpilerContext } from "@/context";
-import { resolveRealFQN } from "@/symbol/resolve";
-import { LinkState, LinkReport } from "@engine/phase/linkerPhase";
+import { buildDot } from "./graphModel";
 
 interface GraphOptions {
   defFiles: string[];
@@ -58,73 +56,6 @@ const argv = yargs(hideBin(process.argv))
   .alias("help", "h")
   .parseSync() as GraphOptions;
 
-/** Sanitises an FQN into a graphviz-safe node id. */
-function cleanNodeName(fqn: string): string {
-  const parts = fqn.split("::");
-  const file = basename(parts[0]);
-  const name = parts[1] || "";
-  return `${file}\\n${name}`.replace(/[^a-zA-Z0-9_\\n|]/g, "_");
-}
-
-function buildDot(report: LinkReport): string {
-  const table = transpilerContext.symbolTable.getSymbolTable();
-
-  let dot = "digraph Dependencies {\n";
-  dot += "  rankdir=LR;\n";
-  dot +=
-    '  node [shape=box, style=filled, fillcolor=lightblue, fontname="Helvetica", fontsize=10];\n';
-  dot += "  edge [color=gray, arrowsize=0.5];\n";
-
-  const edges = new Set<string>();
-  const declaredNodes = new Set<string>();
-
-  for (const [fqn, symbols] of table.entries()) {
-    const nodeA = cleanNodeName(fqn);
-    declaredNodes.add(nodeA);
-
-    // Colour the node by its link state, so broken subgraphs stand out.
-    const state = report.results.get(fqn)?.state;
-    const broken =
-      state === LinkState.NotLinkedDirect ||
-      state === LinkState.NotLinkedIndirect;
-    const fill = broken ? "lightcoral" : "lightblue";
-    dot += `  "${nodeA}" [label="${nodeA}", fillcolor=${fill}];\n`;
-
-    const allDeps = new Set<string>();
-    for (const sym of symbols) {
-      if (sym.deps) sym.deps.forEach((dep: string) => allDeps.add(dep));
-    }
-
-    for (const depPseudo of allDeps) {
-      const resolved = resolveRealFQN(depPseudo, table);
-      if (resolved) {
-        const edge = `  "${nodeA}" -> "${cleanNodeName(resolved)}";\n`;
-        if (!edges.has(edge)) {
-          edges.add(edge);
-          dot += edge;
-        }
-      } else {
-        const missing = `MISSING\\n${depPseudo.split("::")[1] || depPseudo}`.replace(
-          /[^a-zA-Z0-9_\\n|]/g,
-          "_",
-        );
-        if (!declaredNodes.has(missing)) {
-          dot += `  "${missing}" [fillcolor=lightcoral];\n`;
-          declaredNodes.add(missing);
-        }
-        const edge = `  "${nodeA}" -> "${missing}" [color=red, style=dashed];\n`;
-        if (!edges.has(edge)) {
-          edges.add(edge);
-          dot += edge;
-        }
-      }
-    }
-  }
-
-  dot += "}\n";
-  return dot;
-}
-
 async function main(options: GraphOptions): Promise<void> {
   const files = await fg(options.defFiles, {
     onlyFiles: true,
@@ -144,10 +75,10 @@ async function main(options: GraphOptions): Promise<void> {
     files: dtsFiles,
     debug: options.enableLogs,
   });
-  const report = await transpiler.analyze();
+  const analysis = await transpiler.analyze();
+  const report = analysis.link;
 
-  const table = transpilerContext.symbolTable.getSymbolTable();
-  if (table.size === 0) {
+  if (report.results.size === 0) {
     console.error("No symbols were generated — nothing to graph.");
     process.exit(1);
   }
@@ -159,7 +90,7 @@ async function main(options: GraphOptions): Promise<void> {
   await writeFile(outputPath, svg);
 
   console.log(
-    `\n  📈 ${table.size} symbols · ${report.valid} linked · ${report.broken} broken`,
+    `\n  📈 ${report.results.size} symbols · ${report.valid} linked · ${report.broken} broken`,
   );
   console.log(`  📈 Dependency graph written to: ${outputPath}`);
 }

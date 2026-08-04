@@ -15,6 +15,6 @@ import * as ts from "ts-morph";
  * type expression to show is the emitter's call (`E-16`), and it cannot make
  * that call on text it never received.
  */
-export function sourceTextOf(typeNode: ts.TypeNode): string {
+export function sourceTextOf(typeNode: ts.Node): string {
   return typeNode.getText().replace(/\s+/g, " ").trim();
 }

@@ -191,6 +191,7 @@ export function handleTypeLiterals(
     fqn: fullAnonFqn,
     ir: anonInterface,
     deps: [],
+    resolvedDeps: [],
   });
 
   // 5. Return a TypeRef pointing at the newly hoisted anonymous interface
@@ -199,5 +200,9 @@ export function handleTypeLiterals(
     name: anonName, // The Statement Parser will use this string for the Dart output
     isNullable: false,
     genericArgs: [],
+    reference: {
+      writtenName: anonName,
+      lookup: { kind: "checker", candidates: [fullAnonFqn] },
+    },
   };
 }

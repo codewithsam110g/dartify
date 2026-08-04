@@ -28,6 +28,14 @@ graph tooling. Leaflet closes at 1,050/1,050 edges; three.js resolves 8,184
 edges with zero ambiguity while retaining 31 honest misses from two absent
 external type packages. S3—the declaration IR—is next.
 
+The current Dart backend is still the transitional `emitter/old/*`
+string-template implementation: some paths work, some deliberately preserve
+legacy degradation, and several declaration features are not emitted at all.
+The internal `render()` API only means "produce strings without writing them";
+it is not the emitter overhaul. S3 makes the IR lossless, S4 performs
+whole-program semantic rewrites, and **S5 rebuilds the emitter once** on top of
+those completed layers.
+
 ---
 
 ## Why there is no 0.6

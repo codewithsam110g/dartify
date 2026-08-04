@@ -239,23 +239,30 @@ it has 0 ambiguity and every available checker target links exactly.
 
 ## S3 — The declaration layer: the IR is complete
 
-*Gates S5. The emitter cannot render what was never captured.*
+*Gates S5. The emitter cannot emit information the IR never captured. The
+current `emitter/old/*` string-template backend remains intentionally
+half-complete until the S5 rebuild.*
 
 | # | Task | Findings |
 |---|---|---|
-| 3.1 | `IRTypeParam { name, constraint?, default? }` on Interface / Function / TypeAlias / Method / Class | `I-01`, `P-02` |
+| 3.0 | Expand the synthetic IR acceptance fixture before changing schemas: generics, call/construct overloads, docs, locations, modifiers, enum forms, bigint, defaults/destructuring, class index signatures and scoped inline types. Assert at the IR boundary, not on emitted Dart | S3 gate |
+| 3.1 | `IRTypeParam { name, constraint?, default? }` on Interface / Function / TypeAlias / Method / CallSignature / ConstructSignature / Class | `I-01`, `P-02` |
+| 3.1b | One shared `IRParameter`; remove the declaration/type split and preserve rest, optional, binding-pattern and initializer data | `I-13`, `P-11` |
 | 3.2 | ✅ Landed in S2.2: `extends`/`implements` are `IRType[]`, preserving generic args, dep edges and qualified names | `I-04` |
 | 3.3 | `callSignatures` on `IRInterface`; read them in the parser | `I-05`, `P-03` |
-| 3.4 | `jsDoc?: string` on `IRDeclaration` + members + params; capture in all parsers | `I-06`, `P-06` |
-| 3.5 | `loc?: {file,line,col}` on IR nodes — makes S2's diagnostics actionable | `I-10` |
-| 3.6 | `export` / `declare` / visibility modifiers on IR declarations | `I-09` |
-| 3.7 | Fix enum values (number vs string, flag implicit); unify the two constructor shapes; replace the JSON deep-clone (throws on bigint) | `P-04`, `I-08`, `I-11` |
-| 3.8 | Scope handling via `withScope(name, fn)` + `try/finally`, or explicit parameter passing — one parse error can poison every later FQN in the file. The dependency side channel (`R-10`) was removed in S2.6 | `R-09`, `P-08` |
-| 3.9 | Construct signatures as a first-class IR shape, not fake-named `IRMethod`s | `P-09` |
-| 3.10 | Delete `IRLiteral` + `IRType.objectLiteral` | `I-07`, `D-03` |
+| 3.3b | Unify class constructors and interface/type-literal construct signatures behind a shared signature shape; preserve every overload and remove the fake `name: "constructor"` | `I-08`, `P-09` |
+| 3.4 | `jsDoc?: string` on declarations, members, signatures, enum members, type params and params; capture in all parsers | `I-06`, `P-06` |
+| 3.5 | `loc?: {file,line,column}` on declarations, types and nested IR nodes — makes S2 diagnostics actionable while allowing synthetic nodes to omit it | `I-10` |
+| 3.6 | Capture export kind, syntactic/effective ambient state and member visibility; retain the existing static/readonly/abstract facts | `I-09` |
+| 3.6b | Capture `var`/`let`/`const` truthfully instead of impossible variable `readonly`; add class index signatures | `P-05`, `P-12` |
+| 3.7 | Represent enum initialisers as implicit/numeric/string/computed with raw text and checker value; replace JSON cloning with bigint-safe `structuredClone` | `P-04`, `I-11` |
+| 3.8 | Replace mutable `currentFQN` with an explicit immutable parse context, including deterministic return/parameter/overload scopes and a hoisted-symbol registration seam | `R-09`, `P-08` |
+| 3.9 | Delete `IRLiteral` + `IRType.objectLiteral`; the recursive walker was already mined into `ir/visit.ts` in S2 | `I-07`, `I-14`, `D-03` |
+| 3.10 | Add focused IR fidelity tests plus an opt-in S3 corpus census; re-run the complete S2 gates, stress corpus, build, h3 golden/analyzer and link baselines | S3 gate |
 
-**Done when:** the synthetic probe round-trips through the IR with **zero
-information loss** — asserted on the IR, not on rendered output.
+**Done when:** the expanded synthetic fixture round-trips through the IR with
+**zero known information loss** — asserted on the IR, not on emitted Dart — and
+S2's link metrics remain unchanged.
 
 ---
 

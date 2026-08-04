@@ -170,3 +170,15 @@ S6 because symbol-generation errors still need to join the public report model.
 The S2 CLI follow-up also partially closes `R-08`: `-l` owns ordinary logs,
 `-lv` adds the structured linker report, and `--version` is long-only. IR-dump
 logging remains the independent `D-05` decision.
+
+---
+
+## Stage 3 scope correction
+
+The post-S2 implementation plan now includes the declaration-loss findings
+added after the original S3 table was written: duplicate parameter models
+(`I-13`), the live vestigial literal field (`I-14`), parameter defaults and
+destructuring (`P-11`), class index signatures (`P-12`), and the impossible
+top-level variable readonly flag (`P-05`). They belong in S3 because its exit
+condition is zero known information loss at the IR boundary. Dart emission for
+those fields remains S5 work.

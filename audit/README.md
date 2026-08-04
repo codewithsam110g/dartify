@@ -112,3 +112,34 @@ holes were real, nothing was falling through them):
 | files containing `// ERROR emitting` | **0** |
 | empty renders | 710, all barrels or comment-only |
 | unpushed commits | **23** — the entire branch, S0 and S1 |
+
+---
+
+## Audit pass — pre-S2 link verification
+
+The resolution, symbol-generation, linker and graph paths were re-read line by
+line immediately before starting S2. Existing S2 findings were reproduced, the
+detailed audit was brought forward from its pre-S0 wording, and five missing
+findings were filed: `R-13`, `L-12`, `L-13`, `L-14`, `L-15`.
+
+Roadmap ownership is explicit in `PLAN.md`: `L-12`/`L-15` → S2.4,
+`L-13` → S2.5b, `L-14` → S2.6, and `R-13` → S6.4. The `S0`–`S4`
+headings in `FINDINGS.md` are severity ranks, not implementation stages.
+
+Fresh baselines:
+
+| | |
+|---|---|
+| three.js symbols | 2,004 valid / 0 reported broken |
+| three.js recorded dep edges | 2,542 |
+| edges naming the importing rather than declaring file | **1,664** |
+| checker-verified type-reference sites linked to the wrong declaration | **19** |
+| graph node-ID collisions | **2 groups / 4 real symbols** |
+| leaflet | 284 valid / **44 broken**, from 14 raw dotted edges |
+| aliases, three.js + leaflet | **64**, all distinct across files |
+| aliases including synthetic probe | **68** — the probe contributes 4 |
+
+The earlier post-S1 note saying "52 currentFQN save/restore pairs" was also
+wrong: there are **24 pairs** (48 assignments) plus one one-way assignment in
+the variable parser. The branch has since been pushed; the old "23 unpushed"
+measurement above is historical, not current state.

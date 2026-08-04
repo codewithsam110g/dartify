@@ -6,7 +6,7 @@ Covers `src/cli.ts`, `src/transpiler.ts`, `src/context.ts`.
 
 ## R-01 — Extensionless relative imports silently fail to resolve `[verified]`
 
-**`src/transpiler.ts:86-96`** — the default (no-tsconfig) project is built with:
+**`src/transpiler.ts:103-113`** — the default (no-tsconfig) project is built with:
 
 ```ts
 module: ESNext,
@@ -39,6 +39,11 @@ Change to `"./base.js"`:
 → ✅ Graph Verification Complete: 5 valid, 0 broken.
 ```
 
+Re-verified before S2 against leaflet with both declaration files passed as
+explicit inputs: `import * as geojson from "geojson"` is still reported
+unresolved. The linker then sees the two files independently rather than as an
+importing project.
+
 ### Why this matters more than it looks
 
 `three.js` resolves 419 dependencies flawlessly *because it is modern ESM with
@@ -56,7 +61,7 @@ runtime project config and the repo's own config disagree.
 
 ## R-02 — Unresolved dependencies are reported only under `--enable-logs` `[inspection]`
 
-**`src/transpiler.ts:113-116`, `262-340`** — `detectUnresolvedDeps()` is gated
+**`src/transpiler.ts:142-145`, `402-480`** — `detectUnresolvedDeps()` is gated
 behind `if (this.debug)`. A default run that resolves nothing looks identical to
 a default run that resolves everything.
 
@@ -72,7 +77,7 @@ under a `--strict` flag.
 
 ## R-03 — `inputRoot` is derived from the first input file only `[inspection]`
 
-**`src/transpiler.ts:142-144`**
+**`src/transpiler.ts:194-196`**
 
 ```ts
 const firstInputFile = this.inputFiles.keys().next().value;
@@ -93,7 +98,7 @@ write wins.
 
 ## R-04 — `Map` iteration order is the emission order `[inspection]`
 
-**`src/transpiler.ts:118-123`** — input files then package deps, each in `Map`
+**`src/transpiler.ts:148-153`** — input files then package deps, each in `Map`
 insertion order, which derives from `getProgram().getSourceFiles()` order.
 
 Output is therefore deterministic *for a given TypeScript version and
@@ -104,7 +109,7 @@ latent flake source. **Fix direction:** sort file lists before iteration.
 
 ## R-05 — `resolveAndCategorize` adds every program file to the ts-morph project `[inspection]`
 
-**`src/transpiler.ts:184-196`** — loops all program source files and calls
+**`src/transpiler.ts:305-336`** — loops all program source files and calls
 `addSourceFileAtPathIfExists ?? addSourceFileAtPath` on each, including the 51
 stdlib files. They are categorised as stdlib and skipped for parsing, so this is
 correct but wasteful — ts-morph wrapper objects are materialised for files that
@@ -117,7 +122,7 @@ Low priority; noted because it dominates the fixed cost on small inputs
 
 ## R-06 — `isStdlib` is a hardcoded substring list `[inspection]`
 
-**`src/transpiler.ts:211-216`**
+**`src/transpiler.ts:351-355`**
 
 ```ts
 if (filePath.includes("@types/node/")) return true;
@@ -133,10 +138,11 @@ The two must agree or deps get recorded for files that are never parsed
 
 ---
 
-## R-07 — CLI `--version` is hardcoded to `v0.3` `[verified]`
+## R-07 — CLI `--version` was hardcoded to `v0.3` `[verified]` **[FIXED — S0.8]**
 
-**`src/cli.ts:64`** — `.version("v0.3")` while `package.json` says `0.5.0`.
-Read the version from `package.json`.
+The CLI now imports `package.json` and passes its `version` to yargs. The sanity
+suite verifies `--version` against the package value. Original defect: the CLI
+reported `v0.3` while the package was `0.5.0`.
 
 ---
 
@@ -167,8 +173,11 @@ transpilerContext.currentFQN = prevFQN + "|" + name;
 transpilerContext.currentFQN = prevFQN;
 ```
 
-This appears **31 times** across `parser/interface.ts`, `parser/class.ts`,
-`parser/function.ts`, `parser/type/typeLiterals.ts`. Every occurrence is a
+This appears as **24 manual save/restore pairs** (48 assignments) across
+`parser/interface.ts`, `parser/class.ts`, `parser/function.ts` and
+`parser/type/typeLiterals.ts`, plus one one-way assignment in
+`parser/variable.ts`. An earlier audit correction called these "52 pairs";
+that counted assignment sites and was itself miscounted. Every pair is a
 manual, unbalanced-on-throw restore — `parser/class.ts:26-29` and siblings do
 not use `try/finally`, so a parse error mid-declaration leaves `currentFQN`
 corrupted for every subsequent declaration in the file.
@@ -182,7 +191,7 @@ scope explicitly as a parameter instead of via the singleton.
 
 ## R-10 — `currentDeps` is cleared per declaration, not per variable `[inspection]`
 
-**`symbolGeneration.ts:200-219`** — `clearDeps()` is called once for a whole
+**`symbolGeneration.ts:202-220`** — `clearDeps()` is called once for a whole
 `VariableStatement`, then every declaration in it is registered with
 `Array.from(transpilerContext.currentDeps)`. For `declare var a: A, b: B;` both
 `a` and `b` receive the union `{A, B}`.
@@ -190,12 +199,13 @@ scope explicitly as a parameter instead of via the singleton.
 Over-approximates the graph. Harmless for link *verification*; produces spurious
 imports once `E-08` (import emission) lands.
 
-## R-11 — The singleton is never reset between runs `[inspection]`
+## R-11 — The singleton was never reset between runs `[verified]` **[FIXED — S0.3]**
 
-`TranspilerContext.getInstance()` is module-level and `SymbolTable.clear()` is
-never called by `Transpiler`. Two `Transpiler` instances in one process share
-one symbol table. Only reachable from tests and programmatic API use today —
-but `X-01` (restoring `transpileFromString`) makes it immediately reachable.
+`resetTranspilerState()` now clears the symbol table, current FQN and dependency
+bucket at the start of both `analyze()` and `transpileFromString()`. The sanity
+suite verifies that two string transpilations in one process do not leak
+symbols into each other. The logging flag deliberately survives reset and is
+owned by the entry point.
 
 ---
 
@@ -229,3 +239,27 @@ in it.
 `if (transpilerContext.getIsLogging())`. Without `-l`, a parse failure produces
 a silently smaller symbol table. That is design principle 1's problem, and it
 belongs with the diagnostics work in S6 rather than being papered over here.
+
+---
+
+## R-13 — Symbol-generation errors never reach the caller `[inspection]`
+
+**`phase/symbolGeneration.ts:11-17,22-44`** — both public
+`generateSymbols()` functions return `Promise<void>`. The inner generator
+collects `TranspileException[]`, but the array is only printed when verbose
+logging is enabled and is then discarded.
+
+Consequences:
+
+- `Transpiler.analyze()` cannot include parse failures in `LinkReport`.
+- `transpileFromString().errors` contains syntax diagnostics and exceptions
+  that escape the phase, but not per-statement failures caught by
+  `walkStatements()`.
+- A default CLI run can emit a smaller API with a green process exit and no
+  diagnostic.
+
+`R-12` fixed one place where the array itself was lost; this is the remaining
+ownership problem for the array after it has been populated. Return the errors
+as phase output and make the top-level diagnostic policy explicit. It belongs
+to S6, but S2 tests should avoid treating a quiet phase as proof that every
+edge was collected.

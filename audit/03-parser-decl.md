@@ -43,7 +43,12 @@ If heritage were tracked, all three would be broken. **The dependency graph is
 missing every inheritance edge** — which is precisely the set of imports a
 binding file most needs.
 
-Consequences: (a) `dependency_graph.svg` shows a falsely-connected graph;
+Re-verified before S2 with generic heritage: `Box extends Base<T> implements
+Holder<T>, Named` records only `Box`'s non-heritage dependencies; `Child extends
+Holder<string>, Named` records none. The IR retains only the raw strings, so the
+generic arguments are unavailable to both linking and later emission.
+
+Consequences: (a) `tools/graph.ts` renders a falsely-connected graph;
 (b) import emission (`E-08`) will omit base-class imports.
 
 **Fix direction:** parse heritage through `parseType` and store as `IRType[]`

@@ -17,7 +17,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | ID | Finding | Where | Ev. |
 |---|---|---|---|
 | `E-01` | `.split("_")[0]` truncates JS names at the first underscore — `my_func` binds to `@JS("my")` | `emitter/old/function.ts:11`, `class.ts:83`, `interface.ts:48` | ✅ |
-| `L-01` | Cross-file dep FQNs name the importing file, not the declaring file; masked by the fuzzy matcher | `parser/type/typeRefernce.ts:24-30` | ✅ |
+| `L-01` | Cross-file dep FQNs name the importing file, not the declaring file. In three.js 1,664/2,542 edges have this shape and the fuzzy matcher selects the **wrong declaration at 19 verified use sites** | `parser/type/typeRefernce.ts:24-30` | ✅ |
 | `P-01` | Heritage clauses bypass `parseType` → **no inheritance edge reaches the dep graph** | `parser/interface.ts:19`, `class.ts:17-18` | ✅ |
 | `E-08` | No cross-file imports are ever emitted — 415/415 three.js files uncompilable | `phase/emitterPhase.ts:188-195` | ✅ |
 | `T-02` **[FIXED]** | ~~`IRType.originalText` declared but never written — source text destroyed at parse~~ — written for every node at every depth from one place in `parseType` (S1.2), whitespace-normalised, no truncation | `type/sourceText.ts`, `type/type.ts` | ✅ |
@@ -29,6 +29,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `E-18` | Multi-member unions emit `js_facade_gen`'s inline `dynamic /* A\|B */` at every use site — pre-existing, conformant, but the pattern principle 2 replaces. Dedup is computed then discarded (`"a"\|"b"\|number` → `String\|String\|num`). Needs a Dart-side name derivation, not `E-16`'s text-side one | `emitter/old/type/emit.ts:70-92` | ✅ |
 | `R-12` **[FIXED]** | ~~Errors inside `declare module`/`namespace` were pushed into a throwaway array~~ — `processModuleDeclaration` passed a literal `[]`, so failures in the construct most of DefinitelyTyped is written in were unreachable. Threaded through in the audit pass; corpus probe shows nothing was being swallowed | `phase/symbolGeneration.ts` | ✅ |
 | `E-19` | TS `object` and `undefined` keywords have no `emitType` case and fall to `default:` → bare `dynamic`. 28 nodes over three.js + leaflet + h3. Dart's `Object` is a close match for the former | `emitter/old/type/emit.ts` | ✅ |
+| `L-14` | Type-reference IR nodes retain only the written name and are not linked to their resolved symbol. `resolvedDeps` alone cannot emit renamed imports, qualified references or later collision renames correctly | `ir/type.ts`, `typeRefernce.ts` | ✅ |
 | `E-17` **[FIXED]** | ~~`dynamic?` emitted for nullable unions collapsing to dynamic~~ — guard bypassed by an early `return` (S1.4); the guard's exact-equality test then missed the commented form `dynamic /* A\|B */?`, live in 3 three.js files until S1.9. **Severity corrected: this is an analyzer *warning*, not a compile error** — `void?` is the hard error, and was already excluded | `emitter/old/type/emit.ts` | ✅ |
 
 ## S2 — Obviously broken / blocks a phase
@@ -51,10 +52,10 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `E-10` | Namespace flattening collides (two `abstract class ZoomOptions` in leaflet) | `phase/emitterPhase.ts:198-211` | ✅ |
 | `E-05` | Variables emit mutable fields; `isReadonly`/`isConst` ignored | `emitter/old/variable.ts:13` | ✅ |
 | `L-05` | Overload grouping + augmentation not implemented in the new pipeline | `phase/linkerPhase.ts` | ✅ |
-| `L-08` | `LinkState` computed then discarded — emitter cannot use the graph | `phase/linkerPhase.ts:98-169` | 🔍 |
+| `L-08` *(partial)* | `LinkReport` now returns per-symbol states, but resolved edges are still not persisted on `Symbol` and the graph re-resolves raw deps | `phase/linkerPhase.ts`, `symbol/index.ts` | 🔍 |
 | `E-11` **[FIXED]** | ~~Emission coupled to `fs`~~ — split into `renderAllFiles()` / `writeAllFiles()` in S0.1 | `phase/emitterPhase.ts` | 🔍 |
 | `T-09` **[FIXED]** | ~~Intersections parsed correctly, then dropped to `dynamic` at emit~~ — emits `Foo /*Foo&Bar*/` per js_facade_gen §5.3 (S1.9). It was the one gap making dartify *worse* than the tool it replaces | `emitter/old/type/emit.ts` | ✅ |
-| `X-06` | **Zero test coverage of symbol table, linker, or emitter phase** | `test/` | ✅ |
+| `X-06` | No test asserts symbol-table or linker behaviour. One test calls `analyze()` for alias counters, but none checks link states, edge resolution, ambiguity or cycles | `test/` | ✅ |
 | `D-01` *(quarantined)* | 5-pass pipeline orphaned. Excluded from `tsconfig` in S0.7 so its 5 stale errors stop masking real ones. **Still on disk** — S4 mines `transformers/` before deleting both | `engine/{passes,transformers}` | ✅ |
 | `D-07` **[FIXED]** | ~~**95% of `dist/cli.js` was `@viz-js/viz`**~~ — a devDependency made reachable by a live import in `linkerPhase`. S0.4: **1.59 MB → 73.3 KB** | `tools/graph.ts` | ✅ |
 | `X-03` **[FIXED]** | ~~`tsc --noEmit` → 15 errors~~ — now **0**. Dead dirs excluded from `tsconfig` (kept on disk for S4 mining), test signatures fixed | `tsconfig.json` | ✅ |
@@ -73,13 +74,17 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `I-13` | `IRParameter` declared twice with different rest-flag names (`isRest` vs `isRestParameter`), one per half of the pipeline; `emitType` ignores rest on function types entirely | `ir/function.ts`, `ir/type.ts` | ✅ |
 | `I-14` | `ir/literal.ts` is dead but imported by the live IR — `IRType.objectLiteral` is never written by any parser, and the file re-declares 5 interfaces `ir/interface.ts` already has | `ir/literal.ts` | ✅ |
 | `X-12` | The stress tier asserts only that nothing *escaped* `transpileFromString`; `result.errors` and `// ERROR emitting` comments are never inspected. Measured 0/0/0 today, so nothing is hidden — but this is how `T-15` survived a green run | `test/stress.test.ts` | ✅ |
-| `R-09` | `currentFQN` save/restore is manual and not `try/finally` — one parse error poisons every later FQN in the file. **Re-counted: 52 save/restore pairs**, not 31 | 52 sites across parsers | ✅ |
+| `R-09` | `currentFQN` save/restore is manual and not `try/finally` — one parse error poisons every later FQN in the file. **Correct count: 24 pairs** (48 assignments), plus one one-way variable assignment | parsers | ✅ |
 | `I-11` | `deepCloneIRDeclaration` JSON round-trips — **throws on bigint literals** | `ir/declaration.ts:28-32` | 🔍 latent |
 | `R-11` **[FIXED]** | ~~Context singleton never reset between runs~~ — `resetTranspilerState()` (`src/reset.ts`) called at the start of every run, S0.3. Verified: two `transpileFromString` calls no longer contaminate each other | `src/reset.ts` | ✅ |
 | `T-06` **[FIXED]** | ~~`IRType.name` has three incompatible meanings; Dart names leak into the IR~~ — TS-side names only, guarded by an invariant test (S1.8). Surfaced a live defect: `name: "BigInt"` was the only thing separating a bigint literal from a number literal, so `10n` emitted `num` | `type/literals.ts` | ✅ |
 | `L-03` | Ambiguous FQN matches silently resolve to `matches[0]`; the warning is unreachable for the common case | `symbol/resolve.ts` | 🔍 |
 | `L-10` | `SymbolTable` has no `unregister`/`replace`; `getSymbolTable()` leaks the live `Map` | `symbol/table.ts` | 🔍 |
 | `L-11` | Module scoping is textual; `declare module` / `namespace` / `global` indistinguishable | `phase/symbolGeneration.ts:239-253` | 🔍 |
+| `R-13` | Symbol-generation errors are collected, optionally printed, then discarded; neither `LinkReport` nor `transpileFromString().errors` can surface per-statement failures | `phase/symbolGeneration.ts:11-44` | 🔍 |
+| `L-12` | An immediate missing dependency is always wrapped as `NotLinkedIndirect`; no top-level `LinkReport` result can be `NotLinkedDirect` | `phase/linkerPhase.ts:72-142` | ✅ |
+| `L-13` | Graph node IDs use basename+scope and collapse distinct three.js symbols — 2 collision groups / 4 real symbols | `tools/graph.ts:61-66` | ✅ |
+| `L-15` | `collectTypeDep` catches every checker exception and silently drops the edge, making a falsely green graph possible | `parser/type/typeRefernce.ts:14-59` | 🔍 |
 | `I-06` / `P-06` | No JSDoc anywhere except an unread `IRConstructor.jsDoc` | `ir/class.ts:24` | 🔍 |
 | `I-10` | No source location on IR nodes — diagnostics cannot point at source | `ir/*` | 🔍 |
 | `I-09` | No `export`/`declare`/visibility modifiers in the IR | `ir/*` | 🔍 |
@@ -88,7 +93,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `R-03` | `inputRoot` from first input file only → sibling trees collide in `outDir` | `transpiler.ts:142-144` | 🔍 |
 | `R-02` | Unresolved deps reported only under `--enable-logs` | `transpiler.ts:113-116` | 🔍 |
 | `X-02` **[FIXED]** | ~~1,648 whole-library snapshots~~ — retiered in S0.6 into sanity / smoke (3 files) / opt-in stress. **4.3 MB → 128 KB** of snapshots | `test/{simple,smoke,stress}.test.ts` | ✅ |
-| `X-09` *(partial)* | ~~Nothing runs `dart analyze` on the output~~ — measured from S1.6 and the harness is in `CLAUDE.md`: **h3 clean**, probe 19, leaflet 507. Still **not automated** — no test tier runs it, so it is a manual gate, not a regression guard | — | ✅ |
+| `X-09` *(partial)* | ~~Nothing runs `dart analyze` on the output~~ — measured manually and the harness is in `CLAUDE.md`: **h3 clean**, probe 19, leaflet 510. Still **not automated** — no test tier runs it, so it is a manual gate, not a regression guard | — | ✅ |
 | `I-07` / `D-03` | `IRLiteral` vestigial since hoisting moved to parse time | `ir/literal.ts` | ✅ |
 | `I-08` | Two incompatible shapes for "constructor" | `ir/{class,interface}.ts` | 🔍 |
 | `E-14` | Index signatures ignore parsed key/value types | `emitter/old/interface.ts:70-73` | 🔍 |
@@ -183,7 +188,7 @@ Re-measure after each phase in `PLAN.md`.
 | `dist/cli.js` | 73.3 KB | **90.6 KB** (+17 KB: alias derivation, registry, registration) |
 | unsupported IR nodes (three.js + leaflet + probe) | 1,410 | **112** |
 | — of which `unclassified` | — | **0** |
-| minted typedefs (three.js + leaflet) | n/a | **68**, 0 dangling, 0 duplicate |
+| minted typedefs (three.js + leaflet + probe) | n/a | **68** (64 + 4 probe), 0 dangling, 0 duplicate; 0 cross-file duplicate texts |
 | IR nodes emitting exactly `dynamic` | not attributed | **839** — 727 genuine `any` (allowed), 84 typedef right-hand sides, 22 `object`, 6 `undefined` |
 | — unrepresentable **use sites** emitting bare `dynamic` | all of them | **0** |
 | `anon_dynamic` occurrences in output | 117 | **0** (`T-16`) |

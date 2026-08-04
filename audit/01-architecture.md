@@ -15,10 +15,10 @@ Transpiler (transpiler.ts)
   │
   ├─ PHASE 2  runLinker()         (phase/linkerPhase.ts)
   │     DFS over dep graph, memoised, cycle-safe
-  │     → LinkState per symbol + dependency_graph.svg
+  │     → LinkReport (state per symbol)
   │
-  └─ PHASE 3  emitAllFiles()      (phase/emitterPhase.ts)
-        group symbols by source file → emitter/old/* → write .dart
+  └─ PHASE 3  renderAllFiles() → writeAllFiles()  (phase/emitterPhase.ts)
+        group symbols by source file → emitter/old/* → optionally write .dart
 ```
 
 **Design intent** (from the author): the IR is output-language agnostic. A
@@ -38,7 +38,9 @@ segments. Anonymous hoisted types get `<file>::Anon_<sanitised scope path>`.
 
 Dep edges are recorded as *pseudo*-FQNs (`<file>::<name as written>`) and
 resolved to real FQNs by the linker's fuzzy matcher. See `L-01`/`L-02` — this
-indirection is currently hiding two bugs.
+indirection is currently hiding wrong-file, wrong-name and qualified-name bugs.
+The result is not attached back to the `IRType` use site (`L-14`), so even a
+correct file-level edge cannot yet drive renamed-reference emission.
 
 ## Live vs. dead inventory
 
@@ -49,7 +51,8 @@ indirection is currently hiding two bugs.
 | `src/cli.ts` | arg parsing, globbing |
 | `src/transpiler.ts` | orchestration, file resolution/categorisation |
 | `src/context.ts` | singleton: symbol table, `currentFQN`, `currentDeps`, logging flag |
-| `src/symbol/{index,table}.ts` | `Symbol` type + `SymbolTable` |
+| `src/reset.ts` | per-run singleton reset |
+| `src/symbol/{index,table,resolve}.ts` | `Symbol` type, table, pseudo-FQN resolution |
 | `src/engine/phase/symbolGeneration.ts` | Phase 1 |
 | `src/engine/phase/linkerPhase.ts` | Phase 2 |
 | `src/engine/phase/emitterPhase.ts` | Phase 3 |
@@ -57,8 +60,10 @@ indirection is currently hiding two bugs.
 | `src/engine/parser/type/*.ts` | type node → IRType |
 | `src/ir/*.ts` | IR definitions |
 | `src/engine/emitter/old/*` | IR → Dart strings |
-| `src/utils/visualizeGraph.ts` | linker graph SVG (deliberate tooling, see `L-07`) |
 | `src/utils/utils.ts` | `stripQuotes` |
+
+`tools/graph.ts` is an explicit consumer of `LinkReport`; it is not on the
+shipped execution path (the S0.4 fix for `L-07`).
 
 ### Dead (zero inbound references from live code)
 
@@ -66,15 +71,15 @@ Verified with `grep -rn ... src test --include="*.ts"` excluding self-directory:
 
 | Path | Lines | Notes |
 |---|---|---|
-| `src/engine/passes/**` | ~730 | The old 5-pass pipeline. Contains 1 `tsc` error. |
-| `src/engine/transformers/**` | ~800 | Overload grouping + hoisting lived here. 4 `tsc` errors. |
+| `src/engine/passes/**` | 880 | The old 5-pass pipeline. |
+| `src/engine/transformers/**` | 804 | Overload grouping + hoisting lived here. |
 | `src/legacy/**` | ~2450 | Original 3-day implementation. Self-contained, compiles clean. |
-| `src/ir/literal.ts` (`IRLiteral`) | 47 | Only referenced by the dead transformers. Vestigial since hoisting moved to parse time. |
+| `src/ir/literal.ts` (`IRLiteral`) | 44 | Only referenced by the dead transformers. Vestigial since hoisting moved to parse time. |
 | `src/log.ts` | 251 | Full logger implementation; not imported by any live module. |
 
-**~4,300 of ~7,900 `src` lines are currently unreachable.** This is expected
-mid-refactor but it means `tsc`, coverage, and bundle size are all reporting on
-code that does not run.
+**At least 4,429 of 9,124 `src` TypeScript lines are currently unreachable.**
+This is expected mid-refactor but it means `tsc`, coverage, and bundle size are
+all reporting on code that does not run.
 
 > Note: `src/engine/transformers/` still holds the only working implementation of
 > overload grouping and recursive type-walking. Do not delete it until `P-3`

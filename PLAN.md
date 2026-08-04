@@ -159,7 +159,7 @@ small enough to reason about.
 | 1.4 | ✅ **Tier A — represent properly.** `this` → enclosing type (900 sites, §3.10) · `readonly T[]` and `ReadonlyArray<T>` → `List<T>` (§14.4) · `x is T` → `bool` (§6.6) · bare `null` → `Null` (§1.10) · optional tuple members, via the ts-morph 26→28 upgrade. **Census 1,410 → 503.** Also fixed `E-17` (`dynamic?` — uncompilable Dart), found by diffing output. **`typeof x` moved to Tier B**: it needs the checker, and the obvious guess is wrong (`typeof Foo` is the constructor, not `Foo`). Qualified names moved to S2 with `L-02` | `P-07`, `T-01`, `T-07`, `T-10`, `E-17` |
 | 1.5 | ✅ **Tier B — mint a named alias.** `keyof`, conditional, mapped, template literal, `infer`, indexed access. `deriveAliasName` is a pure function of the source text (64-char budget: derived length is p50 23 / p90 37 / p99 56); `AliasRegistry` owns uniqueness because that needs the symbol table, dedups on text and disambiguates by hash so names don't move when an unrelated declaration is added. Not yet wired into the pipeline | `T-01`, principle 2 |
 | 1.5b | ✅ **`typeof x` through the checker** — a correction, not a plan item. 1.4 wrote `typeof` off from *syntax*; asked properly, the checker resolves **393 of 449 (87%)** to a primitive (the enum-as-consts idiom: `export const NearestFilter: 1003`). Unsupported nodes **505 → 112**, minted typedefs **463 → 89**, `typedef CullFace = dynamic` → `= num`. 66 output lines changed, 0 regressions; cost inside noise. The 56 survivors — function values, namespace objects, class constructors — stay Tier B on purpose | `T-14` |
-| 1.6 | ✅ Register minted aliases as real `Symbol`s during linking; dedup identical type expressions within a file. Use sites carry `aliasName`; nodes stay `Unsupported` so `unsupportedReason` remains queryable after linking. An author's own `type X = <unrepresentable>` is left alone — it is already a named degradation, and minting would add a hop naming nothing new. Corpus: 68 typedefs over three.js + leaflet, 0 dangling references, 0 duplicates, h3 byte-identical | `L-05` |
+| 1.6 | ✅ Register minted aliases as real `Symbol`s during linking; dedup identical type expressions within a file. Use sites carry `aliasName`; nodes stay `Unsupported` so `unsupportedReason` remains queryable after linking. An author's own `type X = <unrepresentable>` is left alone — it is already a named degradation, and minting would add a hop naming nothing new. Corpus: 68 typedefs over three.js + leaflet + probe (**64 + 4 probe**), 0 dangling references, 0 duplicates, h3 byte-identical | `L-05` |
 | 1.7 | ✅ Emit the **type-definitions section**: `/// Unrepresentable in Dart: <originalText>` + `typedef Name = dynamic;`, with use sites referring to the name. Minted typedefs are collected under a header and sorted; an author's own alias is documented in place instead of moved. The doc comment computes its Markdown fence, since template literal types carry backticks. `dart analyze`: probe 19 issues, leaflet 507, **none naming a minted typedef** | `E-16` |
 | 1.8 | ✅ Purge Dart type names from `IRType.name`; TS-side names only. Invariant, not a case list: for every kind except `TypeReference`, `name === kind` — guarded by a test that was verified to fail on a reintroduced `name: "String"`. Surfaced a live defect: `name: "BigInt"` was the *only* thing separating a bigint literal from a number literal, and nothing reads `name` outside the `TypeReference` branch, so `10n` emitted `num`. Output byte-identical — no bigint literal types in the corpus | `T-06` |
 | 1.9 | ✅ Propagate depth through function types; dispatch intersections on `SyntaxKind` not source text (shared predicates in `type/keywords.ts`); drop the single-member `Union` wrapper. Normalising the union **exposed three more defects**: `null \| undefined` threw at emit and became a `// ERROR` comment (`T-15`); `{}` synthesised a cyclic `typedef anon_dynamic = anon_dynamic;` emitted into one file while **117 use sites across 34 files** referenced it — **live in three.js** (`T-16`); and `E-17`'s guard compared for exact equality with `"dynamic"`, so `dynamic /* A\|B */?` slipped through in 3 three.js files | `T-05`, `T-08`, `T-12`, `T-15`, `T-16`, `E-17` |
@@ -216,19 +216,22 @@ emit confidently wrong imports.*
 
 | # | Task | Findings |
 |---|---|---|
-| 2.1 | Follow `getAliasedSymbol()` in `collectTypeDep` so deps name the **declaring** file. Keep the existing identifier-symbol preference — its alias-to-primitive reasoning is correct | `L-01` |
+| 2.1 | Follow `getAliasedSymbol()` in `collectTypeDep` so deps use the alias target's **declaring file and target name**. Keep the identifier-symbol preference — its alias-to-primitive reasoning is correct. Baseline: 1,664/2,542 three.js edges name the importing file; 19 checker-verified use sites resolve to the wrong declaration | `L-01` |
 | 2.2 | Route heritage clauses through `parseType` — restores inheritance edges to the graph | `P-01`, `L-04` |
-| 2.3 | Normalise dotted names (`.`→`\|`) in `resolveRealFQN`; strip a leading `export as namespace` alias | `L-02` |
-| 2.4 | Make ambiguity a real diagnostic; prefer the dep's own file (mostly moot once 2.1 lands) | `L-03` |
-| 2.5 | Extract `resolveRealFQN` to `src/symbol/resolve.ts`; import from linker and from `tools/graph.ts` | `L-06` |
-| 2.6 | Persist resolved edges onto the `Symbol` (`resolvedDeps: string[]`) — **this array is the import list** | `L-08` |
+| 2.3 | Normalise dotted names (`.`→`\|`) in `resolveRealFQN`; capture or safely infer the file's `export as namespace` alias before stripping it. Leaflet baseline: 14 raw dotted misses → 44 transitively broken symbols | `L-02` |
+| 2.4 | Make ambiguity a real diagnostic; prefer the checker-derived target from 2.1; stop dependency-collection exceptions disappearing; make direct vs indirect failure states truthful | `L-03`, `L-12`, `L-15` |
+| 2.5 | ✅ Extract `resolveRealFQN` to `src/symbol/resolve.ts`; import from linker and from `tools/graph.ts` — landed in S0.4 | `L-06` |
+| 2.5b | Give graph nodes full-FQN-derived unique IDs and keep basename/scope only as labels. Current three.js graph collapses 4 real symbols into 2 nodes | `L-13` |
+| 2.6 | Persist resolved file edges onto `Symbol` (`resolvedDeps: string[]`) **and resolved target identity onto each `IRType` reference use site**. The former is the import set; the latter is required for renamed imports, qualified references and S4 renames | `L-08`, `L-14` |
 | 2.7 | Module-resolution fallback for extensionless imports; unconditional one-line unresolved-dep summary | `R-01`, `R-02` |
 | 2.8 | Single shared `isStdlib` predicate; longest-common-ancestor `inputRoot`; sorted file iteration | `R-06`, `R-03`, `R-04` |
-| 2.9 | **First tests for the linker** — FQN construction, dep collection, `resolveRealFQN`, cycles | `X-06` |
-| 2.10 | Cross-file dedup of S1's minted aliases | `L-05` |
+| 2.9 | **First tests for the linker** — FQN construction, aliased and qualified refs, renamed imports, direct/indirect misses, cycles, heritage, graph ID uniqueness | `X-06` |
+| 2.10 | ✅ Measure before adding cross-file alias ownership: three.js + leaflet have 64 aliases with **0 repeated source texts across files**. Keep aliases file-local; centralising them would add imports for no measured gain | `L-05` |
 
 **Done when:** leaflet reports 0 broken links · the extensionless-import fixture
-resolves · heritage edges appear in the graph · linker unit tests exist.
+resolves · heritage edges appear in the graph · a renamed-import fixture links
+`Bar` to `Foo` at the IR use site · direct/indirect states tell the truth · graph
+node IDs are unique · linker unit tests exist.
 
 ---
 
@@ -308,12 +311,13 @@ already in place.*
 | 6.1 | Make `def_files/js_facade_gen_test_cases.md` executable — ~120 snippet→expected pairs on `test-helper.ts` primitives. **Plus the h3 golden file** — see "h3 is the real gate" below | `X-04` |
 | 6.2 | `dart analyze` in CI over generated h3 / leaflet / three.js output | `X-09` |
 | 6.3 | Publish **"N/M js_facade_gen cases passing"** as the headline metric | — |
-| 6.4 | Reconnect `log.ts` as `--emit-ir` (one JSON per phase) as a `tools/` consumer, or delete it and fix the docs | `R-08`, `D-05` |
-| 6.5 | README: state the `package:js` target deliberately; document `pnpm graph` | — |
-| 6.6 | Verify tree-shaking removed the deleted code from `dist/` | `D-06` |
-| 6.7 | Move `src/legacy/**` to `docs/history/` or a git tag | `D-04` |
-| 6.8 | *(optional)* `1.0.0-beta.0` under the npm `next` tag; soak | — |
-| 6.9 | Merge to `main`, publish **`1.0.0`** | — |
+| 6.4 | Return symbol-generation errors as phase output; merge them into the programmatic result and CLI diagnostic policy so caught statement failures cannot silently shrink the generated API | `R-13` |
+| 6.5 | Reconnect `log.ts` as `--emit-ir` (one JSON per phase) as a `tools/` consumer, or delete it and fix the docs | `R-08`, `D-05` |
+| 6.6 | README: state the `package:js` target deliberately; document `pnpm graph` | — |
+| 6.7 | Verify tree-shaking removed the deleted code from `dist/` | `D-06` |
+| 6.8 | Move `src/legacy/**` to `docs/history/` or a git tag | `D-04` |
+| 6.9 | *(optional)* `1.0.0-beta.0` under the npm `next` tag; soak | — |
+| 6.10 | Merge to `main`, publish **`1.0.0`** | — |
 
 ---
 
@@ -358,8 +362,8 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 | Stage | Status | Notes |
 |---|---|---|
 | S0 floor | ☑ **done** | suite 1654 failed → **57 passed**; `tsc` 15 errors → **0**; `dist` 1.59 MB → **75 KB**; snapshots 4.3 MB → **128 KB** |
-| S1 types | ☑ **done** | unsupported nodes 1,410 → **112**; 68 minted typedefs, 0 dangling / 0 duplicate; suite 57 → **199 passed**; `dist` 75 KB → **90.6 KB**. Fixed `T-01`–`T-16` bar `T-11`, plus `P-07`, `E-16`, `E-17`. No unrepresentable use site emits bare `dynamic`. Residual: 28 nodes across `object`/`undefined` (`E-19`), and `E-14`/`E-18` which bypass `emitType` — all S5. h3 `dart analyze` clean (was already); leaflet 510, probe 19, dominated by `E-03` and `L-05`/`E-10` |
-| S2 links | ☐ not started | |
+| S1 types | ☑ **done** | unsupported nodes 1,410 → **112**; 68 minted typedefs (**64 three.js+leaflet + 4 probe**), 0 dangling / 0 duplicate; suite 57 → **199 passed**; `dist` 75 KB → **90.6 KB**. Fixed `T-01`–`T-16` bar `T-11`, plus `P-07`, `E-16`, `E-17`. No unrepresentable use site emits bare `dynamic`. Residual: 28 nodes across `object`/`undefined` (`E-19`), and `E-14`/`E-18` which bypass `emitType` — all S5. h3 `dart analyze` clean (was already); leaflet 510, probe 19, dominated by `E-03` and `L-05`/`E-10` |
+| S2 links | ☐ implementation not started | pre-S2 audit complete; 2.5 already landed in S0, 2.10 measured and dropped |
 | S3 decls | ☐ not started | |
 | S4 semantics | ☐ not started | |
 | S5 emitter | ☐ not started | |

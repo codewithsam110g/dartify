@@ -109,40 +109,41 @@ Node on all platforms and `transpiler.ts:204` already has a
 
 ---
 
-## X-06 — No test covers the linker or the symbol table `[verified]`
+## X-06 — No test asserts linker or symbol-table behaviour `[verified]`
 
-`test/` contains: `simple`, `snapshot`, `decl/decl-parser`, `decl/decl-emitter`,
-`type/type-parser`, `type/type-emitter`. There is **no** test for
-`symbolGeneration`, `linkerPhase`, `emitterPhase`, FQN construction, dep
-collection, or `resolveRealFQN`.
+`test/` now contains 13 test files after S0/S1, including reset, smoke/stress,
+alias registration and type normalisation coverage. The emitter is exercised
+both directly and end to end. One alias-registration test calls
+`Transpiler.analyze()`, but it asserts only alias counters — not a link result.
+There is still **no behavioural assertion** for `SymbolTable`, link states, FQN
+construction, dep collection, `resolveRealFQN`, cycles or ambiguity.
 
-Every finding in `06-symbol-linker.md` was found by running the CLI and reading
-output, because there is no unit-level surface to assert against. `L-01` and
-`L-02` in particular are trivially unit-testable once a fixture helper exists.
+The smoke and stress suites call the single-file string API. They cannot expose
+wrong cross-file ownership, renamed imports, ambiguity, graph-ID collisions or
+extensionless module resolution. They also do not assert `LinkReport` directly.
+
+Every resolution finding in `06-symbol-linker.md` was found by probes and
+reading runtime state, because the normal suite never checks it. `L-01` and
+`L-02` in particular are straightforward fixture tests once a multi-file
+project helper exists.
 
 **This is the highest-value test gap** — the linker is where the active
 development is, and it has zero coverage.
 
 ---
 
-## X-07 — `pnpm test` runs vitest in watch mode `[inspection]`
+## X-07 — `pnpm test` ran vitest in watch mode `[inspection]` **[FIXED — S0.8]**
 
-`package.json` scripts: `"test": "vitest"` (watch) and `"test:run": "vitest run"`
-(single). CI and agents want the latter. Conventional expectation is that
-`test` is the one-shot and `test:watch` is the watcher — both already exist, so
-`test` could simply be re-pointed at `vitest run`.
+`test` and `test:run` now both execute `vitest run`; `test:watch` owns watch
+mode.
 
 ---
 
-## X-08 — `test:cli` references a placeholder path `[inspection]`
+## X-08 — `test:cli` referenced a placeholder path `[inspection]` **[FIXED — S0.8]**
 
-```json
-"test:cli": "pnpm build && node dist/cli.js --files ./path/to/test.d.ts --outDir ./output"
-```
-
-`./path/to/test.d.ts` is a placeholder, and the flags are wrong: the CLI accepts
-`-d/--def-files` and `-o/--output` (`cli.ts:25-36`), not `--files`/`--outDir`.
-The script cannot have been run successfully.
+It now builds and invokes the bundled CLI against `def_files/h3/h3.d.ts` with
+the current `-d`/`-o` flags. The old script used a nonexistent placeholder and
+obsolete flag names.
 
 ---
 
@@ -222,9 +223,9 @@ Worth promoting into `def_files/synthetic/` as a permanent regression fixture.
 > **Partially addressed — S1.6/S1.10.** `dart analyze` is installed on the
 > development machine and is now run by hand against generated output; the
 > throwaway-package harness is recorded in `CLAUDE.md`. First measurements:
-> **h3 clean**, probe 19 issues, leaflet 507 — the latter two dominated by
+> **h3 clean**, probe 19 issues, leaflet 510 — the latter two dominated by
 > `E-03` (type parameters) and `L-05`/`E-10` (declaration merging and namespace
-> flattening), which between them account for well over 400 of leaflet's 507.
+> flattening), which between them account for well over 400 of leaflet's 510.
 >
 > It found two things reading could not: `E-09` produces hard parse errors for
 > `class`/`extends` but *not* for `static`, which is exactly the §10.3 built-in

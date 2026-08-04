@@ -169,7 +169,11 @@ Consequences worth holding on to:
   passes because it is modern ESM with explicit `.js` extensions. Extensionless
   relative imports — most of DefinitelyTyped — silently resolve to nothing
   (`R-01`). And the linker's fuzzy name matcher masks a systematic wrong-file
-  FQN bug (`L-01`).
+  FQN bug (`L-01`). The pre-S2 checker-backed audit measured 1,664 wrong-file
+  edges and 19 references selecting the wrong declaration despite the green
+  2,004/2,004 report. A resolved file list is also insufficient: renamed and
+  qualified references need resolved target identity on the IR use site
+  (`L-14`).
 - **The type checker is available and it is cheap — use it before declaring
   something unrepresentable.** The parser is otherwise syntax-only, which makes
   it easy to conclude a construct "can't be known statically". `T-14` is the

@@ -1,7 +1,8 @@
 # 06 — Symbol Table & Linker
 
 Covers `src/symbol/{index,table}.ts`, `src/engine/phase/symbolGeneration.ts`,
-`src/engine/phase/linkerPhase.ts`, `src/utils/visualizeGraph.ts`.
+`src/engine/phase/linkerPhase.ts`, `src/symbol/resolve.ts`, and
+`tools/graph.ts`.
 
 This is the architecture's centrepiece and the area under active development.
 Phase 2 is where overload resolution and declaration augmentation are intended
@@ -37,7 +38,7 @@ reports:
 
 ### Why this is currently invisible
 
-`resolveRealFQN` (`linkerPhase.ts:38-95`) falls back to matching on the bare
+`resolveRealFQN` (`symbol/resolve.ts:24-68`) falls back to matching on the bare
 symbol *name* across every key in the table, so it finds `base.d.ts::BaseThing`
 anyway and reports success. **The fuzzy matcher is masking a systematic FQN
 defect.** three.js reports 0 broken links partly because of this.
@@ -46,11 +47,43 @@ The moment import emission (`E-08`) reads these FQNs to decide *which file to
 import*, it will emit imports pointing at the importing file — or, via the
 fuzzy fallback, at an arbitrary same-named symbol in an unrelated file.
 
+### Re-measured before S2
+
+Over three.js, **1,664 of 2,542 recorded dep edges** name the importing file
+rather than the declaring file. The fuzzy matcher still reports 2,004/2,004
+symbols linked, but a checker-backed comparison of aliased references found
+**19 use sites resolved to the wrong real declaration**. Examples:
+
+- `core/UniformsGroup.d.ts`'s `Uniform` resolves to
+  `nodes/core/UniformNode.d.ts::Uniform`, not `core/Uniform.d.ts::Uniform`.
+- `renderers/common/Renderer.d.ts`'s `RenderItem` resolves to the WebGL
+  `RenderItem`, not `renderers/common/RenderList.d.ts::RenderItem`.
+
+So the masking is no longer hypothetical: three.js's zero-broken headline
+contains verified false-positive links.
+
+A renamed-import probe exposes a second half of the defect:
+
+```ts
+// base.d.ts
+export interface Foo {}
+// derived.d.ts
+import { Foo as Bar } from "./base";
+export interface Uses { x: Bar }
+```
+
+records `/derived.d.ts::Bar`. Correcting only the file would produce
+`/base.d.ts::Bar`, which is still not the declared symbol `/base.d.ts::Foo`.
+The aliased symbol's **target name as well as target file** is the dependency
+identity.
+
 **Fix before writing the import emitter.** The comment at `typeRefernce.ts:8-12`
 explains why the identifier symbol is preferred over the resolved type symbol
 (alias-to-primitive preservation) — that reasoning is correct and should be
-kept; the fix is to additionally follow `getAliasedSymbol()` when the
-declaration is an import specifier.
+kept. When it is an alias, follow `getAliasedSymbol()` and use the target
+symbol's declaration file **and target name**. Also attach the resolved identity
+to the IR use site; fixing only the symbol-level dep list leaves `Bar` in the
+emitted type (`L-14`).
 
 ---
 
@@ -61,7 +94,7 @@ Deps record the type name as written: `typeName.getText()`
 module scope pipe-separated: `leaflet.d.ts::Control|Attribution`.
 
 `resolveRealFQN` splits keys on `|` and compares only the last segment
-(`linkerPhase.ts:57-63`), so `"Attribution"` is compared against the full dotted
+(`symbol/resolve.ts:39-47`), so `"Attribution"` is compared against the full dotted
 string `"L.Control.Attribution"` and never matches.
 
 ### Repro
@@ -71,7 +104,8 @@ pnpm dev -d "def_files/leaflet/*.d.ts" -l
 → ✅ Graph Verification Complete: 274 valid, 44 broken.
 ```
 
-All 44 failures are qualified names — `Control.Attribution`, `Control.Layers`,
+The 44 broken symbols propagate from **14 raw missing edges**, and all 14 are
+qualified names — `Control.Attribution`, `Control.Layers`,
 `Control.Scale`, `Control.Zoom`, `L.Control.Attribution`, `L.Coords`,
 `TileLayer.WMS`. Zero are genuinely-absent symbols.
 
@@ -84,17 +118,20 @@ All 44 failures are qualified names — `Control.Attribution`, `Control.Layers`,
 
 **Fix direction:** normalise `.` → `|` on the dep side before matching, and
 strip a leading `export as namespace` alias (`L.`) when it matches the file's
-declared global name.
+declared global name. That alias is currently ignored with every other export
+statement, so either capture per-file namespace-export metadata during symbol
+generation or allow only a unique same-file suffix match; the resolver cannot
+currently verify that `L` is the declared global name.
 
 ---
 
 ## L-03 — Ambiguous matches silently resolve to `matches[0]` `[inspection]`
 
-**`linkerPhase.ts:66-94`** — the preference order is: same-file match, then
-non-namespaced primary, then `matches[0]`. The collision warning at `:84-92` is
-**unreachable for the common case** because both earlier `return`s fire first;
-it only prints when neither preference matched, and then still returns
-`matches[0]`.
+**`symbol/resolve.ts:24-68`** — the preference order is: same-file match, then
+non-namespaced primary, then `matches[0]`. The ambiguity callback runs only when
+neither preference matched, and resolution still returns `matches[0]`. Thus the
+common repeated-name case silently chooses a symbol; with debug disabled even
+the narrow callback case is invisible.
 
 For link *verification* this is a benign over-approximation. For import
 emission it silently selects a wrong file. Every `.d.ts` corpus has repeated
@@ -109,7 +146,7 @@ most ambiguity disappears.
 ## L-04 — Inheritance edges are absent from the graph `[verified]`
 
 See `P-01`. Recorded here because the consequence is a linker/graph consequence:
-`dependency_graph.svg` currently renders a graph that is *missing its most
+`tools/graph.ts` currently renders a graph that is *missing its most
 important edges*, and the "all green, no red" state it shows is partly an
 artefact of not looking at heritage at all.
 
@@ -148,7 +185,10 @@ the fixtures.
 
 ---
 
-## L-06 — `resolveRealFQN` is duplicated between linker and visualiser `[inspection]`
+## L-06 — `resolveRealFQN` was duplicated between linker and visualiser `[inspection]` **[FIXED — S0.4]**
+
+The matcher now lives in `src/symbol/resolve.ts` and is shared by
+`linkerPhase.ts` and `tools/graph.ts`. Original finding follows.
 
 `linkerPhase.ts:38-95` and `utils/visualizeGraph.ts:16-40` contain two
 near-identical copies of the fuzzy matcher, with the visualiser's copy silently
@@ -158,7 +198,11 @@ omitting the collision warning. They will drift.
 
 ---
 
-## L-07 — The graph visualiser is wired into the production pipeline `[verified]`
+## L-07 — The graph visualiser was wired into the production pipeline `[verified]` **[FIXED — S0.4]**
+
+The visualiser now lives at `tools/graph.ts`, consumes `Transpiler.analyze()`'s
+`LinkReport`, writes only when explicitly invoked with `pnpm graph`, and is no
+longer reachable from the published CLI bundle. Original finding follows.
 
 **`linkerPhase.ts:2`**
 ```ts
@@ -215,24 +259,27 @@ the compiler.
 
 ---
 
-## L-08 — `LinkState` is computed and then discarded `[inspection]`
+## L-08 — Resolved edges are not persisted `[inspection]` **[PARTIALLY FIXED — S0.4]**
 
-`runLinker` builds a full `LinkResult` per symbol (`linkerPhase.ts:98-169`),
-counts valid/invalid, prints them under `debug`, and returns `void`. Nothing is
-stored on the `Symbol`, and `emitAllFiles` re-reads the raw table with no
-knowledge of link state.
+`runLinker` now returns a `LinkReport` containing the state for every real FQN,
+so the old "computed then discarded" wording is no longer true. What remains:
+no resolved edge is stored on `Symbol`, no use-site reference is linked to its
+target, and `emitAllFiles` still re-reads only the raw table. Even
+`tools/graph.ts` re-runs `resolveRealFQN` over raw deps to draw its edges because
+the report contains states but not edges.
 
 So the emitter cannot: skip broken symbols, emit `// unresolved: X` markers, or
 generate imports from resolved edges. The graph is computed for its own sake.
 
 **Fix direction:** persist resolved edges onto the symbol
-(`resolvedDeps: string[]`) — that array *is* the import list.
+(`resolvedDeps: string[]`) as the file import list, and persist the resolved
+target on each reference use site (`L-14`).
 
 ---
 
 ## L-09 — The bottom-up pre-sort reads only the first symbol's deps `[inspection]`
 
-**`linkerPhase.ts:179-183`**
+**`linkerPhase.ts:152-158`**
 ```ts
 const aDeps = a[1][0]?.deps?.length || 0;
 ```
@@ -277,3 +324,87 @@ Consequences:
 
 `Tasks.md` lists "Fix ambient declarations using an encapsulatory class for each
 module" — this finding is the mechanical half of that item.
+
+---
+
+## L-12 — A direct missing dependency is reported as indirect `[verified]`
+
+`checkDeps(missingPseudoFqn)` returns `NotLinkedDirect`, but its caller
+immediately wraps that result as `NotLinkedIndirect` for the owning symbol
+(`linkerPhase.ts:112-125`). Only real table FQNs are inserted into
+`LinkReport.results`, so a top-level report entry can **never** have
+`NotLinkedDirect`.
+
+Minimal probe:
+
+```text
+A deps: [Missing]
+report[A] = NotLinkedIndirect via [Missing]
+```
+
+The graph's red/blue verdict is unaffected, but the public state model and
+diagnostic wording are false. Define the states relative to the reported symbol:
+its immediate missing edge is direct; failure reached through another real
+symbol is indirect. Add direct, indirect and cyclic fixtures before changing
+the DFS.
+
+---
+
+## L-13 — Graph node IDs collapse distinct files with the same basename `[verified]`
+
+`tools/graph.ts:61-66` builds a Graphviz node ID from
+`basename(file) + scope`. Two declarations with the same file basename and
+scope in different directories become one visual node.
+
+This is live in three.js. Four real symbols collapse into two graph nodes:
+
+```text
+core/Uniform.d.ts::Uniform
+renderers/common/Uniform.d.ts::Uniform
+
+core/UniformsGroup.d.ts::UniformsGroup
+renderers/common/UniformsGroup.d.ts::UniformsGroup
+```
+
+The graph is a correctness instrument, so this is not merely cosmetic. Use a
+stable unique ID derived from the full FQN and keep the short basename/scope as
+the human-readable label.
+
+---
+
+## L-14 — Type-reference use sites have no resolved symbol identity `[verified]`
+
+`IRType` stores a `TypeReference`'s written `name`, while dependency collection
+writes an unrelated string into the owning `Symbol.deps`. The linker can resolve
+the latter, but it has no path back to the exact IR node that produced it.
+
+The renamed-import probe from `L-01` leaves:
+
+```text
+Symbol.deps       = ["/derived.d.ts::Bar"]
+IRType.name       = "Bar"
+real declaration  = "/base.d.ts::Foo"
+```
+
+Even a perfect `resolvedDeps` import list would still make the emitter write
+`Bar`, which does not exist in the generated `base.dart`. Qualified namespace
+references and S4 collision renames have the same problem.
+
+**Fix direction:** linking must attach a language-independent target identity
+to each reference node — for example `IRType.resolvedFQN` or an edge ID that
+maps to it. `resolvedDeps` remains the file-level import set; it is not a
+substitute for use-site linking.
+
+---
+
+## L-15 — Dependency-resolution exceptions silently remove graph edges `[inspection]`
+
+`collectTypeDep` wraps its complete body in `try/catch {}` and returns nothing
+on any exception (`typeRefernce.ts:14-59`). The linker cannot diagnose an edge
+that was never recorded, so the failure mode is a falsely green graph rather
+than a broken link.
+
+No swallowed exception was found in the measured corpus, but this is the same
+defect class as `R-12`: an error in graph construction is converted into absent
+data. Catch only expected checker failures, return a structured diagnostic, and
+cover the fallback path with a fixture.

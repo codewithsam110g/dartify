@@ -64,10 +64,15 @@ implementation; deleting later leaves `tsc` broken.
 
 ---
 
-## D-03 — `IRLiteral` is reachable only from dead code `[verified]`
+## D-03 — `IRLiteral` is reachable only from dead code `[verified]` **[FIXED — S3 live IR]**
 
 See `I-07`. `src/ir/literal.ts` and `IRType.objectLiteral` are referenced solely
 by `typeVisitor.ts` / `typeTransformer.ts`. They go when the transformers go.
+
+> **S3 resolution:** the live `IRLiteral` file and `IRType.objectLiteral` field
+> are deleted. The excluded transformer sources deliberately remain untouched:
+> S4 still has to mine their overload grouping and anonymous-shape
+> canonicalisation before deleting the quarantined directories.
 
 ---
 

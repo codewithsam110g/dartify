@@ -245,24 +245,27 @@ half-complete until the S5 rebuild.*
 
 | # | Task | Findings |
 |---|---|---|
-| 3.0 | Expand the synthetic IR acceptance fixture before changing schemas: generics, call/construct overloads, docs, locations, modifiers, enum forms, bigint, defaults/destructuring, class index signatures and scoped inline types. Assert at the IR boundary, not on emitted Dart | S3 gate |
-| 3.1 | `IRTypeParam { name, constraint?, default? }` on Interface / Function / TypeAlias / Method / CallSignature / ConstructSignature / Class | `I-01`, `P-02` |
-| 3.1b | One shared `IRParameter`; remove the declaration/type split and preserve rest, optional, binding-pattern and initializer data | `I-13`, `P-11` |
+| 3.0 | ✅ Expanded `synthetic/s3-complete.d.ts`: generics, call/construct overloads, docs, locations, modifiers, enum forms, bigint, defaults/destructuring, class index signatures and scoped inline types. Assertions are at the IR boundary | S3 gate |
+| 3.1 | ✅ `IRTypeParam { name, constraint?, default? }` on Interface / Function / TypeAlias / Method / CallSignature / ConstructSignature / Class; constraints/defaults link while lexical and declaration identities exclude type parameters from graph edges | `I-01`, `P-02`, `L-16` |
+| 3.1b | ✅ One shared `IRParameter`; declaration and function-type parsing preserve rest, optional, binding-pattern, initializer, docs and locations | `I-13`, `P-11` |
 | 3.2 | ✅ Landed in S2.2: `extends`/`implements` are `IRType[]`, preserving generic args, dep edges and qualified names | `I-04` |
-| 3.3 | `callSignatures` on `IRInterface`; read them in the parser | `I-05`, `P-03` |
-| 3.3b | Unify class constructors and interface/type-literal construct signatures behind a shared signature shape; preserve every overload and remove the fake `name: "constructor"` | `I-08`, `P-09` |
-| 3.4 | `jsDoc?: string` on declarations, members, signatures, enum members, type params and params; capture in all parsers | `I-06`, `P-06` |
-| 3.5 | `loc?: {file,line,column}` on declarations, types and nested IR nodes — makes S2 diagnostics actionable while allowing synthetic nodes to omit it | `I-10` |
-| 3.6 | Capture export kind, syntactic/effective ambient state and member visibility; retain the existing static/readonly/abstract facts | `I-09` |
-| 3.6b | Capture `var`/`let`/`const` truthfully instead of impossible variable `readonly`; add class index signatures | `P-05`, `P-12` |
-| 3.7 | Represent enum initialisers as implicit/numeric/string/computed with raw text and checker value; replace JSON cloning with bigint-safe `structuredClone` | `P-04`, `I-11` |
-| 3.8 | Replace mutable `currentFQN` with an explicit immutable parse context, including deterministic return/parameter/overload scopes and a hoisted-symbol registration seam | `R-09`, `P-08` |
-| 3.9 | Delete `IRLiteral` + `IRType.objectLiteral`; the recursive walker was already mined into `ir/visit.ts` in S2 | `I-07`, `I-14`, `D-03` |
-| 3.10 | Add focused IR fidelity tests plus an opt-in S3 corpus census; re-run the complete S2 gates, stress corpus, build, h3 golden/analyzer and link baselines | S3 gate |
+| 3.3 | ✅ `callSignatures` on `IRInterface` and hoisted type literals; every signature is parsed | `I-05`, `P-03` |
+| 3.3b | ✅ Shared `IRConstructSignature` for classes, interfaces and type literals; every overload retained, fake constructor names removed, class constructor visibility retained | `I-08`, `P-09` |
+| 3.4 | ✅ Shared `IRNode.jsDoc` on declarations, members, signatures, enum members, type params and params; `@param` tags attach to their parameters | `I-06`, `P-06` |
+| 3.5 | ✅ `loc?: {file,line,column}` on declarations, parsed types and nested IR nodes; synthetic linker nodes may omit it. Snapshots normalise only the checkout-specific root | `I-10` |
+| 3.6 | ✅ Required declaration modifiers capture export kind and syntactic/effective ambient state; members retain visibility/static/readonly/abstract facts | `I-09` |
+| 3.6b | ✅ Variables capture `var`/`let`/`const` truthfully; classes retain index signatures | `P-05`, `P-12` |
+| 3.7 | ✅ Enum initialisers are discriminated as implicit/numeric/string/computed with raw and semantic values; cloning uses bigint-safe `structuredClone` | `P-04`, `I-11` |
+| 3.8 | ✅ Immutable `ParseContext` replaces mutable `currentFQN`; deterministic return/parameter/overload scopes and a callback seam register collision-free hoisted symbols | `R-09`, `P-08` |
+| 3.9 | ✅ Deleted live `IRLiteral` and `IRType.objectLiteral`; S2's `ir/visit.ts` remains the live recursive walker. The quarantined S4 transformer source is intentionally untouched until mined | `I-07`, `I-14`, `D-03` |
+| 3.10 | ✅ Six focused fidelity tests plus `test:s3`; S2 corpus 2/2, 1,650-file stress, typecheck, build, smoke and h3 `dart analyze` all pass | S3 gate |
 
-**Done when:** the expanded synthetic fixture round-trips through the IR with
-**zero known information loss** — asserted on the IR, not on emitted Dart — and
-S2's link metrics remain unchanged.
+**Done:** the expanded fixture reaches the IR with zero known information loss.
+The representative census observed 2,530 declarations, 26,240 parsed types,
+409 type parameters, 286 call signatures and 53 construct signatures with
+zero missing declaration/type locations. S2 link metrics are unchanged; the
+normal suite is 222 passed / 4 skipped, all 1,650 corpus files survive, the
+bundle is 112.24 KB, and generated h3 remains `dart analyze` clean.
 
 ---
 
@@ -373,7 +376,7 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 | S0 floor | ☑ **done** | suite 1654 failed → **57 passed**; `tsc` 15 errors → **0**; `dist` 1.59 MB → **75 KB**; snapshots 4.3 MB → **128 KB** |
 | S1 types | ☑ **done** | unsupported nodes 1,410 → **112**; 68 minted typedefs (**64 three.js+leaflet + 4 probe**), 0 dangling / 0 duplicate; suite 57 → **199 passed**; `dist` 75 KB → **90.6 KB**. Fixed `T-01`–`T-16` bar `T-11`, plus `P-07`, `E-16`, `E-17`. No unrepresentable use site emits bare `dynamic`. Residual: 28 nodes across `object`/`undefined` (`E-19`), and `E-14`/`E-18` which bypass `emitType` — all S5. h3 `dart analyze` clean (was already); leaflet 510, probe 19, dominated by `E-03` and `L-05`/`E-10` |
 | S2 links | ☑ **done** | Leaflet 328/328 symbols and 1,050/1,050 edges resolved; three.js 0 ambiguity and 8,184 resolved edges, with 31 honest misses from two absent external type packages. Suite **214 passed**, focused S2 tests 15/15, corpus 2/2, `tsc` and build clean, h3 byte-identical; `-lv` exposes the structured report |
-| S3 decls | ☐ not started | |
+| S3 decls | ☑ **done** | Complete metadata/signature IR; six semantic acceptance tests; census 2,530 declarations / 26,240 parsed types with 0 missing locations; suite **222 passed**, S2/S3 corpus gates and 1,650-file stress clean; h3 `dart analyze` clean |
 | S4 semantics | ☐ not started | |
 | S5 emitter | ☐ not started | |
 | S6 ship | ☐ not started | |

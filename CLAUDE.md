@@ -42,7 +42,8 @@ pnpm test                           # one-shot suite (test:run is the same)
 pnpm test:watch                     # watch mode
 pnpm test:ui                        # browser UI at localhost:51204/__vitest__/
 pnpm test:update                    # accept snapshot changes (vitest run -u)
-pnpm test:stress                    # opt-in full 1,649-file corpus, ~5.5 min
+pnpm test:stress                    # opt-in full 1,650-file corpus, ~8 min
+pnpm test:s3                        # opt-in declaration-fidelity census
 pnpm exec tsc --noEmit              # typecheck — must stay at 0 errors
 pnpm dev -d "<glob>" -o <outdir>    # run the CLI from source
 pnpm dev -d "<file>" -o <out> -l    # phase + module-resolution logs
@@ -71,9 +72,10 @@ POSIX-shell syntax; on Windows use `pnpm test:run test/stress.test.ts` with the
 variable set separately.
 
 Test tiers: `simple` (sanity) · `smoke` (3 files, byte-exact snapshots) ·
-`stress` (whole corpus, opt-in, asserts only that nothing throws).
+`test:s3` (declaration-fidelity census) · `stress` (1,650-file corpus, opt-in,
+asserts only that nothing throws).
 
-Useful corpora in `def_files/` (1,649 `.d.ts` files, not shipped to npm):
+Useful corpora in `def_files/` (1,650 `.d.ts` files, not shipped to npm):
 
 | Path | Why |
 |---|---|
@@ -82,6 +84,7 @@ Useful corpora in `def_files/` (1,649 `.d.ts` files, not shipped to npm):
 | `three/src/Three.Core.d.ts` | 420-file transitive resolution, ~5 s |
 | `legacy_tests/*.d.ts` | the `js_facade_gen` conformance fixtures |
 | `synthetic/probe.d.ts` | **hand-written.** One run reproduces ~16 findings |
+| `synthetic/s3-complete.d.ts` | executable declaration-IR fidelity contract |
 
 ## Architecture
 

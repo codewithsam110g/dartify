@@ -20,19 +20,25 @@ not: overload resolution, declaration augmentation, and cross-file imports are
 whole-program questions, and there was previously no phase that saw the whole
 program. Now there is.
 
-Stages S0–S2 are complete. The link layer now carries checker-backed targets on
+Stages S0–S3 are complete. The link layer now carries checker-backed targets on
 IR reference sites, persists resolved graph edges, distinguishes missing from
 ambiguous and direct from indirect failure, resolves extensionless declaration
 imports conservatively, and exposes resolution/link reports to the CLI and
 graph tooling. Leaflet closes at 1,050/1,050 edges; three.js resolves 8,184
 edges with zero ambiguity while retaining 31 honest misses from two absent
-external type packages. S3—the declaration IR—is next.
+external type packages. The declaration layer now retains generics and their
+constraints/defaults, shared parameter/signature shapes, call and construct
+overloads, documentation, source locations, modifiers, enum initializer
+semantics, variable declaration kinds, and class index signatures. An opt-in
+census over h3, Leaflet, three.js and the S3 fixture found **2,530 declarations**
+and **26,240 parsed type nodes** with zero missing source locations. S4—the
+whole-program semantic layer—is next.
 
 The current Dart backend is still the transitional `emitter/old/*`
 string-template implementation: some paths work, some deliberately preserve
 legacy degradation, and several declaration features are not emitted at all.
 The internal `render()` API only means "produce strings without writing them";
-it is not the emitter overhaul. S3 makes the IR lossless, S4 performs
+it is not the emitter overhaul. S3 made the IR lossless, S4 performs
 whole-program semantic rewrites, and **S5 rebuilds the emitter once** on top of
 those completed layers.
 

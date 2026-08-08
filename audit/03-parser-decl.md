@@ -6,6 +6,13 @@ These turn a ts-morph declaration node into IR. They are the *only* place source
 fidelity can be captured — anything not recorded here is unrecoverable
 downstream.
 
+> **S3 closure:** `P-02`–`P-06`, `P-08`, `P-09`, `P-11` and `P-12` are fixed at
+> the IR boundary. Declaration parsers share metadata and signature helpers,
+> retain every call/construct overload, and use immutable parse scopes. See
+> `test/decl/s3-ir.test.ts` and `def_files/synthetic/s3-complete.d.ts` for the
+> executable acceptance contract. The historical sections below retain the
+> original evidence and failure modes.
+
 ---
 
 ## P-01 — Heritage clauses bypass `parseType`, so inheritance edges never reach the dep graph `[verified]` **[FIXED — S2]**
@@ -61,7 +68,7 @@ one change.
 
 ---
 
-## P-02 — Type parameters are captured for classes only, and never emitted `[verified]`
+## P-02 — Type parameters are captured for classes only, and never emitted `[verified]` **[FIXED — S3 IR]**
 
 **`parser/class.ts:20`** — `classDecl.getTypeParameters().map(tp => tp.getName())`
 is the *only* type-parameter capture in the codebase.
@@ -82,7 +89,7 @@ Also missing: constraints (`T extends Foo`) and defaults (`T = string`), which
 
 ---
 
-## P-03 — Call signatures on interfaces are never read `[verified]`
+## P-03 — Call signatures on interfaces are never read `[verified]` **[FIXED — S3 IR]**
 
 `interfaceDecl.getCallSignatures()` is never called. `parser/interface.ts` reads
 properties, methods, construct signatures, get/set accessors and index
@@ -108,7 +115,7 @@ Also blocks declaration augmentation: the `interface`+`var` merge pattern
 
 ---
 
-## P-04 — Enum member values are always strings `[verified]`
+## P-04 — Enum member values are always strings `[verified]` **[FIXED — S3]**
 
 **`parser/enum.ts:11`**
 ```ts
@@ -129,7 +136,7 @@ regardless of explicit initialisers.
 
 ---
 
-## P-05 — `isReadonly` on variables is always false `[inspection]`
+## P-05 — `isReadonly` on variables is always false `[inspection]` **[FIXED — S3]**
 
 **`parser/variable.ts:15`**
 ```ts
@@ -144,7 +151,7 @@ Currently invisible because the variable emitter ignores both flags (`E-05`).
 
 ---
 
-## P-06 — No JSDoc is captured anywhere except class constructors `[inspection]`
+## P-06 — No JSDoc is captured anywhere except class constructors `[inspection]` **[FIXED — S3 IR]**
 
 `getJsDocs()` appears exactly once, at **`parser/class.ts:89-93`**, and the
 result is stored on `IRConstructor.jsDoc` — a field no emitter reads.
@@ -175,7 +182,7 @@ The ROADMAP schedules this for v0.7. The corpus says it should be much earlier.
 
 ---
 
-## P-08 — Function/method return types are parsed outside the pushed FQN scope `[inspection]`
+## P-08 — Function/method return types are parsed outside the pushed FQN scope `[inspection]` **[FIXED — S3]**
 
 **`parser/function.ts:9`** parses the return type *before* any scope push, while
 parameters push `|paramName` (`:17-20`). A `TypeLiteral` in return position
@@ -188,7 +195,7 @@ Same pattern in `parser/interface.ts:48`, `parser/class.ts:50`.
 
 ---
 
-## P-09 — `getConstructSignatures` on interfaces is stored with a fake name `[inspection]`
+## P-09 — `getConstructSignatures` on interfaces is stored with a fake name `[inspection]` **[FIXED — S3 IR]**
 
 **`parser/interface.ts:108-114`** pushes `{ name: "constructor", ... }` into an
 `IRMethod[]`. `IRInterface.constructors` is `IRMethod[]`, whereas
@@ -210,7 +217,7 @@ field exists and is ready; the linker will need to set it.
 
 ---
 
-## P-11 — Parameter destructuring and default values are not represented `[inspection]`
+## P-11 — Parameter destructuring and default values are not represented `[inspection]` **[FIXED — S3 IR]**
 
 `param.getName()` on a destructured parameter (`function x({p, d} = {})`)
 returns a synthesised binding-pattern text. There is no `IRParameter` field for
@@ -222,7 +229,7 @@ Low frequency; noted for conformance completeness.
 
 ---
 
-## P-12 — Classes drop index signatures entirely `[verified]`
+## P-12 — Classes drop index signatures entirely `[verified]` **[FIXED — S3 IR]**
 
 `parseInterface` reads `interfaceDecl.getIndexSignatures()` and populates
 `IRInterface.indexSignatures`. `parseClass` does neither: it never calls

@@ -39,15 +39,15 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `L-02` **[FIXED — S2]** | ~~Dotted qualified names never match table keys~~ — declared namespace metadata resolves all 44 former Leaflet failures | `symbol/resolve.ts`, `phase/symbolGeneration.ts` | ✅ |
 | `E-02` | Constructor counter never incremented → duplicate factory names | `emitter/old/class.ts:25-31` | ✅ |
 | `E-06` | Enum members unreachable (`static` in an `extension`) with per-member type drift | `emitter/old/enum.ts:19-29` | ✅ |
-| `P-04` | Enum values always parsed as strings, never numbers | `parser/enum.ts:11` | ✅ |
-| `P-03` / `I-05` | Interface call signatures never read; no IR field for them | `parser/interface.ts`, `ir/interface.ts` | ✅ |
+| `P-04` **[FIXED — S3]** | Discriminated enum initializers retain implicit/numeric/string/computed form, raw text and semantic values; numeric members now reach the old emitter as numbers | `parser/enum.ts`, `ir/enum.ts` | ✅ |
+| `P-03` / `I-05` **[FIXED — S3]** | Interface and type-literal call signatures have a shared IR shape and every overload is parsed | `parser/{interface,type/typeLiterals}.ts`, `ir/signature.ts` | ✅ |
 | `E-07` | Hoisted anonymous classes get no factory → unconstructible | `emitter/old/interface.ts:21-29` | ✅ |
-| `I-01` | Type params absent from IR except `IRClass` (and unemitted there) | `ir/{interface,function,typealias}.ts` | ✅ |
+| `I-01` **[FIXED — S3]** | Shared `IRTypeParam` is present on every generic declaration/signature/function type with constraints, defaults, docs and locations | `ir/signature.ts`, parsers | ✅ |
 | `I-04` **[FIXED — S2]** | ~~Heritage stored as raw strings~~ — class/interface `extends` and `implements` now use `IRType` | `ir/{interface,class}.ts` | ✅ |
 | `T-01` / `I-03` *(partial)* | ~~No `TypeKind` for unsupported constructs; all collapse to `Any`~~ — `TypeKind.Unsupported` + `UnsupportedReason` (S1.3). **Census 1,410 → 503 after Tier A (S1.4), 0 unclassified.** Remainder is 88% `typeof x`, which needs the checker and moves to Tier B | `type/unsupported.ts` | ✅ |
 | `P-07` **[FIXED]** | ~~`this` type → `dynamic`, 900 occurrences — the #1 type gap~~ — resolves to the enclosing class/interface per js_facade_gen §3.10 (S1.4). Owner found via AST ancestors, not by parsing `currentFQN` | `type/thisType.ts` | ✅ |
 | `E-09` | No Dart keyword escaping (`external bool get static;`) | all emitters | ✅ |
-| `P-12` | Classes drop index signatures entirely — `parseClass` never calls `getIndexSignatures()` and `IRClass` has no field. Interfaces do parse them | `parser/class.ts`, `ir/class.ts` | ✅ |
+| `P-12` **[FIXED — S3]** | Classes now retain index signatures in the same shape as interfaces/type literals | `parser/class.ts`, `ir/class.ts` | ✅ |
 | `E-20` | `IRClass.isAbstract` parsed and never emitted — abstract classes emit as concrete | `emitter/old/class.ts:16` | ✅ |
 | `E-10` | Namespace flattening collides (two `abstract class ZoomOptions` in leaflet) | `phase/emitterPhase.ts:198-211` | ✅ |
 | `E-05` | Variables emit mutable fields; `isReadonly`/`isConst` ignored | `emitter/old/variable.ts:13` | ✅ |
@@ -71,11 +71,12 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `T-15` **[FIXED]** | ~~`null \| undefined` left an empty `unionTypes` and `emitType` reached for `[0]`~~ — threw, and the emitter's per-symbol try/catch turned the declaration into a comment. Returns a nullable `Any` (S1.9) | `type/unions.ts` | ✅ |
 | `T-16` **[FIXED]** | ~~`{}` synthesised a cyclic `typedef anon_dynamic = anon_dynamic;` registered under a non-FQN key~~ — emitted into 1 file while **117** use sites across **34** files referenced it. **Live in three.js.** `{}` is now `dynamic` (S1.9) | `type/typeLiterals.ts` | ✅ |
 | `T-17` **[FIXED]** | ~~`ParenthesizedType` and the `readonly` operator forwarded `depth` unchanged~~ — **`T-05` was closed prematurely**; `(((…)))` was unbounded at any nesting. Verified: 40 nested parens never tripped the guard. Fixed in the audit pass | `type/type.ts`, `type/typeOperator.ts` | ✅ |
-| `I-13` | `IRParameter` declared twice with different rest-flag names (`isRest` vs `isRestParameter`), one per half of the pipeline; `emitType` ignores rest on function types entirely | `ir/function.ts`, `ir/type.ts` | ✅ |
-| `I-14` | `ir/literal.ts` is dead but imported by the live IR — `IRType.objectLiteral` is never written by any parser, and the file re-declares 5 interfaces `ir/interface.ts` already has | `ir/literal.ts` | ✅ |
+| `I-13` **[FIXED — S3]** | One shared `IRParameter` now serves declaration and function-type parsing with one `isRest` contract | `ir/signature.ts`, parsers | ✅ |
+| `I-14` **[FIXED — S3]** | Deleted live `ir/literal.ts` and `IRType.objectLiteral`; the quarantined transformers remain excluded until S4 mines them | `ir/type.ts`, `ir/literal.ts` | ✅ |
+| `P-11` **[FIXED — S3]** | Parameters retain exact object/array binding-pattern text and initializer text, with semantic rest/optional flags | `parser/signature.ts`, `ir/signature.ts` | ✅ |
 | `X-12` | The stress tier asserts only that nothing *escaped* `transpileFromString`; `result.errors` and `// ERROR emitting` comments are never inspected. Measured 0/0/0 today, so nothing is hidden — but this is how `T-15` survived a green run | `test/stress.test.ts` | ✅ |
-| `R-09` | `currentFQN` save/restore is manual and not `try/finally` — one parse error poisons every later FQN in the file. **Correct count: 24 pairs** (48 assignments), plus one one-way variable assignment | parsers | ✅ |
-| `I-11` | `deepCloneIRDeclaration` JSON round-trips — **throws on bigint literals** | `ir/declaration.ts:28-32` | 🔍 latent |
+| `R-09` **[FIXED — S3]** | Immutable `ParseContext` replaces every mutable `currentFQN` assignment and registers hoists through an explicit callback | `parser/context.ts`, parsers | ✅ |
+| `I-11` **[FIXED — S3]** | `deepCloneIRDeclaration` uses `structuredClone`; the S3 fixture proves bigint literals clone independently | `ir/declaration.ts`, `test/decl/s3-ir.test.ts` | ✅ |
 | `R-11` **[FIXED]** | ~~Context singleton never reset between runs~~ — `resetTranspilerState()` (`src/reset.ts`) called at the start of every run, S0.3. Verified: two `transpileFromString` calls no longer contaminate each other | `src/reset.ts` | ✅ |
 | `T-06` **[FIXED]** | ~~`IRType.name` has three incompatible meanings; Dart names leak into the IR~~ — TS-side names only, guarded by an invariant test (S1.8). Surfaced a live defect: `name: "BigInt"` was the only thing separating a bigint literal from a number literal, so `10n` emitted `num` | `type/literals.ts` | ✅ |
 | `L-03` **[FIXED — S2]** | Resolution returns an explicit ambiguous outcome and never selects `matches[0]` arbitrarily | `symbol/resolve.ts` | ✅ |
@@ -85,25 +86,26 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `L-12` **[FIXED — S2]** | Direct and transitive missing states are now distinct and fixture-tested | `phase/linkerPhase.ts` | ✅ |
 | `L-13` **[FIXED — S2]** | Graph IDs derive from full FQNs; basename/scope is label-only | `tools/graphModel.ts` | ✅ |
 | `L-15` **[FIXED — S2]** | Expected checker failures produce syntax fallbacks and structured diagnostics rather than disappearing edges | `parser/type/typeRefernce.ts` | ✅ |
-| `I-06` / `P-06` | No JSDoc anywhere except an unread `IRConstructor.jsDoc` | `ir/class.ts:24` | 🔍 |
-| `I-10` | No source location on IR nodes — diagnostics cannot point at source | `ir/*` | 🔍 |
-| `I-09` | No `export`/`declare`/visibility modifiers in the IR | `ir/*` | 🔍 |
+| `L-16` **[FIXED — S3]** | Type-parameter references were excluded only when `node.getType().isTypeParameter()` happened to be true; optional/member contexts could expose the surrounding type and mint a fake `/file.d.ts::T` dependency. Declaration identity now excludes every `TypeParameterDeclaration`, fixture-tested on generic class members and signatures | `parser/type/typeRefernce.ts` | ✅ |
+| `I-06` / `P-06` **[FIXED — S3]** | Shared node metadata retains raw JSDoc on declarations, members, signatures, enum members, type params and params; `@param` tags map to parameters | `ir/node.ts`, `parser/metadata.ts`, `parser/signature.ts` | ✅ |
+| `I-10` **[FIXED — S3]** | Parsed declarations, types and nested nodes retain file/line/column; the census found 0 missing locations across 2,530 declarations and 26,240 parsed types | `ir/node.ts`, parsers | ✅ |
+| `I-09` **[FIXED — S3]** | Required declaration modifiers retain export kind and declare/ambient state; class members and constructors retain visibility plus static/readonly/abstract facts | `ir/{node,interface,signature}.ts`, parsers | ✅ |
 | `T-05` **[FIXED]** | ~~Depth not propagated through function types — recursion guard leaks~~ — `depth + 1` on the return type and each parameter (S1.9). **Closed too early**: two other handlers had the same defect, see `T-17` | `type/function.ts` | ✅ |
 | `T-08` **[FIXED]** | ~~Intersection dispatch compares source text instead of `SyntaxKind`~~ — shared kind predicates in `type/keywords.ts`, now used by both the union and intersection handlers (S1.9) | `type/intersection.ts`, `type/keywords.ts` | ✅ |
 | `R-03` **[FIXED — S2]** | Longest-common-ancestor roots plus explicit collision checks replace first-input rooting | `transpiler.ts`, `emitterPhase.ts` | ✅ |
 | `R-02` **[FIXED — S2]** | Public reports always include resolution issues and the CLI always prints the unresolved count | `transpiler.ts`, `cli.ts` | ✅ |
 | `X-02` **[FIXED]** | ~~1,648 whole-library snapshots~~ — retiered in S0.6 into sanity / smoke (3 files) / opt-in stress. **4.3 MB → 128 KB** of snapshots | `test/{simple,smoke,stress}.test.ts` | ✅ |
 | `X-09` *(partial)* | ~~Nothing runs `dart analyze` on the output~~ — measured manually and the harness is in `CLAUDE.md`: **h3 clean**, probe 19, leaflet 510. Still **not automated** — no test tier runs it, so it is a manual gate, not a regression guard | — | ✅ |
-| `I-07` / `D-03` | `IRLiteral` vestigial since hoisting moved to parse time | `ir/literal.ts` | ✅ |
-| `I-08` | Two incompatible shapes for "constructor" | `ir/{class,interface}.ts` | 🔍 |
+| `I-07` / `D-03` **[FIXED — S3]** | Live vestigial literal IR deleted after S2 supplied `ir/visit.ts`; dead S4 reference code remains quarantined for mining | `ir/type.ts`, `ir/literal.ts` | ✅ |
+| `I-08` **[FIXED — S3]** | Class constructors and interface/type-literal construct signatures share `IRConstructSignature`; fake names are gone | `ir/signature.ts`, parsers | ✅ |
 | `E-14` | Index signatures ignore parsed key/value types | `emitter/old/interface.ts:70-73` | 🔍 |
 | `E-12` | Tuples collapse to `List<dynamic>`; `literalValue` discarded | `emitter/old/type/emit.ts` | ✅ |
 | `T-07` | Bare `null` in type position → `dynamic` (should be `Null`) | `type/literals.ts:81-87` | 🔍 |
-| `P-05` | `isReadonly` on variables can never be true | `parser/variable.ts:15` | 🔍 |
-| `P-02` | Type param constraints/defaults not captured even for classes | `parser/class.ts:20` | ✅ |
+| `P-05` **[FIXED — S3]** | Variables record `declarationKind: var | let | const` and derive `isConst`; impossible readonly state removed | `parser/variable.ts`, `ir/variable.ts` | ✅ |
+| `P-02` **[FIXED — S3]** | Constraints/defaults are parsed as full `IRType` nodes on every generic owner and participate in linking | `parser/signature.ts` | ✅ |
 | `R-10` **[FIXED — S2]** | ~~`currentDeps` shared across declarators~~ — bucket removed; deps derive from each declaration's completed IR | `phase/symbolGeneration.ts`, `ir/visit.ts` | ✅ |
-| `P-08` | Return types parsed outside the pushed FQN scope (asymmetric hoist names) | `parser/function.ts:9` | 🔍 |
-| `P-09` | Interface construct signatures stored as fake-named `IRMethod`; only `[0]` emitted | `parser/interface.ts:108-114` | 🔍 |
+| `P-08` **[FIXED — S3]** | Return, parameter, member and overload scopes are deterministic immutable context children; inline hoists cannot collide | `parser/{context,function,signature}.ts` | ✅ |
+| `P-09` **[FIXED — S3 IR]** | Every construct overload is preserved in shared IR without a fake name. The transitional emitter still reads one interface factory; full overload emission remains S5 | `parser/interface.ts`, `ir/signature.ts` | ✅ |
 
 ## S4 — Cosmetic, wasteful, drift
 

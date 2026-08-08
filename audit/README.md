@@ -83,13 +83,14 @@ holes were real, nothing was falling through them):
 | `R-12` | Errors inside `declare module`/`namespace` were pushed into a throwaway `[]` |
 | `T-17` | `ParenthesizedType` and `readonly` consumed nesting without charging depth — `(((…)))` was unbounded |
 
-**New, filed for a stage:**
+**New, filed for a stage** (status updated as stages close):
 
 | ID | Summary | Lands in |
 |---|---|---|
-| `P-12` | Classes drop index signatures; `IRClass` has no field | S3 |
-| `I-13` | `IRParameter` declared twice with different rest-flag names | S3 |
-| `I-14` | `ir/literal.ts` dead but imported by the live IR | S3 |
+| `P-12` | Classes drop index signatures; `IRClass` has no field | S3 ✅ |
+| `I-13` | `IRParameter` declared twice with different rest-flag names | S3 ✅ |
+| `I-14` | `ir/literal.ts` dead but imported by the live IR | S3 ✅ |
+| `L-16` | Type parameters in optional/member contexts can become fake global dependency edges | S3 ✅ |
 | `E-20` | `isAbstract` parsed, never emitted | S5 |
 | `E-21` | Emitter dead code and unused parameters | S4/S5 |
 | `X-12` | Stress tier asserts only that nothing *escaped* | S6 |
@@ -107,7 +108,7 @@ holes were real, nothing was falling through them):
 | | |
 |---|---|
 | `src` lines | 9,107 total · 4,722 live · ~4,400 dead |
-| corpus | 1,649 `.d.ts` files |
+| corpus at audit time | 1,649 `.d.ts` files; **1,650 after the S3 fixture** |
 | files with `result.errors` set, whole corpus | **0** |
 | files containing `// ERROR emitting` | **0** |
 | empty renders | 710, all barrels or comment-only |
@@ -165,7 +166,8 @@ data, and the graph renderer consumes those results without resolving again.
 | compatibility | h3 smoke output byte-identical; bundled CLI reports 0 unresolved modules |
 
 Closed here: `R-01`–`R-04`, `R-06`, `R-10`, `P-01`, `I-04`, `L-01`–`L-04`,
-`L-08`, `L-12`–`L-15`, and `X-06`. `R-09` remains in S3; `R-13` remains in
+`L-08`, `L-12`–`L-15`, and `X-06`. At S2 closure, `R-09` remained in S3;
+it is now fixed. `R-13` remains in
 S6 because symbol-generation errors still need to join the public report model.
 The S2 CLI follow-up also partially closes `R-08`: `-l` owns ordinary logs,
 `-lv` adds the structured linker report, and `--version` is long-only. IR-dump
@@ -182,3 +184,32 @@ destructuring (`P-11`), class index signatures (`P-12`), and the impossible
 top-level variable readonly flag (`P-05`). They belong in S3 because its exit
 condition is zero known information loss at the IR boundary. Dart emission for
 those fields remains S5 work.
+
+---
+
+## Stage 3 closure — complete declaration IR
+
+S3 is implemented and verified. Shared `IRNode`, `IRTypeParam`, `IRParameter`,
+`IRCallSignature` and `IRConstructSignature` contracts now carry the declaration
+facts that were previously discarded. Every parser uses immutable
+`ParseContext` scopes; return, parameter and overload hoists are deterministic
+and collision-free. Enum initializer form/value, bigint cloning, declaration
+modifiers, member visibility, docs, locations, variable declaration kinds and
+class index signatures are all asserted at the IR boundary.
+
+| Gate | Result |
+|---|---|
+| focused S3 acceptance | **6/6** semantic tests over `synthetic/s3-complete.d.ts` |
+| representative S3 census | **2,530 declarations**, **26,240 parsed types**; 0 missing declaration/type locations |
+| signatures/generics observed | 409 type params · 6,475 params · 286 calls · 53 constructs · 64 index signatures |
+| S2 corpus regression | **2/2**; Leaflet and three.js link baselines unchanged |
+| normal suite | **222 passed**, 4 skipped |
+| full stress | **1,650/1,650 files** survived; 710 known empty barrels |
+| compiler/build | `tsc --noEmit` clean; bundle **112.24 KB** |
+| generated h3 | 0 unresolved modules; `dart analyze` **No issues found** |
+
+Closed here: `I-01`, `I-05`–`I-11`, `I-13`, `I-14`, `P-02`–`P-06`,
+`P-08`, `P-09`, `P-11`, `P-12`, `R-09`, and the newly exposed `L-16`.
+`P-09` is closed specifically at the IR boundary; emitting every overload is
+still part of the S5 backend rebuild. S4 now owns overload grouping,
+augmentation and anonymous-shape canonicalisation.

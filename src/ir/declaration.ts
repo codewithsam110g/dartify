@@ -4,6 +4,7 @@ import { IRFunction } from "./function";
 import { IRInterface } from "./interface";
 import { IRTypeAlias } from "./typealias";
 import { IRVariable } from "./variable";
+import { IRDeclarationModifiers, IRNode } from "./node";
 
 export enum IRDeclKind {
   Interface = "interface",
@@ -14,8 +15,9 @@ export enum IRDeclKind {
   Enum = "enum",
 }
 
-export interface IRDeclaration {
+export interface IRDeclaration extends IRNode {
   kind: IRDeclKind;
+  modifiers: IRDeclarationModifiers;
 }
 
 export type IRDeclarationUnion =
@@ -26,34 +28,8 @@ export type IRDeclarationUnion =
   | IRVariable
   | IREnum;
 
-export function deepCloneIRDeclaration(
-  declaration: IRDeclaration,
-): IRDeclarationUnion {
-  // First, perform a deep clone using JSON parse/stringify
-  const cloned = JSON.parse(JSON.stringify(declaration)) as IRDeclaration;
-
-  // Return the correctly typed instance based on kind
-  switch (cloned.kind) {
-    case IRDeclKind.Interface:
-      return cloned as IRInterface;
-
-    case IRDeclKind.TypeAlias:
-      return cloned as IRTypeAlias;
-
-    case IRDeclKind.Class:
-      return cloned as IRClass;
-
-    case IRDeclKind.Function:
-      return cloned as IRFunction;
-
-    case IRDeclKind.Variable:
-      return cloned as IRVariable;
-
-    case IRDeclKind.Enum:
-      return cloned as IREnum;
-
-    default:
-      // This should never happen if all enum values are handled
-      throw new Error(`Unknown IRDeclKind: ${(cloned as any).kind}`);
-  }
+export function deepCloneIRDeclaration<T extends IRDeclaration>(
+  declaration: T,
+): T {
+  return structuredClone(declaration);
 }

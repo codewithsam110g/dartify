@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { IRClass, IRConstructor } from "@ir/class";
+import { IRClass } from "@ir/class";
 import {
   IRGetAccessor,
   IRIndexSignatures,
@@ -7,168 +7,130 @@ import {
   IRProperties,
   IRSetAccessor,
 } from "@ir/interface";
-import { IRParameter } from "@ir/function";
-import { parseType } from "@typeParser//type";
+import { parseType } from "@typeParser/type";
 import { IRDeclKind } from "@ir/index";
 import { declarationParseContext, ParseContext } from "./context";
+import {
+  declarationModifiersOf,
+  nodeMetadata,
+  visibilityOf,
+} from "./metadata";
+import {
+  parseConstructSignature,
+  parseParameter,
+  parseParameters,
+  parseTypeParameters,
+} from "./signature";
 
 export function parseClass(
-  classDecl: ts.ClassDeclaration,
+  declaration: ts.ClassDeclaration,
   context: ParseContext = declarationParseContext(
-    classDecl,
-    classDecl.getName() || "Error_Class",
+    declaration,
+    declaration.getName() || "Error_Class",
   ),
 ): IRClass {
-  let name = classDecl.getName() || "";
-  const extendsNode = classDecl.getExtends();
-  const extenders = extendsNode
-    ? parseType(extendsNode, 0, context)
-    : undefined;
-  const implementers = classDecl.getImplements().map((heritage, index) =>
-    parseType(heritage, 0, context),
+  const extendsNode = declaration.getExtends();
+  const properties: IRProperties[] = declaration.getProperties().map((node) => {
+    const memberContext = context.child(node.getName());
+    return {
+      ...nodeMetadata(node),
+      name: node.getName(),
+      type: parseType(node.getTypeNode(), 0, memberContext),
+      isReadonly: node.isReadonly(),
+      isOptional: node.hasQuestionToken(),
+      isStatic: node.isStatic(),
+      isAbstract: node.isAbstract(),
+      visibility: visibilityOf(node),
+    };
+  });
+
+  const methods: IRMethod[] = declaration.getMethods().map((node, index) => {
+    const memberContext = context.child(`method_${index}_${node.getName()}`);
+    return {
+      ...nodeMetadata(node),
+      name: node.getName(),
+      typeParams: parseTypeParameters(node, memberContext),
+      parameters: parseParameters(node, memberContext),
+      returnType: parseType(
+        node.getReturnTypeNode(),
+        0,
+        memberContext.child("return"),
+      ),
+      isOptional: node.hasQuestionToken(),
+      isStatic: node.isStatic(),
+      isAbstract: node.isAbstract(),
+      visibility: visibilityOf(node),
+    };
+  });
+
+  const constructors = declaration.getConstructors().map((node, index) =>
+    parseConstructSignature(
+      node,
+      context.child(`constructor_${index}`),
+      false,
+    ),
   );
-  let isAbstract = classDecl.isAbstract();
-  let typeParams = classDecl.getTypeParameters().map((tp) => tp.getName());
 
-  // Properties
-  let properties: IRProperties[] = [];
-  for (const [propertyIndex, prop] of classDecl.getProperties().entries()) {
-    let name = prop.getName();
-    const propertyContext = context.child(name);
-    let type = parseType(prop.getTypeNode(), 0, propertyContext);
-    let isReadonly = prop.isReadonly();
-    let isOptional = prop.hasQuestionToken();
-    let isStatic = prop.isStatic();
-
-    properties.push({
-      name,
-      type,
-      isReadonly,
-      isOptional,
-      isStatic,
+  const getAccessors: IRGetAccessor[] = declaration
+    .getGetAccessors()
+    .map((node) => {
+      const memberContext = context.child(node.getName());
+      return {
+        ...nodeMetadata(node),
+        name: node.getName(),
+        type: parseType(
+          node.getReturnTypeNode(),
+          0,
+          memberContext.child("return"),
+        ),
+        isStatic: node.isStatic(),
+        isAbstract: node.isAbstract(),
+        visibility: visibilityOf(node),
+      };
     });
-  }
 
-  // Methods
-  let methods: IRMethod[] = [];
-  for (const [methodIndex, method] of classDecl.getMethods().entries()) {
-    let name = method.getName();
-    const methodContext = context.child(name);
-    let parameters: IRParameter[] = [];
-    let returnType = parseType(
-      method.getReturnTypeNode(),
-      0,
-      methodContext,
-    );
-    let isOptional = method.hasQuestionToken();
-    let isStatic = method.isStatic();
-
-    for (const [paramIndex, param] of method.getParameters().entries()) {
-      // Do not parse `this` param
-      if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
-
-      let pName = param.getName();
-      const paramContext = methodContext.child(pName);
-      let type = parseType(param.getTypeNode(), 0, paramContext);
-      let isOptional = param.isOptional();
-      let isRest = param.isRestParameter();
-      parameters.push({
-        name: pName,
-        type: type,
-        isOptional: isOptional,
-        isRest: isRest,
-      });
-    }
-    methods.push({
-      name,
-      parameters,
-      returnType,
-      isOptional,
-      isStatic,
+  const setAccessors: IRSetAccessor[] = declaration
+    .getSetAccessors()
+    .map((node) => {
+      const memberContext = context.child(node.getName());
+      return {
+        ...nodeMetadata(node),
+        name: node.getName(),
+        parameter: parseParameter(node.getParameters()[0], memberContext),
+        isStatic: node.isStatic(),
+        isAbstract: node.isAbstract(),
+        visibility: visibilityOf(node),
+      };
     });
-  }
 
-  // Constructors
-  let constructors: IRConstructor[] = [];
-  for (const [constructorIndex, constructor] of classDecl
-    .getConstructors()
-    .entries()) {
-    let parameters: IRParameter[] = [];
-    const constructorContext = context.child("constructor");
-    let jsDoc =
-      constructor
-        .getJsDocs()
-        .map((doc) => doc.getText())
-        .join("\n") || undefined;
-
-    for (const [paramIndex, param] of constructor.getParameters().entries()) {
-      // Do not parse `this` param
-      if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
-
-      let pName = param.getName();
-      const paramContext = constructorContext.child(pName);
-      let type = parseType(param.getTypeNode(), 0, paramContext);
-      let isOptional = param.isOptional();
-      let isRest = param.isRestParameter();
-      parameters.push({
-        name: pName,
-        type: type,
-        isOptional: isOptional,
-        isRest: isRest,
-      });
-    }
-    constructors.push({
-      parameters,
-      jsDoc,
+  const indexSignatures: IRIndexSignatures[] = declaration
+    .getChildrenOfKind(ts.SyntaxKind.IndexSignature)
+    .map((node) => {
+      const memberContext = context.child("indexSig");
+      return {
+        ...nodeMetadata(node),
+        keyType: parseType(node.getKeyTypeNode(), 0, memberContext),
+        valueType: parseType(node.getReturnTypeNode(), 0, memberContext),
+        isReadonly: node.isReadonly(),
+      };
     });
-  }
-
-  // Get Accessors
-  let getAccessors: IRGetAccessor[] = [];
-  for (const [accessorIndex, ga] of classDecl.getGetAccessors().entries()) {
-    let name = ga.getName();
-    const accessorContext = context.child(name);
-    let type = parseType(ga.getReturnTypeNode(), 0, accessorContext);
-    let isStatic = ga.isStatic();
-
-    getAccessors.push({
-      name,
-      type,
-      isStatic,
-    });
-  }
-
-  // Set Accessors
-  let setAccessors: IRSetAccessor[] = [];
-  for (const [accessorIndex, sa] of classDecl.getSetAccessors().entries()) {
-    let name = sa.getName();
-    const accessorContext = context.child(name);
-    let param = sa.getParameters()[0];
-    let isStatic = sa.isStatic();
-    setAccessors.push({
-      name: name,
-      parameter: {
-        name: param.getName(),
-        type: parseType(param.getTypeNode(), 0, accessorContext),
-        isOptional: param.hasQuestionToken(),
-        isRest: param.isRestParameter(),
-      },
-      isStatic,
-    });
-  }
-
 
   return {
+    ...nodeMetadata(declaration),
     kind: IRDeclKind.Class,
-    name,
-    extends: extenders,
-    implements: implementers,
-    isAbstract,
-    typeParams,
+    modifiers: declarationModifiersOf(declaration),
+    name: declaration.getName() || "",
+    extends: extendsNode ? parseType(extendsNode, 0, context) : undefined,
+    implements: declaration
+      .getImplements()
+      .map((heritage) => parseType(heritage, 0, context)),
+    isAbstract: declaration.isAbstract(),
+    typeParams: parseTypeParameters(declaration, context),
     constructors,
     properties,
     methods,
     getAccessors,
     setAccessors,
+    indexSignatures,
   };
 }

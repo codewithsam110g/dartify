@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from "vitest";
 import { emitType } from "../../src/engine/emitter/old/type/emit"; // Using the correct path
-import { IRType, TypeKind, IRParameter } from "../../src/ir/type"; // Using the correct path
+import { IRType, TypeKind } from "../../src/ir/type"; // Using the correct path
 
 describe("Type Emitter", () => {
   // --- Primitives ---
@@ -50,7 +50,7 @@ describe("Type Emitter", () => {
             name: "a",
             type: { kind: TypeKind.String, name: "string", isNullable: false },
             isOptional: false,
-            isRestParameter: false,
+            isRest: false,
           },
         ],
         returnType: { kind: TypeKind.Void, name: "void", isNullable: false },
@@ -69,7 +69,7 @@ describe("Type Emitter", () => {
             name: "a",
             type: { kind: TypeKind.String, name: "string", isNullable: false },
             isOptional: true,
-            isRestParameter: false,
+            isRest: false,
           },
         ],
         returnType: { kind: TypeKind.Void, name: "void", isNullable: false },
@@ -88,13 +88,13 @@ describe("Type Emitter", () => {
             name: "a",
             type: { kind: TypeKind.Number, name: "number", isNullable: false },
             isOptional: false,
-            isRestParameter: false,
+            isRest: false,
           },
           {
             name: "b",
             type: { kind: TypeKind.Boolean, name: "boolean", isNullable: true },
             isOptional: false,
-            isRestParameter: false,
+            isRest: false,
           },
         ],
         returnType: {
@@ -126,7 +126,7 @@ describe("Type Emitter", () => {
               },
             },
             isOptional: false,
-            isRestParameter: true,
+            isRest: true,
           },
         ],
         returnType: { kind: TypeKind.Void, name: "void", isNullable: false },
@@ -185,14 +185,6 @@ describe("Type Emitter", () => {
         kind: TypeKind.TypeLiteral,
         name: "TypeLiteral",
         isNullable: false,
-        objectLiteral: {
-          /* properties, methods etc. */ properties: [],
-          methods: [],
-          constructors: [],
-          getAccessors: [],
-          setAccessors: [],
-          indexSignatures: [],
-        },
       };
       const dartType = emitType(irType);
       expect(dartType).toBe("dynamic");

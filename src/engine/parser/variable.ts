@@ -3,32 +3,35 @@ import { IRVariable } from "@ir/variable";
 import { parseType } from "@typeParser/type";
 import { IRDeclKind } from "@ir/index";
 import { ParseContext } from "./context";
+import { declarationModifiersOf, nodeMetadata } from "./metadata";
 
 export function parseVariableStmt(
   fqnPrefix: string,
-  varStmt: ts.VariableStatement,
+  statement: ts.VariableStatement,
   context: ParseContext = new ParseContext(fqnPrefix),
 ): IRVariable[] {
-  let varDecls = varStmt.getDeclarationList();
-  let res: IRVariable[] = [];
-  let isConst =
-    varDecls.getDeclarationKind() === ts.VariableDeclarationKind.Const;
-  let isReadonly = varDecls.hasModifier(ts.SyntaxKind.ReadonlyKeyword);
-  for (const varDecl of varDecls.getDeclarations()) {
-    let name = varDecl.getName();
-    let fqn = fqnPrefix + name;
-    let typeAfter = parseType(
-      varDecl.getTypeNode(),
-      0,
-      context.atFQN(fqn),
-    );
-    res.push({
+  const declarationList = statement.getDeclarationList();
+  const declarationKind = declarationList.getDeclarationKind();
+  const kind =
+    declarationKind === ts.VariableDeclarationKind.Const
+      ? "const"
+      : declarationKind === ts.VariableDeclarationKind.Let
+        ? "let"
+        : "var";
+
+  return declarationList.getDeclarations().map((declaration) => {
+    const name = declaration.getName();
+    const fqn = fqnPrefix + name;
+    const statementJsDoc = nodeMetadata(statement).jsDoc;
+    return {
+      ...nodeMetadata(declaration),
+      ...(statementJsDoc ? { jsDoc: statementJsDoc } : {}),
       kind: IRDeclKind.Variable,
-      name: name,
-      type: typeAfter,
-      isReadonly: isReadonly,
-      isConst: isConst,
-    });
-  }
-  return res;
+      modifiers: declarationModifiersOf(statement),
+      name,
+      type: parseType(declaration.getTypeNode(), 0, context.atFQN(fqn)),
+      declarationKind: kind,
+      isConst: kind === "const",
+    };
+  });
 }

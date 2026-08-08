@@ -12,7 +12,13 @@ export function emitEnum(
   // Generate Dart enum
   const members = irEnum.members
     .map((member) => {
-      return `  external static ${inferDartType(member.value)} get ${member.name};`;
+      const value =
+        member.initializer.kind === "implicit"
+          ? undefined
+          : member.initializer.kind === "computed"
+            ? member.initializer.computedValue
+            : member.initializer.value;
+      return `  external static ${inferDartType(value)} get ${member.name};`;
     })
     .join("\n");
 

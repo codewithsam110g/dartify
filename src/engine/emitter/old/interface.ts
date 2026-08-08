@@ -6,22 +6,21 @@ import {
 } from "../shared/shared";
 import { emitType } from "@typeEmitter/emit";
 
-
 export function emitInterface(
   irInterface: IRInterface,
   prefix: string,
   debug: boolean = false,
 ) {
   const dartParts: string[] = [];
-  
+
   dartParts.push("@JS()");
   dartParts.push("@anonymous");
 
   // Constructor
-  if (irInterface.constructors.length > 0) {
+  if (irInterface.constructSignatures.length > 0) {
     dartParts.push(`class ${irInterface.name}{`);
     dartParts.push(
-      `  external factory ${irInterface.name}(${formatNamedParameters(irInterface.constructors[0].parameters)});`,
+      `  external factory ${irInterface.name}(${formatNamedParameters(irInterface.constructSignatures[0].parameters)});`,
     );
     dartParts.push("}");
   } else {

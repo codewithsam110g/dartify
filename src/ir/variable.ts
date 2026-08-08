@@ -5,6 +5,6 @@ export interface IRVariable extends IRDeclaration {
   kind: IRDeclKind.Variable;
   name: string;
   type: IRType;
-  isReadonly: boolean;
+  declarationKind: "var" | "let" | "const";
   isConst: boolean;
 }

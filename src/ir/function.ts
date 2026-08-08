@@ -1,17 +1,11 @@
 import { IRType } from "./type";
 import { IRDeclaration, IRDeclKind } from "./declaration";
+import { IRParameter, IRTypeParam } from "./signature";
 
-export interface IRFunction extends IRDeclaration{
+export interface IRFunction extends IRDeclaration {
   kind: IRDeclKind.Function;
   name: string;
+  typeParams: IRTypeParam[];
   parameters: IRParameter[];
   returnType: IRType;
 }
-
-export interface IRParameter {
-  name: string;
-  type: IRType;
-  isOptional: boolean;
-  isRest: boolean;
-}
-

@@ -50,6 +50,25 @@ function isExternalModuleAugmentation(declaration: ts.Node): boolean {
   return false;
 }
 
+function isLexicalTypeParameter(node: ts.Node, writtenName: string): boolean {
+  if (writtenName.includes(".")) return false;
+  for (const ancestor of node.getAncestors()) {
+    const getTypeParameters = (
+      ancestor as ts.Node & {
+        getTypeParameters?: () => ts.TypeParameterDeclaration[];
+      }
+    ).getTypeParameters;
+    if (
+      getTypeParameters?.call(ancestor).some(
+        (parameter) => parameter.getName() === writtenName,
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Resolves a TypeReferenceNode to its source file path using the identifier's symbol,
  * then adds a pseudo-FQN to the context deps bucket.
@@ -62,11 +81,21 @@ export function collectTypeDep(
   node: ReferenceLikeNode,
 ): IRReferenceTarget | undefined {
   try {
-    if (node.getType().isTypeParameter()) return;
     const nameNode = referenceNameNode(node);
     const writtenName = nameNode.getText();
 
     let symbol = nameNode.getSymbol();
+    // `node.getType().isTypeParameter()` is not reliable at every use site.
+    // In particular, an optional class property such as `value?: T` can be
+    // reported as the surrounding union rather than as T. The declaration
+    // identity is definitive and prevents a fake `/file.d.ts::T` dependency.
+    if (
+      node.getType().isTypeParameter() ||
+      isLexicalTypeParameter(node, writtenName) ||
+      symbol?.getDeclarations().some(ts.Node.isTypeParameterDeclaration)
+    ) {
+      return undefined;
+    }
     if (symbol?.isAlias()) symbol = symbol.getAliasedSymbol();
 
     if (!symbol) {

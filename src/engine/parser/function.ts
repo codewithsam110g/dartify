@@ -1,8 +1,13 @@
 import * as ts from "ts-morph";
-import { IRFunction, IRParameter } from "@ir/function";
-import { parseType } from "@typeParser/type";
+import { IRFunction } from "@ir/function";
 import { IRDeclKind } from "@ir/index";
+import { parseType } from "@typeParser/type";
 import { declarationParseContext, ParseContext } from "./context";
+import {
+  declarationModifiersOf,
+  nodeMetadata,
+} from "./metadata";
+import { parseParameters, parseTypeParameters } from "./signature";
 
 export function parseFunction(
   funcDecl: ts.FunctionDeclaration,
@@ -11,33 +16,29 @@ export function parseFunction(
     funcDecl.getName() ?? "anonFunc",
   ),
 ): IRFunction {
-  let name = funcDecl.getName() ?? "anonFunc";
-  let returnType = parseType(
-    funcDecl.getReturnTypeNode(),
+  const name = funcDecl.getName() ?? "anonFunc";
+  const declarations = funcDecl
+    .getSymbol()
+    ?.getDeclarations()
+    .filter(ts.Node.isFunctionDeclaration) ?? [funcDecl];
+  const overloadIndex = Math.max(
     0,
-    context,
+    declarations.findIndex(
+      (declaration) => declaration.compilerNode === funcDecl.compilerNode,
+    ),
   );
-  let params: IRParameter[] = [];
-  for (const [paramIndex, param] of funcDecl.getParameters().entries()) {
-    // Do not parse `this` param
-    if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
-
-    let pName = param.getName();
-    const paramContext = context.child(pName);
-    let type = parseType(param.getTypeNode(), 0, paramContext);
-    let isOptional = param.isOptional();
-    let isRest = param.isRestParameter();
-    params.push({
-      name: pName,
-      type: type,
-      isOptional: isOptional,
-      isRest: isRest,
-    });
-  }
+  const signatureContext = context.child(`overload_${overloadIndex}`);
   return {
+    ...nodeMetadata(funcDecl),
     kind: IRDeclKind.Function,
-    name: name,
-    returnType: returnType,
-    parameters: params,
+    modifiers: declarationModifiersOf(funcDecl),
+    name,
+    typeParams: parseTypeParameters(funcDecl, signatureContext),
+    returnType: parseType(
+      funcDecl.getReturnTypeNode(),
+      0,
+      signatureContext.child("return"),
+    ),
+    parameters: parseParameters(funcDecl, signatureContext),
   };
 }

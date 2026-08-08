@@ -1,7 +1,7 @@
 // in tests/parser.test.ts
 
 import { describe, it, expect } from "vitest";
-import { createStatementNode } from "../test-helper";
+import { createStatementNode, normalizeIRSnapshot } from "../test-helper";
 import * as ts from "ts-morph";
 
 // Import all your parser functions from the barrel
@@ -22,7 +22,7 @@ describe("AST Parsers to IR", () => {
         "export interface User { id: number; name: string; }",
       ) as ts.InterfaceDeclaration;
       const ir = parseInterface(node);
-      expect(ir).toMatchSnapshot();
+      expect(normalizeIRSnapshot(ir)).toMatchSnapshot();
     });
 
     it("should parse an interface with optional and readonly members", () => {
@@ -30,7 +30,7 @@ describe("AST Parsers to IR", () => {
         "interface Config { readonly host: string; port?: number; }",
       ) as ts.InterfaceDeclaration;
       const ir = parseInterface(node);
-      expect(ir).toMatchSnapshot();
+      expect(normalizeIRSnapshot(ir)).toMatchSnapshot();
     });
   });
 
@@ -38,10 +38,10 @@ describe("AST Parsers to IR", () => {
   describe("parseClass()", () => {
     it("should parse a simple class with properties and a constructor", () => {
       const node = createStatementNode(
-        "export class ApiClient { constructor(baseUrl: string); endpoint: string; }",
+        "export declare class ApiClient { constructor(baseUrl: string); endpoint: string; }",
       ) as ts.ClassDeclaration;
       const ir = parseClass(node);
-      expect(ir).toMatchSnapshot();
+      expect(normalizeIRSnapshot(ir)).toMatchSnapshot();
     });
   });
 
@@ -57,7 +57,7 @@ describe("AST Parsers to IR", () => {
       );
       const stable = structuredClone(ir);
       delete stable.returnType.reference;
-      expect(stable).toMatchSnapshot();
+      expect(normalizeIRSnapshot(stable)).toMatchSnapshot();
     });
   });
 
@@ -68,7 +68,7 @@ describe("AST Parsers to IR", () => {
         "export declare const PI: 3.14159;",
       ) as ts.VariableStatement;
       const ir = parseVariableStmt("", node);
-      expect(ir).toMatchSnapshot();
+      expect(normalizeIRSnapshot(ir)).toMatchSnapshot();
     });
   });
 
@@ -79,7 +79,7 @@ describe("AST Parsers to IR", () => {
         "export enum Direction { Up, Down, Left, Right }",
       ) as ts.EnumDeclaration;
       const ir = parseEnum(node);
-      expect(ir).toMatchSnapshot();
+      expect(normalizeIRSnapshot(ir)).toMatchSnapshot();
     });
   });
 
@@ -91,7 +91,7 @@ describe("AST Parsers to IR", () => {
       ) as ts.TypeAliasDeclaration;
       // This will work because the parser function handles its own dependencies internally.
       const ir = parseTypeAlias(node);
-      expect(ir).toMatchSnapshot();
+      expect(normalizeIRSnapshot(ir)).toMatchSnapshot();
     });
   });
 });

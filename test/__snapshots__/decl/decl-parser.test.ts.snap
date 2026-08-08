@@ -2,26 +2,81 @@
 
 exports[`AST Parsers to IR > parseClass() > should parse a simple class with properties and a constructor 1`] = `
 {
-  "constructors": [],
+  "constructors": [
+    {
+      "loc": {
+        "column": 34,
+        "file": "<virtual>",
+        "line": 1,
+      },
+      "parameters": [
+        {
+          "isOptional": false,
+          "isRest": false,
+          "loc": {
+            "column": 46,
+            "file": "<virtual>",
+            "line": 1,
+          },
+          "name": "baseUrl",
+          "type": {
+            "isNullable": false,
+            "kind": "string",
+            "loc": {
+              "column": 55,
+              "file": "<virtual>",
+              "line": 1,
+            },
+            "name": "string",
+            "originalText": "string",
+          },
+        },
+      ],
+      "typeParams": [],
+    },
+  ],
   "extends": undefined,
   "getAccessors": [],
   "implements": [],
+  "indexSignatures": [],
   "isAbstract": false,
   "kind": "class",
+  "loc": {
+    "column": 1,
+    "file": "<virtual>",
+    "line": 1,
+  },
   "methods": [],
+  "modifiers": {
+    "exportKind": "named",
+    "isAmbient": true,
+    "isDeclare": true,
+  },
   "name": "ApiClient",
   "properties": [
     {
+      "isAbstract": false,
       "isOptional": false,
       "isReadonly": false,
       "isStatic": false,
+      "loc": {
+        "column": 64,
+        "file": "<virtual>",
+        "line": 1,
+      },
       "name": "endpoint",
       "type": {
         "isNullable": false,
         "kind": "string",
+        "loc": {
+          "column": 74,
+          "file": "<virtual>",
+          "line": 1,
+        },
         "name": "string",
         "originalText": "string",
       },
+      "visibility": undefined,
     },
   ],
   "setAccessors": [],
@@ -32,24 +87,66 @@ exports[`AST Parsers to IR > parseClass() > should parse a simple class with pro
 exports[`AST Parsers to IR > parseEnum() > should parse a numeric enum 1`] = `
 {
   "kind": "enum",
+  "loc": {
+    "column": 1,
+    "file": "<virtual>",
+    "line": 1,
+  },
   "members": [
     {
+      "initializer": {
+        "computedValue": 0,
+        "kind": "implicit",
+      },
+      "loc": {
+        "column": 25,
+        "file": "<virtual>",
+        "line": 1,
+      },
       "name": "Up",
-      "value": undefined,
     },
     {
+      "initializer": {
+        "computedValue": 1,
+        "kind": "implicit",
+      },
+      "loc": {
+        "column": 29,
+        "file": "<virtual>",
+        "line": 1,
+      },
       "name": "Down",
-      "value": undefined,
     },
     {
+      "initializer": {
+        "computedValue": 2,
+        "kind": "implicit",
+      },
+      "loc": {
+        "column": 35,
+        "file": "<virtual>",
+        "line": 1,
+      },
       "name": "Left",
-      "value": undefined,
     },
     {
+      "initializer": {
+        "computedValue": 3,
+        "kind": "implicit",
+      },
+      "loc": {
+        "column": 41,
+        "file": "<virtual>",
+        "line": 1,
+      },
       "name": "Right",
-      "value": undefined,
     },
   ],
+  "modifiers": {
+    "exportKind": "named",
+    "isAmbient": false,
+    "isDeclare": false,
+  },
   "name": "Direction",
 }
 `;
@@ -57,15 +154,35 @@ exports[`AST Parsers to IR > parseEnum() > should parse a numeric enum 1`] = `
 exports[`AST Parsers to IR > parseFunction() > should parse a function declaration with parameters 1`] = `
 {
   "kind": "function",
+  "loc": {
+    "column": 1,
+    "file": "<virtual>",
+    "line": 1,
+  },
+  "modifiers": {
+    "exportKind": "named",
+    "isAmbient": false,
+    "isDeclare": false,
+  },
   "name": "getUser",
   "parameters": [
     {
       "isOptional": false,
       "isRest": false,
+      "loc": {
+        "column": 25,
+        "file": "<virtual>",
+        "line": 1,
+      },
       "name": "id",
       "type": {
         "isNullable": false,
         "kind": "number",
+        "loc": {
+          "column": 29,
+          "file": "<virtual>",
+          "line": 1,
+        },
         "name": "number",
         "originalText": "number",
       },
@@ -75,128 +192,243 @@ exports[`AST Parsers to IR > parseFunction() > should parse a function declarati
     "genericArgs": [],
     "isNullable": false,
     "kind": "typeReference",
+    "loc": {
+      "column": 38,
+      "file": "<virtual>",
+      "line": 1,
+    },
     "name": "User",
     "originalText": "User",
   },
+  "typeParams": [],
 }
 `;
 
 exports[`AST Parsers to IR > parseInterface() > should parse a simple interface 1`] = `
 {
-  "constructors": [],
+  "callSignatures": [],
+  "constructSignatures": [],
   "extends": [],
   "getAccessors": [],
   "indexSignatures": [],
   "kind": "interface",
+  "loc": {
+    "column": 1,
+    "file": "<virtual>",
+    "line": 1,
+  },
   "methods": [],
+  "modifiers": {
+    "exportKind": "named",
+    "isAmbient": false,
+    "isDeclare": false,
+  },
   "name": "User",
   "properties": [
     {
+      "isAbstract": false,
       "isOptional": false,
       "isReadonly": false,
       "isStatic": false,
+      "loc": {
+        "column": 25,
+        "file": "<virtual>",
+        "line": 1,
+      },
       "name": "id",
       "type": {
         "isNullable": false,
         "kind": "number",
+        "loc": {
+          "column": 29,
+          "file": "<virtual>",
+          "line": 1,
+        },
         "name": "number",
         "originalText": "number",
       },
     },
     {
+      "isAbstract": false,
       "isOptional": false,
       "isReadonly": false,
       "isStatic": false,
+      "loc": {
+        "column": 37,
+        "file": "<virtual>",
+        "line": 1,
+      },
       "name": "name",
       "type": {
         "isNullable": false,
         "kind": "string",
+        "loc": {
+          "column": 43,
+          "file": "<virtual>",
+          "line": 1,
+        },
         "name": "string",
         "originalText": "string",
       },
     },
   ],
   "setAccessors": [],
+  "typeParams": [],
 }
 `;
 
 exports[`AST Parsers to IR > parseInterface() > should parse an interface with optional and readonly members 1`] = `
 {
-  "constructors": [],
+  "callSignatures": [],
+  "constructSignatures": [],
   "extends": [],
   "getAccessors": [],
   "indexSignatures": [],
   "kind": "interface",
+  "loc": {
+    "column": 1,
+    "file": "<virtual>",
+    "line": 1,
+  },
   "methods": [],
+  "modifiers": {
+    "exportKind": "none",
+    "isAmbient": false,
+    "isDeclare": false,
+  },
   "name": "Config",
   "properties": [
     {
+      "isAbstract": false,
       "isOptional": false,
       "isReadonly": true,
       "isStatic": false,
+      "loc": {
+        "column": 20,
+        "file": "<virtual>",
+        "line": 1,
+      },
       "name": "host",
       "type": {
         "isNullable": false,
         "kind": "string",
+        "loc": {
+          "column": 35,
+          "file": "<virtual>",
+          "line": 1,
+        },
         "name": "string",
         "originalText": "string",
       },
     },
     {
+      "isAbstract": false,
       "isOptional": true,
       "isReadonly": false,
       "isStatic": false,
+      "loc": {
+        "column": 43,
+        "file": "<virtual>",
+        "line": 1,
+      },
       "name": "port",
       "type": {
         "isNullable": false,
         "kind": "number",
+        "loc": {
+          "column": 50,
+          "file": "<virtual>",
+          "line": 1,
+        },
         "name": "number",
         "originalText": "number",
       },
     },
   ],
   "setAccessors": [],
+  "typeParams": [],
 }
 `;
 
 exports[`AST Parsers to IR > parseTypeAlias() > should parse a type alias for a union type 1`] = `
 {
   "kind": "typeAlias",
+  "loc": {
+    "column": 1,
+    "file": "<virtual>",
+    "line": 1,
+  },
+  "modifiers": {
+    "exportKind": "named",
+    "isAmbient": false,
+    "isDeclare": false,
+  },
   "name": "StringOrNumber",
   "type": {
     "isNullable": false,
     "kind": "union",
+    "loc": {
+      "column": 30,
+      "file": "<virtual>",
+      "line": 1,
+    },
     "name": "union",
     "originalText": "string | number",
     "unionTypes": [
       {
         "isNullable": false,
         "kind": "string",
+        "loc": {
+          "column": 30,
+          "file": "<virtual>",
+          "line": 1,
+        },
         "name": "string",
         "originalText": "string",
       },
       {
         "isNullable": false,
         "kind": "number",
+        "loc": {
+          "column": 39,
+          "file": "<virtual>",
+          "line": 1,
+        },
         "name": "number",
         "originalText": "number",
       },
     ],
   },
+  "typeParams": [],
 }
 `;
 
 exports[`AST Parsers to IR > parseVariableStmt() > should parse a variable statement 1`] = `
 [
   {
+    "declarationKind": "const",
     "isConst": true,
-    "isReadonly": false,
     "kind": "variable",
+    "loc": {
+      "column": 22,
+      "file": "<virtual>",
+      "line": 1,
+    },
+    "modifiers": {
+      "exportKind": "named",
+      "isAmbient": true,
+      "isDeclare": true,
+    },
     "name": "PI",
     "type": {
       "isNullable": false,
       "kind": "numberLiteral",
       "literalValue": 3.14159,
+      "loc": {
+        "column": 26,
+        "file": "<virtual>",
+        "line": 1,
+      },
       "name": "numberLiteral",
       "originalText": "3.14159",
     },

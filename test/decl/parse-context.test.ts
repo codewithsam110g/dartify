@@ -29,8 +29,8 @@ describe("immutable parse context", () => {
     parseFunction(declaration, context);
 
     expect([...hoisted.keys()].sort()).toEqual([
-      `${declaration.getSourceFile().getFilePath()}::Anon_convert`,
-      `${declaration.getSourceFile().getFilePath()}::Anon_convert_input`,
+      `${declaration.getSourceFile().getFilePath()}::Anon_convert_overload_0_param_0_input`,
+      `${declaration.getSourceFile().getFilePath()}::Anon_convert_overload_0_return`,
     ]);
   });
 });

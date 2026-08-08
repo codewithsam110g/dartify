@@ -14,14 +14,21 @@ import {
 import { TypeKind, IRType } from "../../src/ir/type";
 import { createTypeNode } from "../test-helper";
 
+const TEST_MODIFIERS = {
+  exportKind: "none" as const,
+  isDeclare: false,
+  isAmbient: false,
+};
+
 describe("Declaration Emitter Unit Tests", () => {
   // 1. Variable Statement
   test("emitVariable: should emit a simple variable", () => {
     const ir: IRVariable = {
       kind:IRDeclKind.Variable,
+      modifiers: TEST_MODIFIERS,
       name: "testVar",
       isConst: false,
-      isReadonly: false,
+      declarationKind: "var",
       type: {
         kind: TypeKind.String,
         isNullable: false,
@@ -39,7 +46,9 @@ describe("Declaration Emitter Unit Tests", () => {
   test("emitFunction: should emit a function with parameters", () => {
     const ir: IRFunction = {
       kind: IRDeclKind.Function,
+      modifiers: TEST_MODIFIERS,
       name: "getUser",
+      typeParams: [],
       parameters: [
         {
           name: "id",
@@ -81,12 +90,16 @@ describe("Declaration Emitter Unit Tests", () => {
   test("emitEnum: should emit a numeric enum", () => {
     const ir: IREnum = {
       kind:IRDeclKind.Enum,
+      modifiers: TEST_MODIFIERS,
       name: "Direction",
       members: [
-        { name: "Up" },
-        { name: "Down" },
-        { name: "Left", value: 5 },
-        { name: "Right" },
+        { name: "Up", initializer: { kind: "implicit" } },
+        { name: "Down", initializer: { kind: "implicit" } },
+        {
+          name: "Left",
+          initializer: { kind: "number", text: "5", value: 5 },
+        },
+        { name: "Right", initializer: { kind: "implicit" } },
       ],
     };
     const result = emitter.emitEnum(ir, "");
@@ -107,7 +120,9 @@ describe("Declaration Emitter Unit Tests", () => {
   test("emitInterface: should emit an interface with properties and methods", () => {
     const ir: IRInterface = {
       kind:IRDeclKind.Interface,
+      modifiers: TEST_MODIFIERS,
       name: "User",
+      typeParams: [],
       extends: [
         {
           kind: TypeKind.TypeReference,
@@ -126,11 +141,13 @@ describe("Declaration Emitter Unit Tests", () => {
           isOptional: false,
           isReadonly: true,
           isStatic: false,
+          isAbstract: false,
         },
       ],
       methods: [
         {
           name: "getName",
+          typeParams: [],
           parameters: [],
           returnType: {
             kind: TypeKind.String,
@@ -139,10 +156,12 @@ describe("Declaration Emitter Unit Tests", () => {
           },
           isOptional: false,
           isStatic: false,
+          isAbstract: false,
         },
       ],
       // Empty arrays for other members
-      constructors: [],
+      callSignatures: [],
+      constructSignatures: [],
       getAccessors: [],
       setAccessors: [],
       indexSignatures: [],
@@ -164,6 +183,7 @@ describe("Declaration Emitter Unit Tests", () => {
   test("emitClass: should emit a class with a constructor and static method", () => {
     const ir: IRClass = {
       kind: IRDeclKind.Class,
+      modifiers: TEST_MODIFIERS,
       name: "ApiClient",
       extends: {
         kind: TypeKind.TypeReference,
@@ -178,9 +198,10 @@ describe("Declaration Emitter Unit Tests", () => {
         },
       ],
       isAbstract: false,
-      typeParams: ["T"],
+      typeParams: [{ name: "T" }],
       constructors: [
         {
+          typeParams: [],
           parameters: [
             {
               name: "baseUrl",
@@ -198,6 +219,7 @@ describe("Declaration Emitter Unit Tests", () => {
       methods: [
         {
           name: "create",
+          typeParams: [],
           parameters: [],
           returnType: {
             kind: TypeKind.TypeReference,
@@ -206,12 +228,14 @@ describe("Declaration Emitter Unit Tests", () => {
           },
           isOptional: false,
           isStatic: true,
+          isAbstract: false,
         },
       ],
       // Empty arrays for other members
       properties: [],
       getAccessors: [],
       setAccessors: [],
+      indexSignatures: [],
     };
     const result = emitter.emitClass(ir, "");
     expect(result).toMatchInlineSnapshot(`
@@ -228,7 +252,9 @@ describe("Declaration Emitter Unit Tests", () => {
   test("emitTypeAlias: should emit a typedef", () => {
     const ir: IRTypeAlias = {
       kind:IRDeclKind.TypeAlias,
+      modifiers: TEST_MODIFIERS,
       name: "StringOrNumber",
+      typeParams: [],
       type: {
         kind:TypeKind.Any,
         name: TypeKind.Any,

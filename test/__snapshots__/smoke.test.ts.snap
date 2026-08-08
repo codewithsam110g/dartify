@@ -252,16 +252,16 @@ external String version;
 
 @JS()
 @anonymous
-class Anon_Class_extend{
-  external factory Anon_Class_extend({List<dynamic> args});
+class Anon_Class_method_0_extend_return{
+  external factory Anon_Class_method_0_extend_return({List<dynamic> args});
 }
-extension Anon_Class_extendExtension on Anon_Class_extend {
+extension Anon_Class_method_0_extend_returnExtension on Anon_Class_method_0_extend_return {
 }
 
 @JS("Class")
 class Class {
   @JS("extend")
-  external Anon_Class_extend /* Anon_Class_extend&TypeOfClass */ extend(dynamic props);
+  external Anon_Class_method_0_extend_return /* Anon_Class_method_0_extend_return&TypeOfClass */ extend(dynamic props);
   @JS("include")
   external dynamic /* dynamic&TypeOfClass */ include(dynamic props);
   @JS("mergeOptions")
@@ -369,8 +369,8 @@ external Point getPosition(HTMLElement el);
 
 @JS()
 @anonymous
-abstract class Anon_DomUtil_getScale{}
-extension Anon_DomUtil_getScaleExtension on Anon_DomUtil_getScale {
+abstract class Anon_DomUtil_getScale_overload_0_return{}
+extension Anon_DomUtil_getScale_overload_0_returnExtension on Anon_DomUtil_getScale_overload_0_return {
   external num get x;
   external set x(num value);
   external num get y;
@@ -380,7 +380,7 @@ extension Anon_DomUtil_getScaleExtension on Anon_DomUtil_getScale {
 }
 
 @JS("DomUtil.getScale")
-external Anon_DomUtil_getScale getScale(HTMLElement el);
+external Anon_DomUtil_getScale_overload_0_return getScale(HTMLElement el);
 
 @JS("DomUtil.getSizedParentNode")
 external HTMLElement getSizedParentNode(HTMLElement el);
@@ -534,12 +534,12 @@ typedef LatLngExpression = dynamic /* LatLng|LatLngLiteral|LatLngTuple */;
 external LatLng latLng(num latitude, num longitude, [num altitude]);
 
 @JS("latLng")
-external LatLng latLng(dynamic /* LatLngTuple|List<num>|LatLngLiteral|Anon_latLng_coords */ coords);
+external LatLng latLng(dynamic /* LatLngTuple|List<num>|LatLngLiteral|Anon_latLng_overload_1_param_0_coords */ coords);
 
 @JS()
 @anonymous
-abstract class Anon_latLng_coords{}
-extension Anon_latLng_coordsExtension on Anon_latLng_coords {
+abstract class Anon_latLng_overload_1_param_0_coords{}
+extension Anon_latLng_overload_1_param_0_coordsExtension on Anon_latLng_overload_1_param_0_coords {
   external num get lat;
   external set lat(num value);
   external num get lng;
@@ -653,12 +653,12 @@ typedef PointExpression = dynamic /* Point|PointTuple */;
 external Point point(num x, num y, [bool round]);
 
 @JS("point")
-external Point point(dynamic /* PointTuple|Anon_point_coords */ coords);
+external Point point(dynamic /* PointTuple|Anon_point_overload_1_param_0_coords */ coords);
 
 @JS()
 @anonymous
-abstract class Anon_point_coords{}
-extension Anon_point_coordsExtension on Anon_point_coords {
+abstract class Anon_point_overload_1_param_0_coords{}
+extension Anon_point_overload_1_param_0_coordsExtension on Anon_point_overload_1_param_0_coords {
   external num get x;
   external set x(num value);
   external num get y;
@@ -1383,8 +1383,8 @@ extension InteractiveLayerOptionsExtension on InteractiveLayerOptions {
 
 @JS()
 @anonymous
-abstract class Anon_Layer_getEvents{}
-extension Anon_Layer_getEventsExtension on Anon_Layer_getEvents {
+abstract class Anon_Layer_method_24_getEvents_return{}
+extension Anon_Layer_method_24_getEvents_returnExtension on Anon_Layer_method_24_getEvents_return {
   external dynamic operator [](Object key);
   external void operator []=(Object key, dynamic value);
 }
@@ -1445,7 +1445,7 @@ class Layer {
   @JS("onRemove")
   external Layer onRemove(Map map);
   @JS("getEvents")
-  external Anon_Layer_getEvents getEvents();
+  external Anon_Layer_method_24_getEvents_return getEvents();
   @JS("getAttribution")
   external String? getAttribution();
   @JS("beforeAdd")
@@ -2206,10 +2206,10 @@ extension ControlOptionsExtension on ControlOptions {
 
 @JS()
 @anonymous
-class Anon_Control_extend{
-  external factory Anon_Control_extend({List<dynamic> args});
+class Anon_Control_method_0_extend_return{
+  external factory Anon_Control_method_0_extend_return({List<dynamic> args});
 }
-extension Anon_Control_extendExtension on Anon_Control_extend {
+extension Anon_Control_method_0_extend_returnExtension on Anon_Control_method_0_extend_return {
 }
 
 @JS("Control")
@@ -2218,7 +2218,7 @@ class Control {
   external Options get options;
   external set options(Options value);
   @JS("extend")
-  external Anon_Control_extend /* Anon_Control_extend&TypeOfControlOptions */ extend(T props);
+  external Anon_Control_method_0_extend_return /* Anon_Control_method_0_extend_return&TypeOfControlOptions */ extend(T props);
   @JS("getPosition")
   external ControlPosition getPosition();
   @JS("setPosition")
@@ -2754,12 +2754,12 @@ typedef PropagableEvent = dynamic /* LeafletMouseEvent|LeafletKeyboardEvent|Leaf
 external TypeOfDomEvent on(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.on")
-external TypeOfDomEvent on(HTMLElement el, Anon_DomEvent_on_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent on(HTMLElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
 @JS()
 @anonymous
-abstract class Anon_DomEvent_on_eventMap{}
-extension Anon_DomEvent_on_eventMapExtension on Anon_DomEvent_on_eventMap {
+abstract class Anon_DomEvent_on_overload_1_param_1_eventMap{}
+extension Anon_DomEvent_on_overload_1_param_1_eventMapExtension on Anon_DomEvent_on_overload_1_param_1_eventMap {
   external dynamic operator [](Object key);
   external void operator []=(Object key, dynamic value);
 }
@@ -2771,12 +2771,12 @@ external TypeOfDomEvent off(HTMLElement el);
 external TypeOfDomEvent off(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.off")
-external TypeOfDomEvent off(HTMLElement el, Anon_DomEvent_off_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent off(HTMLElement el, Anon_DomEvent_off_overload_2_param_1_eventMap eventMap, [dynamic context]);
 
 @JS()
 @anonymous
-abstract class Anon_DomEvent_off_eventMap{}
-extension Anon_DomEvent_off_eventMapExtension on Anon_DomEvent_off_eventMap {
+abstract class Anon_DomEvent_off_overload_2_param_1_eventMap{}
+extension Anon_DomEvent_off_overload_2_param_1_eventMapExtension on Anon_DomEvent_off_overload_2_param_1_eventMap {
   external dynamic operator [](Object key);
   external void operator []=(Object key, dynamic value);
 }
@@ -2806,12 +2806,12 @@ external num getWheelDelta(Event ev);
 external TypeOfDomEvent addListener(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.addListener")
-external TypeOfDomEvent addListener(HTMLElement el, Anon_DomEvent_addListener_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent addListener(HTMLElement el, Anon_DomEvent_addListener_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
 @JS()
 @anonymous
-abstract class Anon_DomEvent_addListener_eventMap{}
-extension Anon_DomEvent_addListener_eventMapExtension on Anon_DomEvent_addListener_eventMap {
+abstract class Anon_DomEvent_addListener_overload_1_param_1_eventMap{}
+extension Anon_DomEvent_addListener_overload_1_param_1_eventMapExtension on Anon_DomEvent_addListener_overload_1_param_1_eventMap {
   external dynamic operator [](Object key);
   external void operator []=(Object key, dynamic value);
 }
@@ -2820,12 +2820,12 @@ extension Anon_DomEvent_addListener_eventMapExtension on Anon_DomEvent_addListen
 external TypeOfDomEvent removeListener(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.removeListener")
-external TypeOfDomEvent removeListener(HTMLElement el, Anon_DomEvent_removeListener_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent removeListener(HTMLElement el, Anon_DomEvent_removeListener_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
 @JS()
 @anonymous
-abstract class Anon_DomEvent_removeListener_eventMap{}
-extension Anon_DomEvent_removeListener_eventMapExtension on Anon_DomEvent_removeListener_eventMap {
+abstract class Anon_DomEvent_removeListener_overload_1_param_1_eventMap{}
+extension Anon_DomEvent_removeListener_overload_1_param_1_eventMapExtension on Anon_DomEvent_removeListener_overload_1_param_1_eventMap {
   external dynamic operator [](Object key);
   external void operator []=(Object key, dynamic value);
 }
@@ -2855,16 +2855,16 @@ extension DefaultMapPanesExtension on DefaultMapPanes {
 
 @JS()
 @anonymous
-abstract class Anon_Map_getPanes{}
-extension Anon_Map_getPanesExtension on Anon_Map_getPanes {
+abstract class Anon_Map_method_35_getPanes_return{}
+extension Anon_Map_method_35_getPanes_returnExtension on Anon_Map_method_35_getPanes_return {
   external dynamic operator [](Object key);
   external void operator []=(Object key, dynamic value);
 }
 
 @JS()
 @anonymous
-abstract class Anon_Map_whenReady_fn{}
-extension Anon_Map_whenReady_fnExtension on Anon_Map_whenReady_fn {
+abstract class Anon_Map_method_37_whenReady_param_0_fn_param_0_event{}
+extension Anon_Map_method_37_whenReady_param_0_fn_param_0_eventExtension on Anon_Map_method_37_whenReady_param_0_fn_param_0_event {
   external Map get target;
   external set target(Map value);
 }
@@ -2963,11 +2963,11 @@ class Map {
   @JS("getPane")
   external HTMLElement? getPane(dynamic /* String|HTMLElement */ pane);
   @JS("getPanes")
-  external Anon_Map_getPanes /* Anon_Map_getPanes&DefaultMapPanes */ getPanes();
+  external Anon_Map_method_35_getPanes_return /* Anon_Map_method_35_getPanes_return&DefaultMapPanes */ getPanes();
   @JS("getContainer")
   external HTMLElement getContainer();
   @JS("whenReady")
-  external Map whenReady(void Function(Anon_Map_whenReady_fn) fn, [dynamic context]);
+  external Map whenReady(void Function(Anon_Map_method_37_whenReady_param_0_fn_param_0_event) fn, [dynamic context]);
   @JS("getCenter")
   external LatLng getCenter();
   @JS("getZoom")
@@ -3383,6 +3383,12 @@ typedef IndexedTypeOfUtilSetOptions = dynamic;
 /// Unrepresentable in Dart: \`typeof Util["stamp"]\`
 typedef IndexedTypeOfUtilStamp = dynamic;
 
+/// Unrepresentable in Dart: \`keyof HTMLElementTagNameMap\`
+typedef KeyOfHTMLElementTagNameMap = dynamic;
+
+/// Unrepresentable in Dart: \`keyof SVGElementTagNameMap\`
+typedef KeyOfSVGElementTagNameMap = dynamic;
+
 /// Unrepresentable in Dart: \`typeof Class\`
 typedef TypeOfClass = dynamic;
 
@@ -3533,7 +3539,7 @@ extension FluentExtension on Fluent {
 class E{}
 @JS("E")
 extension EEnum on E{
-  external static String get A;
+  external static int get A;
   external static dynamic get B;
   external static String get C;
 }
@@ -3552,8 +3558,8 @@ extension KeywordsExtension on Keywords {
 
 @JS()
 @anonymous
-abstract class Anon_withOptions_opts{}
-extension Anon_withOptions_optsExtension on Anon_withOptions_opts {
+abstract class Anon_withOptions_overload_0_param_0_opts{}
+extension Anon_withOptions_overload_0_param_0_optsExtension on Anon_withOptions_overload_0_param_0_opts {
   external num get width;
   external set width(num value);
   external num get height;
@@ -3561,7 +3567,7 @@ extension Anon_withOptions_optsExtension on Anon_withOptions_opts {
 }
 
 @JS("withOptions")
-external void withOptions(Anon_withOptions_opts opts);
+external void withOptions(Anon_withOptions_overload_0_param_0_opts opts);
 
 @JS()
 @anonymous

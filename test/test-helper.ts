@@ -60,3 +60,30 @@ export function createTypeNodeInContext(
 
   return sourceFile.getTypeAliasOrThrow("__DUMMY").getTypeNodeOrThrow();
 }
+
+/**
+ * Makes IR snapshots portable without discarding source-position coverage.
+ * Absolute file roots differ per checkout; line and column remain exact.
+ */
+export function normalizeIRSnapshot<T>(value: T): T {
+  const clone = structuredClone(value);
+
+  function visit(node: unknown): void {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+
+    const record = node as Record<string, unknown>;
+    const loc = record.loc;
+    if (loc && typeof loc === "object") {
+      const location = loc as Record<string, unknown>;
+      if (typeof location.file === "string") location.file = "<virtual>";
+    }
+    Object.values(record).forEach(visit);
+  }
+
+  visit(clone);
+  return clone;
+}

@@ -1,4 +1,4 @@
-import { IRParameter } from "@ir/function";
+import { IRParameter } from "@ir/signature";
 import { emitType } from "@typeEmitter/emit";
 import { IRType } from "@ir/type";
 

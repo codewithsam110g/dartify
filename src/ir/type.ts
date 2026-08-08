@@ -1,4 +1,5 @@
-import { IRLiteral } from "./literal";
+import { IRNode } from "./node";
+import type { IRParameter, IRTypeParam } from "./signature";
 
 export type IRReferenceLookup =
   | { kind: "checker"; candidates: string[] }
@@ -21,7 +22,7 @@ export interface IRReferenceTarget {
 /**
  * IR structure for TypeScript .d.ts types to generate Dart bindings
  */
-export interface IRType {
+export interface IRType extends IRNode {
   // Core type identification
   kind: TypeKind;
   name: string;
@@ -46,10 +47,8 @@ export interface IRType {
   // Array handling: T[] or Array<T>
   elementType?: IRType;
 
-  // Object/Interface structure: { name: string; age: number }
-  objectLiteral?: IRLiteral;
-
   // Function types: (x: string, y?: number) => boolean
+  typeParams?: IRTypeParam[];
   parameters?: IRParameter[];
   returnType?: IRType;
 
@@ -191,18 +190,4 @@ export enum TypeKind {
    * two is how the information used to get destroyed.
    */
   Unsupported = "unsupported",
-}
-
-export interface IRProperty {
-  name: string;
-  type: IRType;
-  isOptional: boolean;
-  isReadonly: boolean;
-}
-
-export interface IRParameter {
-  name: string;
-  type: IRType;
-  isOptional: boolean;
-  isRestParameter: boolean;
 }

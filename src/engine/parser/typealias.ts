@@ -1,18 +1,24 @@
 import * as ts from "ts-morph";
 import { IRTypeAlias } from "@ir/typealias";
 import { IRDeclKind } from "@ir/index";
-import { parseType } from "@typeParser//type";
+import { parseType } from "@typeParser/type";
 import { declarationParseContext, ParseContext } from "./context";
+import { declarationModifiersOf, nodeMetadata } from "./metadata";
+import { parseTypeParameters } from "./signature";
 
 export function parseTypeAlias(
-  tas: ts.TypeAliasDeclaration,
-  context: ParseContext = declarationParseContext(tas, tas.getName()),
+  declaration: ts.TypeAliasDeclaration,
+  context: ParseContext = declarationParseContext(
+    declaration,
+    declaration.getName(),
+  ),
 ): IRTypeAlias {
-  let name = tas.getName();
-  let typeAfter = parseType(tas.getTypeNode(), 0, context);
   return {
-    kind:IRDeclKind.TypeAlias,
-    name: name,
-    type: typeAfter,
+    ...nodeMetadata(declaration),
+    kind: IRDeclKind.TypeAlias,
+    modifiers: declarationModifiersOf(declaration),
+    name: declaration.getName(),
+    typeParams: parseTypeParameters(declaration, context),
+    type: parseType(declaration.getTypeNode(), 0, context),
   };
 }

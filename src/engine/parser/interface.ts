@@ -7,180 +7,123 @@ import {
   IRProperties,
   IRSetAccessor,
 } from "@ir/interface";
-import { IRParameter } from "@ir/function";
 import { parseType } from "@typeParser/type";
 import { IRDeclKind } from "@ir/index";
 import { declarationParseContext, ParseContext } from "./context";
+import { declarationModifiersOf, nodeMetadata } from "./metadata";
+import {
+  parseCallSignature,
+  parseConstructSignature,
+  parseParameter,
+  parseParameters,
+  parseTypeParameters,
+} from "./signature";
 
 export function parseInterface(
-  interfaceDecl: ts.InterfaceDeclaration,
+  declaration: ts.InterfaceDeclaration,
   context: ParseContext = declarationParseContext(
-    interfaceDecl,
-    interfaceDecl.getName(),
+    declaration,
+    declaration.getName(),
   ),
 ): IRInterface {
-  let name = interfaceDecl.getName();
-  const extenders = interfaceDecl.getExtends().map((heritage, index) =>
-    parseType(heritage, 0, context),
-  );
-
-  // Properties
-  let properties: IRProperties[] = [];
-  for (const [propertyIndex, prop] of interfaceDecl.getProperties().entries()) {
-    let name = prop.getName();
-    const propertyContext = context.child(name);
-    let type = parseType(prop.getTypeNode(), 0, propertyContext);
-    let isReadonly = prop.isReadonly();
-    let isOptional = prop.hasQuestionToken();
-
-    properties.push({
-      name,
-      type,
-      isReadonly,
-      isOptional,
+  const properties: IRProperties[] = declaration.getProperties().map((node) => {
+    const memberContext = context.child(node.getName());
+    return {
+      ...nodeMetadata(node),
+      name: node.getName(),
+      type: parseType(node.getTypeNode(), 0, memberContext),
+      isReadonly: node.isReadonly(),
+      isOptional: node.hasQuestionToken(),
       isStatic: false,
-    });
-  }
+      isAbstract: false,
+    };
+  });
 
-  // Methods
-  let methods: IRMethod[] = [];
-  for (const [methodIndex, method] of interfaceDecl.getMethods().entries()) {
-    let name = method.getName();
-    const methodContext = context.child(name);
-    let parameters: IRParameter[] = [];
-    let returnType = parseType(
-      method.getReturnTypeNode(),
-      0,
-      methodContext,
+  const methods: IRMethod[] = declaration.getMethods().map((node, index) => {
+    const memberContext = context.child(`method_${index}_${node.getName()}`);
+    return {
+      ...nodeMetadata(node),
+      name: node.getName(),
+      typeParams: parseTypeParameters(node, memberContext),
+      parameters: parseParameters(node, memberContext),
+      returnType: parseType(
+        node.getReturnTypeNode(),
+        0,
+        memberContext.child("return"),
+      ),
+      isOptional: node.hasQuestionToken(),
+      isStatic: false,
+      isAbstract: false,
+    };
+  });
+
+  const callSignatures = declaration
+    .getCallSignatures()
+    .map((node, index) =>
+      parseCallSignature(node, context.child(`call_${index}`)),
     );
-    let isOptional = method.hasQuestionToken();
 
-    for (const [paramIndex, param] of method.getParameters().entries()) {
-      // Do not parse `this` param
-      if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
-
-      let pName = param.getName();
-      const paramContext = methodContext.child(pName);
-      let type = parseType(param.getTypeNode(), 0, paramContext);
-      let isOptional = param.isOptional();
-      let isRest = param.isRestParameter();
-      parameters.push({
-        name: pName,
-        type: type,
-        isOptional: isOptional,
-        isRest: isRest,
-      });
-    }
-    methods.push({
-      name,
-      parameters,
-      returnType,
-      isOptional,
-      isStatic: false,
-    });
-  }
-
-  // Constructors
-  let constructors: IRMethod[] = [];
-  for (const [constructorIndex, constructor] of interfaceDecl
+  const constructSignatures = declaration
     .getConstructSignatures()
-    .entries()) {
-    let parameters: IRParameter[] = [];
-    const constructorContext = context.child("constructor");
-    let returnType = parseType(
-      constructor.getReturnTypeNode(),
-      0,
-      constructorContext,
+    .map((node, index) =>
+      parseConstructSignature(
+        node,
+        context.child(`constructor_${index}`),
+        true,
+      ),
     );
 
-    for (const [paramIndex, param] of constructor.getParameters().entries()) {
-      // Do not parse `this` param
-      if (param.getNameNode().getKind() === ts.SyntaxKind.ThisKeyword) continue;
-
-      let pName = param.getName();
-      const paramContext = constructorContext.child(pName);
-      let type = parseType(param.getTypeNode(), 0, paramContext);
-      let isOptional = param.isOptional();
-      let isRest = param.isRestParameter();
-      parameters.push({
-        name: pName,
-        type: type,
-        isOptional: isOptional,
-        isRest: isRest,
-      });
-    }
-    constructors.push({
-      name: "constructor",
-      parameters,
-      returnType,
-      isOptional: false,
-      isStatic: false,
+  const getAccessors: IRGetAccessor[] = declaration
+    .getGetAccessors()
+    .map((node) => {
+      const memberContext = context.child(node.getName());
+      return {
+        ...nodeMetadata(node),
+        name: node.getName(),
+        type: parseType(node.getReturnTypeNode(), 0, memberContext),
+        isStatic: false,
+        isAbstract: false,
+      };
     });
-  }
 
-  // Get Accessors
-  let getAccessors: IRGetAccessor[] = [];
-  for (const [accessorIndex, ga] of interfaceDecl.getGetAccessors().entries()) {
-    let name = ga.getName();
-    const accessorContext = context.child(name);
-    let type = parseType(ga.getReturnTypeNode(), 0, accessorContext);
-
-    getAccessors.push({
-      name,
-      type,
-      isStatic: false,
+  const setAccessors: IRSetAccessor[] = declaration
+    .getSetAccessors()
+    .map((node) => {
+      const memberContext = context.child(node.getName());
+      return {
+        ...nodeMetadata(node),
+        name: node.getName(),
+        parameter: parseParameter(node.getParameters()[0], memberContext),
+        isStatic: false,
+        isAbstract: false,
+      };
     });
-  }
 
-  // Set Accessors
-  let setAccessors: IRSetAccessor[] = [];
-  for (const [accessorIndex, sa] of interfaceDecl.getSetAccessors().entries()) {
-    let name = sa.getName();
-    const accessorContext = context.child(name);
-    let param = sa.getParameters()[0];
-    setAccessors.push({
-      name: name,
-      parameter: {
-        name: param.getName(),
-        type: parseType(param.getTypeNode(), 0, accessorContext),
-        isOptional: param.hasQuestionToken(),
-        isRest: param.isRestParameter(),
-      },
-      isStatic: false,
-    });
-  }
-
-  // IndexSignatures
-  let indexSignatures: IRIndexSignatures[] = [];
-  for (const [index, indexSig] of interfaceDecl
+  const indexSignatures: IRIndexSignatures[] = declaration
     .getIndexSignatures()
-    .entries()) {
-    const indexContext = context.child("indexSig");
-    let keyType = parseType(
-      indexSig.getKeyTypeNode(),
-      0,
-      indexContext,
-    );
-    let valueType = parseType(
-      indexSig.getReturnTypeNode(),
-      0,
-      indexContext,
-    );
-    let isReadonly = indexSig.isReadonly();
-    indexSignatures.push({
-      keyType,
-      valueType,
-      isReadonly,
+    .map((node) => {
+      const memberContext = context.child("indexSig");
+      return {
+        ...nodeMetadata(node),
+        keyType: parseType(node.getKeyTypeNode(), 0, memberContext),
+        valueType: parseType(node.getReturnTypeNode(), 0, memberContext),
+        isReadonly: node.isReadonly(),
+      };
     });
-  }
 
   return {
+    ...nodeMetadata(declaration),
     kind: IRDeclKind.Interface,
-    name,
-    extends: extenders,
+    modifiers: declarationModifiersOf(declaration),
+    name: declaration.getName(),
+    typeParams: parseTypeParameters(declaration, context),
+    extends: declaration
+      .getExtends()
+      .map((heritage) => parseType(heritage, 0, context)),
     properties,
     methods,
-    constructors,
+    callSignatures,
+    constructSignatures,
     getAccessors,
     setAccessors,
     indexSignatures,

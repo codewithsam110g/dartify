@@ -58,7 +58,7 @@ function declaredNameOf(fqn: string): string {
  * and the failure mode of forgetting one is silent — a use site that keeps its
  * bare `dynamic` with nothing to show it was missed. `Unsupported` is a unique
  * `kind` value, so matching on it needs no type discrimination. The IR is
- * JSON-cloneable (`deepCloneIRDeclaration`), so it is acyclic and this
+ * structured-cloneable (`deepCloneIRDeclaration`), so it is acyclic and this
  * terminates.
  */
 export function registerAliasSymbols(
@@ -123,7 +123,13 @@ export function registerAliasSymbols(
       // `aliasName` across and emit `typedef Foo = Foo;`.
       const declaration: IRTypeAlias = {
         kind: IRDeclKind.TypeAlias,
+        modifiers: {
+          exportKind: "none",
+          isDeclare: false,
+          isAmbient: false,
+        },
         name: alias.name,
+        typeParams: [],
         type: {
           kind: TypeKind.Unsupported,
           name: TypeKind.Unsupported,

@@ -15,6 +15,7 @@ import { handleThisType } from "./thisType";
 import { handleTypeOperator, handleTypePredicate } from "./typeOperator";
 import { handleTypeQuery } from "./typeQuery";
 import { ParseContext, typeParseContext } from "@parser/context";
+import { sourceLocationOf } from "@parser/metadata";
 
 export type ParseableTypeNode =
   | ts.TypeNode
@@ -245,6 +246,7 @@ export class TypeParser {
     // later that forgets to record it — including the `default:` branch, where
     // losing the text is exactly the bug.
     result.originalText = sourceTextOf(typeNode);
+    result.loc = sourceLocationOf(typeNode);
     return result;
   }
 }

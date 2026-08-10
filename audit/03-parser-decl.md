@@ -10,8 +10,9 @@ downstream.
 > the IR boundary. Declaration parsers share metadata and signature helpers,
 > retain every call/construct overload, and use immutable parse scopes. See
 > `test/decl/s3-ir.test.ts` and `def_files/synthetic/s3-complete.d.ts` for the
-> executable acceptance contract. The historical sections below retain the
-> original evidence and failure modes.
+> executable acceptance contract. The post-S3 audit found one uncovered
+> structural-position collision (`P-13`). The historical sections below retain
+> the original evidence and failure modes.
 
 ---
 
@@ -247,3 +248,25 @@ as `E-14`, which at least emits a placeholder `operator []`.
 
 Fix requires an IR change (`IRClass.indexSignatures`), so it lands with the
 declaration work in S3, not as a parser patch.
+
+---
+
+## P-13 — Sibling inline shapes reuse one anonymous identity `[verified]`
+
+Immutable `ParseContext` fixed cross-parameter, return and overload collisions,
+but `handleTypeLiterals` derives its hoist name only from the owning context.
+Recursive children do not add a structural-position segment. Therefore:
+
+```ts
+declare function f(x: { a: string } | { b: number }): void;
+```
+
+registers two declarations named `Anon_f_overload_0_param_0_x`; both union
+members then reference that same name. Current output contains duplicate Dart
+classes and the distinct source shapes are semantically collapsed. The S3
+fixture covered different owners, not sibling shapes within one type.
+
+S4 must assign a deterministic identity to every structural position before it
+canonicalises equivalent shapes. The canonical key must exclude locations,
+JSDoc and linked target metadata; the quarantined transformer's
+`JSON.stringify` hash is therefore unsafe to port.

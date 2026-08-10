@@ -595,14 +595,12 @@ S1's "zero bare `dynamic` outside genuine `any`/`unknown`" criterion, once the
 
 TypeScript's `object` means "any non-primitive"; Dart's `Object` means "any
 non-null". Not identical, but far closer than `dynamic`, and it is a real type
-the analyser can check. `undefined` in a non-union position is `Null`, which the
-parser already models (`T-07`) — the keyword case in `parseType` maps it to
-`TypeKind.Undefined` rather than `TypeKind.Null`, which is the second half of
-`T-07` recorded as still open.
+the analyser can check. Bare `null` already parses/emits as `Null` (`T-07` is
+fixed); the distinct `undefined` keyword deliberately remains
+`TypeKind.Undefined` and needs an explicit S5 emission policy.
 
-Left for S5 rather than fixed in S1.9: both are one-line emitter cases, but
-`undefined` is entangled with the `T-07` IR question and neither is worth
-reopening a closed stage for.
+Left for S5 rather than fixed in S1.9: both are simple emitter cases, but their
+mapping is a backend policy and should land with the rewrite.
 
 > **`T-09`'s fix raised leaflet's analyzer count, on purpose.** 507 → 510, and
 > all three additions are `undefined_class`: the intersections' first members
@@ -644,7 +642,7 @@ Not bugs; recorded so the S5 rewrite starts from an accurate picture.
   because every interface is emitted `@JS() @anonymous`, where the name is
   ignored — but it silently pre-breaks any future non-anonymous path, and it
   reads as though scoping were handled.
-- **`parser/{interface,class,function}.ts`** — `returnTypeNode` is assigned and
-  never read at four sites.
-- **`parser/{class,typealias}.ts`** — `@typeParser//type` imports carry a double
-  slash.
+- **Emitter signatures** — `debug` is unused throughout the old templates;
+  several `prefix` parameters are also unused. S3 removed the four stale
+  parser locals and corrected the double-slash imports, so those original
+  sub-findings are closed.

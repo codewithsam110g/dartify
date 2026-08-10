@@ -256,7 +256,7 @@ half-complete until the S5 rebuild.*
 | 3.6 | ✅ Required declaration modifiers capture export kind and syntactic/effective ambient state; members retain visibility/static/readonly/abstract facts | `I-09` |
 | 3.6b | ✅ Variables capture `var`/`let`/`const` truthfully; classes retain index signatures | `P-05`, `P-12` |
 | 3.7 | ✅ Enum initialisers are discriminated as implicit/numeric/string/computed with raw and semantic values; cloning uses bigint-safe `structuredClone` | `P-04`, `I-11` |
-| 3.8 | ✅ Immutable `ParseContext` replaces mutable `currentFQN`; deterministic return/parameter/overload scopes and a callback seam register collision-free hoisted symbols | `R-09`, `P-08` |
+| 3.8 | ✅ Immutable `ParseContext` replaces mutable `currentFQN`; deterministic return/parameter/overload scopes and a callback seam register hoisted symbols. Post-S3 found sibling-position collision `P-13`, now owned by S4.2 | `R-09`, `P-08`, `P-13` |
 | 3.9 | ✅ Deleted live `IRLiteral` and `IRType.objectLiteral`; S2's `ir/visit.ts` remains the live recursive walker. The quarantined S4 transformer source is intentionally untouched until mined | `I-07`, `I-14`, `D-03` |
 | 3.10 | ✅ Six focused fidelity tests plus `test:s3`; S2 corpus 2/2, 1,650-file stress, typecheck, build, smoke and h3 `dart analyze` all pass | S3 gate |
 
@@ -271,22 +271,30 @@ bundle is 112.24 KB, and generated h3 remains `dart analyze` clean.
 
 ## S4 — The semantic layer: what Phase 2 exists for
 
-*Mine the dead transformers before deleting them.*
+*Use the live IR walker; preserve concepts from the quarantined code, not its
+obsolete implementations.*
 
 | # | Task | Findings |
 |---|---|---|
-| 4.1 | Port the recursive IR walker out of `transformers/typeVisitor.ts` into the linker | `D-02` |
-| 4.2 | Overload grouping + renaming. Carry the original JS name as `jsName` on the IR — **never** recover it by string surgery | `L-05`, `E-01` |
-| 4.3 | Nested `TypeLiteral` hoisting (inside unions, arrays, generics) via the walker; structural dedup of identical shapes | `D-02` |
-| 4.4 | Declaration augmentation: `interface`+`var` (§4.1) with `var`-side members marked **static** (§4.2), default form (§4.3), type-alias+var | `L-05`, `P-10` |
-| 4.5 | Dart keyword escaping (`JS$name`), preserving the original for `@JS()` | `E-09` |
-| 4.6 | Namespace collision renaming (§8.4, §8.5) | `E-10`, `L-11` |
-| 4.7 | Distinguish `declare module` / `namespace` / `global`; hoist `global` to file scope | `L-11` |
-| 4.8 | `SymbolTable.unregister`/`replace`; readonly view from `getSymbolTable()` | `L-10` |
-| 4.9 | **Delete `engine/passes/**` and `engine/transformers/**`** once mined | `D-01`, `D-02` |
+| 4.1 | Add a semantic-pass contract plus `SymbolTable.replace`/`unregister`; expose a readonly snapshot instead of the live `Map`. Transformations must update symbols, use-site FQNs and dependency edges atomically | `L-10` |
+| 4.2 | Fix anonymous structural identity before dedup: every sibling position gets a deterministic path; compute a semantic shape key that excludes location, docs and resolved-link metadata; reuse canonical symbols and rewrite references. Keep regression cases for union siblings and nested array/generic literals | `P-13`, `D-02` |
+| 4.3 | Represent module kind explicitly (`namespace`, ambient/external module, global augmentation) and hoist `declare global` to file scope. Do not infer kind from the textual scope string | `L-11` |
+| 4.4 | Group free functions and class/interface methods by owning scope + source name; for an overloaded group assign stable `name_1…name_n` Dart names in source order and retain the exact original as `jsName`. Never recover JS names with `.split("_")` | `L-05`, `E-01` |
+| 4.5 | Merge declaration augmentation into one semantic symbol: `interface`+`var`, default form and type-alias+var; mark members originating on the variable side static | `L-05`, `P-10` |
+| 4.6 | Apply the §10 identifier-context rules: reserved words and illegal built-in declaration/type names become `JS$<name>`; legal built-in member names stay unchanged. Retain the exact source name as `jsName` | `E-09` |
+| 4.7 | Apply §8.4/§8.5 collision naming from explicit module identity: keep the first legal bare name, then use the shortest namespace suffix (`m2_A`) and a numeric suffix only if still needed; rewrite every reference | `E-10`, `L-11` |
+| 4.8 | Delete `engine/passes/**` and `engine/transformers/**`; remove their path aliases and correct the audited stale comments after semantic tests protect retained behaviour | `D-01`, `D-02`, `X-13` |
+| 4.9 | Add IR/symbol acceptance tests for all four legacy fixtures and `P-13`; rerun normal, S2, S3, stress, typecheck, build and Dart analyzer baselines | S4 gate |
 
-**Done when:** `def_files/legacy_tests/{overloads,declaration_augmentation,keywords,modules}.d.ts`
-match expected output.
+**Measured starting point:** overloads 18 analyzer issues, augmentation 11,
+keywords 9, modules 25. These fixtures currently retain duplicate Dart names,
+unmerged declarations, verbatim keywords and nine declarations flattened to
+`A` (eight collisions).
+
+**Done when:** semantic assertions prove unique Dart-visible names with preserved
+`jsName`, one merged augmentation symbol, explicit module kinds, correct
+reference rewrites, and collision-free/canonical anonymous shapes. S4 does not
+claim final analyzer-clean Dart; backend completeness remains S5.
 
 ---
 
@@ -312,7 +320,8 @@ already in place.*
 | 5.13 | JSDoc → `///`, `{@link x}` → `[x]`, strip `@param`/`@return` (§11) | `I-06` |
 | 5.14 | Scoped `stripQuotes`; drop the redundant readonly branch | `E-13`, `E-15` |
 
-**Done when:** h3 **and** leaflet pass `dart analyze` with zero errors (`X-09`).
+**Done when:** h3 and the complete Leaflet output (`leaflet.dart` plus
+`geojson.dart`) pass `dart analyze` with zero errors (`X-09`).
 
 ---
 
@@ -326,7 +335,7 @@ already in place.*
 | 6.4 | Return symbol-generation errors as phase output; merge them into the programmatic result and CLI diagnostic policy so caught statement failures cannot silently shrink the generated API | `R-13` |
 | 6.5 | Reconnect `log.ts` as `--emit-ir` (one JSON per phase) as a `tools/` consumer, or delete it and fix the docs | `R-08`, `D-05` |
 | 6.6 | README: state the `package:js` target deliberately; document `pnpm graph` | — |
-| 6.7 | Verify tree-shaking removed the deleted code from `dist/` | `D-06` |
+| 6.7 | Reconfirm final bundle composition/size after deletion; post-S3 already proves dead code is tree-shaken | `D-06` |
 | 6.8 | Move `src/legacy/**` to `docs/history/` or a git tag | `D-04` |
 | 6.9 | *(optional)* `1.0.0-beta.0` under the npm `next` tag; soak | — |
 | 6.10 | Merge to `main`, publish **`1.0.0`** | — |

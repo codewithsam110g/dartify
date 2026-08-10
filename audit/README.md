@@ -192,8 +192,8 @@ those fields remains S5 work.
 S3 is implemented and verified. Shared `IRNode`, `IRTypeParam`, `IRParameter`,
 `IRCallSignature` and `IRConstructSignature` contracts now carry the declaration
 facts that were previously discarded. Every parser uses immutable
-`ParseContext` scopes; return, parameter and overload hoists are deterministic
-and collision-free. Enum initializer form/value, bigint cloning, declaration
+`ParseContext` scopes; return, parameter and overload hoists are deterministic.
+Enum initializer form/value, bigint cloning, declaration
 modifiers, member visibility, docs, locations, variable declaration kinds and
 class index signatures are all asserted at the IR boundary.
 
@@ -213,3 +213,30 @@ Closed here: `I-01`, `I-05`–`I-11`, `I-13`, `I-14`, `P-02`–`P-06`,
 `P-09` is closed specifically at the IR boundary; emitting every overload is
 still part of the S5 backend rebuild. S4 now owns overload grouping,
 augmentation and anonymous-shape canonicalisation.
+
+---
+
+## Audit pass — full re-read, post-S3
+
+At `293a102`, all 66 live source files (5,767 lines), all 26 test/tool files
+(3,038 lines), runtime configuration, and the S4-relevant quarantined code were
+re-read. Findings were verified at discovery time with focused probes.
+
+The gates remain green: 222 tests passed / 4 skipped, S2 2/2, S3 1/1,
+`tsc --noEmit` clean, bundle 112.24 KB, and all 1,650 stress files survived.
+An independent stress census found 0 returned errors and 0 embedded emission
+error comments; 710 known barrels/comment-only files remain empty. Fresh Dart
+analysis reports h3 0, probe 19, `leaflet.dart` 510, and `geojson.dart` 12.
+
+One new S2 finding is verified: `P-13`. Sibling inline shapes within one type
+reuse the same anonymous FQN, producing duplicate classes and collapsed union
+members. `X-13` records six stale source/test/config comments without changing
+them in this documentation-only pass. The audit also corrects `T-07`, `T-10`,
+and `D-06` to fixed.
+
+S4 was re-sequenced from the evidence. The live `src/ir/visit.ts` walker already
+does recursive traversal, and nested literals already hoist during parsing; the
+quarantined walker is obsolete current-IR code. S4 therefore begins with safe
+symbol-table mutation/pass infrastructure, fixes structural-position identity
+and semantic canonicalisation, then implements module kinds, overloads,
+augmentation, and renaming before deleting the quarantined directories.

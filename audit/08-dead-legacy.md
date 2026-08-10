@@ -3,9 +3,10 @@
 Covers `src/engine/passes/**`, `src/engine/transformers/**`, `src/legacy/**`,
 `src/log.ts`.
 
-**~4,300 of ~7,900 `src` lines are currently unreachable.** None of it is on the
-execution path; all of it is still type-checked, coverage-counted and
-bundle-eligible.
+**4,385 of 10,152 `src` lines are currently unreachable.** None is on the
+execution path. The 1,684 lines under `engine/{passes,transformers}` are
+excluded from TypeScript checking; `legacy/**` and `log.ts` remain checked.
+The post-S3 bundle scan confirms none of these modules ships in `dist/cli.js`.
 
 Verification:
 ```
@@ -19,10 +20,11 @@ grep -rn "legacy" src test --include="*.ts" | grep -v "^src/legacy/"
 
 ---
 
-## D-01 — The 5-pass pipeline is orphaned but still type-checked `[verified]`
+## D-01 — The 5-pass pipeline is orphaned and quarantined `[verified]`
 
-`src/engine/passes/**` (~730 lines) and `src/engine/transformers/**` (~800
-lines). Between them they account for **5 of the 15 `tsc --noEmit` errors**:
+`src/engine/passes/**` (880 lines) and `src/engine/transformers/**` (804 lines)
+have zero inbound references. They historically accounted for five compiler
+errors; S0.7 excluded both directories, so the live tree now typechecks cleanly.
 
 ```
 src/engine/passes/declarationPass.ts(225,36): error TS2554: Expected 2 arguments, but got 1.
@@ -32,35 +34,35 @@ src/engine/transformers/typeTransformer.ts(47,27):  error TS2339: ...
 src/engine/transformers/typeTransformer.ts(50,62):  error TS2339: ...
 ```
 
-`getCurrentFileName` was removed from `TranspilerContext` during the refactor
-(`context.ts` still exposes `currentFQN`; S2 removed `currentDeps` and derives
-dependencies by walking each completed declaration IR instead).
+The post-S3 read found deeper incompatibility than those historical diagnostics:
+the pass sources import superseded APIs, lose nested-module errors in fresh
+arrays, collide type-map keys and include an incomplete function processor.
+They are deletion candidates, not S4 scaffolding.
 
 `tsconfig.json` also still declares `@passes/*` and `@transformers/*` path
 aliases pointing here.
 
 ---
 
-## D-02 — **Do not delete the transformers yet — mine them first** `[inspection]`
+## D-02 — Mine transformer concepts, not implementations `[inspection]`
 
-`engine/transformers/` holds the only working implementations of two things
-Phase 2 needs:
+The original audit treated `engine/transformers/` as a reference implementation.
+The post-S3 line read narrows what is actually reusable:
 
 | What | Where | Why it matters |
 |---|---|---|
-| Overload grouping + renaming | `declarationTransformers.ts` | The `f_1`/`f_2` + shared `@JS("f")` scheme that shipped in v0.4 |
-| Recursive IR type walker | `typeVisitor.ts` (268 lines) | Walks every `IRType` in a declaration — needed for nested `TypeLiteral` hoisting, and for the `Unsupported`-node collection that the named-alias degradation strategy requires |
-| Literal canonicalisation | `typeVisitor.ts:255` (`canonicalizeLiteral`) | Structural dedup of identical anonymous shapes — currently the parse-time hoister mints a fresh `Anon_*` per site with no dedup |
+| Overload grouping + renaming | `declarationTransformers.ts` | Retain the `f_1`/`f_2` + shared JS-name behaviour, but reimplement against current symbols/IR |
+| Recursive traversal | `typeVisitor.ts` | Obsolete: live `src/ir/visit.ts` already traverses current IR and is used by symbol generation and alias registration |
+| Literal canonicalisation | `typeVisitor.ts` | Retain the structural-dedup requirement, not its `JSON.stringify` hash, which includes non-semantic current-IR metadata |
 
-`typeVisitor`'s walker is the more valuable of the two: parse-time hoisting
-(`parser/type/typeLiterals.ts`) only fires for a `TypeLiteral` in *direct*
-position. A literal nested inside a union, array or generic argument is never
-hoisted — `Tasks.md` tracks this as "Fix nested `TypeLiteral` hoisting from
-within unions, arrays, and generics", and the recursive walker is the mechanism.
+Nested type literals already hoist through recursive `parseType` calls inside
+unions, arrays and generic arguments. What is missing is canonical structural
+dedup, and `P-13` proves that sibling positions can currently collide before
+dedup even runs.
 
-**Sequencing:** port these into the linker phase during P3, then delete the
-directories in the same commit. Deleting earlier loses the reference
-implementation; deleting later leaves `tsc` broken.
+**Sequencing:** record the overload behaviour and canonicalisation constraints,
+build S4 on the live walker plus safe symbol-table mutation APIs, then delete
+both quarantined directories in S4. No current implementation should be copied.
 
 ---
 
@@ -144,13 +146,12 @@ symbol table.
 
 ---
 
-## D-06 — Dead code inflates the published bundle `[inspection]`
+## D-06 — Dead code is absent from the published bundle `[verified]` **[FIXED — post-S3 audit]**
 
-`package.json` builds with `tsup src/cli.ts --format esm`, which tree-shakes
-from the entry point — so unreachable modules should not ship. Worth verifying
-after Stage 0 with a `dist/` size comparison, since the v0.4 CHANGELOG cites a
-"~17% reduction in final bundled package size" from a previous legacy purge and
-that measurement is the natural regression check.
+`pnpm build` produces a 114,961-byte (112.24 KB) `dist/cli.js`. A scan for
+quarantined pass/transformer classes, legacy entry points, logger strings,
+graphology and Viz finds no matches. Deleting the sources will improve tree
+hygiene and maintenance, but not the shipped artifact's current size.
 
 ---
 

@@ -78,16 +78,16 @@ Verified with `grep -rn ... src test --include="*.ts"` excluding self-directory:
 | `src/engine/passes/**` | 880 | The old 5-pass pipeline. |
 | `src/engine/transformers/**` | 804 | Overload grouping + hoisting lived here. |
 | `src/legacy/**` | ~2450 | Original 3-day implementation. Self-contained, compiles clean. |
-| `src/ir/literal.ts` (`IRLiteral`) | 44 | Only referenced by the dead transformers. Vestigial since hoisting moved to parse time. |
 | `src/log.ts` | 251 | Full logger implementation; not imported by any live module. |
 
-**At least 4,429 of 9,124 `src` TypeScript lines are currently unreachable.**
-This is expected mid-refactor but it means `tsc`, coverage, and bundle size are
-all reporting on code that does not run.
+**4,385 of 10,152 `src` TypeScript lines are currently unreachable; 5,767 are
+live.** The quarantined pass/transformer directories are excluded from `tsc`;
+the post-S3 bundle scan confirms all dead groups are tree-shaken from `dist`.
 
-> Note: `src/engine/transformers/` still holds the only working implementation of
-> overload grouping and recursive type-walking. Do not delete it until `P-3`
-> lands — mine it first. See `08-dead-legacy.md`.
+> Note: current recursive traversal is `src/ir/visit.ts`. The transformer walker
+> targets deleted IR and must not be ported. Retain only its overload-renaming
+> intent and structural-canonicalisation requirement before S4 deletes it. See
+> `08-dead-legacy.md` and `P-13`.
 
 ## Path aliases (`tsconfig.json`)
 
@@ -108,7 +108,7 @@ all reporting on code that does not run.
 `@typeEmitter` pointing into `emitter/old/` will need a rename when the new
 emitter lands, or the alias will be actively misleading. See `E-11`.
 
-## Observed runtime behaviour (baseline, commit `fc57961`)
+## Historical runtime behaviour (baseline, commit `fc57961`)
 
 | Corpus | Files resolved | Symbols | Broken links | Emitted | Time |
 |---|---|---|---|---|---|

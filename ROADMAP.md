@@ -34,6 +34,16 @@ census over h3, Leaflet, three.js and the S3 fixture found **2,530 declarations*
 and **26,240 parsed type nodes** with zero missing source locations. S4—the
 whole-program semantic layer—is next.
 
+A post-S3 line-by-line re-audit confirmed those gates and corrected the S4
+starting point. The recursive current-IR walker already exists, nested inline
+types already hoist, and quarantined transformer code is not portable. The
+remaining shape work is semantic identity and deduplication; a new verified
+blocker (`P-13`) shows sibling inline shapes can currently collapse to one
+anonymous name. S4 therefore starts with safe symbol-table mutation and shape
+identity, then module kinds, overloads, augmentation and renaming. Fresh Dart
+baselines are h3 0, probe 19, and complete Leaflet 522 issues (510 in
+`leaflet.dart`, 12 in `geojson.dart`).
+
 The current Dart backend is still the transitional `emitter/old/*`
 string-template implementation: some paths work, some deliberately preserve
 legacy degradation, and several declaration features are not emitted at all.
@@ -85,8 +95,8 @@ What lands:
   `interface` + `var` merging that TypeScript definitions lean on constantly.
 - **Generics, inheritance and `implements`** carried through to the output.
 - **Dart keyword escaping** and namespace collision renaming.
-- **Acceptance gate:** generated bindings for real libraries pass
-  `dart analyze` with zero errors, and the ~120-case `js_facade_gen`
+- **Acceptance gate:** generated bindings for real libraries—including both
+  generated Leaflet files—pass `dart analyze` with zero errors, and the ~120-case `js_facade_gen`
   conformance suite runs in CI with a published pass count.
 
 ---

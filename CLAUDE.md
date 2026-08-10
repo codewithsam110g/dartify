@@ -42,7 +42,8 @@ pnpm test                           # one-shot suite (test:run is the same)
 pnpm test:watch                     # watch mode
 pnpm test:ui                        # browser UI at localhost:51204/__vitest__/
 pnpm test:update                    # accept snapshot changes (vitest run -u)
-pnpm test:stress                    # opt-in full 1,650-file corpus, ~8 min
+pnpm test:stress                    # opt-in full 1,650-file corpus, ~3 min currently
+pnpm test:s2                        # opt-in linker corpus gate
 pnpm test:s3                        # opt-in declaration-fidelity census
 pnpm exec tsc --noEmit              # typecheck — must stay at 0 errors
 pnpm dev -d "<glob>" -o <outdir>    # run the CLI from source
@@ -64,7 +65,8 @@ dart pub get && cp <generated>.dart lib/ && dart analyze
 Probe currently reports 19 errors, all of them known findings — `E-03` (type
 params never emitted), `E-09` (keyword escaping), `L-05` (augmentation
 duplicates). Check new errors against `audit/FINDINGS.md` before assuming
-they're new.
+they're new. `leaflet.dart` reports 510 issues; the separately generated
+`geojson.dart` adds 12. Analyze both files when evaluating the S5 gate.
 
 `test:ui` accepts the same filters as the CLI — `pnpm test:ui type` opens the UI
 scoped to the type tests. `test:stress` sets `DARTIFY_STRESS=1` inline, which is
@@ -72,8 +74,10 @@ POSIX-shell syntax; on Windows use `pnpm test:run test/stress.test.ts` with the
 variable set separately.
 
 Test tiers: `simple` (sanity) · `smoke` (3 files, byte-exact snapshots) ·
-`test:s3` (declaration-fidelity census) · `stress` (1,650-file corpus, opt-in,
-asserts only that nothing throws).
+`test:s2` (link corpus) · `test:s3` (declaration-fidelity census) · `stress`
+(1,650-file corpus, opt-in, asserts only that nothing throws). Post-S3's
+independent census found 0 returned errors and 0 emission-error comments, but
+the test still does not assert either (`X-12`).
 
 Useful corpora in `def_files/` (1,650 `.d.ts` files, not shipped to npm):
 
@@ -101,6 +105,7 @@ Transpiler seams:  analyze()   phases 1-2, returns LinkReport, no emission
                    static transpileFromString()  one virtual file → string
 
 tools/graph.ts consumes analyze(); it is NOT part of the shipped bundle.
+src/ir/visit.ts is the live recursive IR walker used by generation and aliases.
 ```
 
 FQN scheme: `<abs file path>::<scope|segments|>Name`. `::` splits physical from
@@ -135,17 +140,21 @@ Consequences worth holding on to:
 
 ## Non-obvious things that will bite you
 
-- **~4,400 of ~9,100 `src` lines are dead.** `engine/passes/**` (880),
+- **4,385 of 10,152 `src` lines are dead.** `engine/passes/**` (880),
   `engine/transformers/**` (804), `legacy/**` (2,450), `log.ts` (251). The
   first two are excluded from `tsconfig` but still on disk; `legacy/**` is
-  **not** excluded, so it is typechecked on every run.
-  `ir/literal.ts` (44) is the awkward one: dead in effect but **imported by the
-  live `ir/type.ts`**, so it cannot just be deleted — `IRType.objectLiteral`
-  has to go first, and no parser has ever written it (`I-14`).
-- **Do not delete `engine/transformers/**` yet.** It holds the overload grouper
-  worth keeping and a recursive IR walker. Mine it during S4, then delete
-  (`D-02`). There is a *second*, trivial grouper dead inside
-  `emitter/old/class.ts` behind a commented-out block — mine both (`E-21`).
+  **not** excluded, so it is typechecked on every run. All dead groups are
+  tree-shaken from the current 112.24 KB bundle (`D-06`).
+- **Do not port the transformer walker.** It targets deleted IR, omits current
+  fields and hashes non-semantic metadata. `src/ir/visit.ts` is already the
+  live walker, and nested literals already hoist through recursive parsing.
+  Preserve only the overload-renaming behaviour and structural-dedup
+  requirement, then delete both quarantined directories in S4 (`D-02`).
+- **Anonymous hoist scope is not a structural identity.** S3 made owner scopes
+  deterministic, but sibling shapes inside one type still reuse one FQN:
+  `{a: string} | {b: number}` produces duplicate anonymous classes and
+  collapsed references (`P-13`). S4 must add position identity before a
+  location/docs-independent canonical shape key.
 - **`src/legacy/**` is the author's original 3-day implementation.** Self-contained,
   compiles clean, deliberately kept as an architectural exhibit. Do not "clean
   it up".

@@ -191,7 +191,7 @@ which 153 are `export *`; it has no declarations of its own at all. A
 single-file string API has nothing to emit for these by construction, and the
 real multi-file pipeline emits them as the empty libraries they are.
 
-**Use 710/1649 as the regression baseline.** A jump means declarations started
+**Current post-S3 baseline: 710/1,650.** A jump means declarations started
 being dropped; a drop means barrel handling changed. Either is worth
 investigating. The stress tier deliberately does not assert on this number —
 it warns — because the right value moves as `def_files/` gains fixtures.
@@ -228,9 +228,11 @@ Worth promoting into `def_files/synthetic/` as a permanent regression fixture.
 > **Partially addressed — S1.6/S1.10.** `dart analyze` is installed on the
 > development machine and is now run by hand against generated output; the
 > throwaway-package harness is recorded in `CLAUDE.md`. First measurements:
-> **h3 clean**, probe 19 issues, leaflet 510 — the latter two dominated by
+> **h3 clean**, probe 19 issues, `leaflet.dart` 510 — the latter two dominated by
 > `E-03` (type parameters) and `L-05`/`E-10` (declaration merging and namespace
 > flattening), which between them account for well over 400 of leaflet's 510.
+> The complete Leaflet output also contains `geojson.dart`, which contributes
+> 12 additional issues; the S5 gate must analyze both files.
 >
 > It found two things reading could not: `E-09` produces hard parse errors for
 > `class`/`extends` but *not* for `static`, which is exactly the §10.3 built-in
@@ -245,7 +247,7 @@ Worth promoting into `def_files/synthetic/` as a permanent regression fixture.
 
 ## X-12 — The stress tier asserts less than its name implies `[verified]`
 
-`test/stress.test.ts` runs all 1,649 files and asserts exactly one thing:
+`test/stress.test.ts` currently runs all 1,650 files and asserts exactly one thing:
 
 ```ts
 expect(failures).toEqual([]);   // failures = things that ESCAPED transpileFromString
@@ -264,7 +266,7 @@ So a file in which every declaration failed to emit would render a document of
 `// ERROR` comments and pass. This is exactly the mechanism that let `T-15`
 (`null | undefined` throwing at emit) survive a green stress tier.
 
-**Measured, so the finding is not alarmist.** Over all 1,649 files:
+**Re-measured post-S3, so the finding is not alarmist.** Over all 1,650 files:
 
 | | count |
 |---|---:|
@@ -272,6 +274,9 @@ So a file in which every declaration failed to emit would render a document of
 | files with `result.errors` non-empty | **0** |
 | files containing `// ERROR emitting` | **0** |
 | files rendering empty | 710 |
+
+The official gate passed in 157.96 seconds. Its source comment still says
+1,648 files; that is documentation drift, not a different corpus.
 
 Nothing is currently hiding. The guard is still weaker than it reads, and the
 fix is one line — assert on `result.errors` and on the absence of `// ERROR`
@@ -282,3 +287,21 @@ comment-only files: 708 classify automatically as import/export-only, and the
 2 that did not (`three/src/Three.d.ts`, `three/src/nodes/Nodes.d.ts`) are
 `export * from` / `export { default as X } from` barrels that the classifier's
 line matcher did not recognise. Zero are real content loss.
+
+---
+
+## X-13 — Post-S3 comments describe superseded behaviour `[inspection]`
+
+No runtime behaviour is affected, but six comments now misdirect maintainers:
+
+- `transpiler.ts` says output rooting uses the first input; S2 uses the
+  longest common ancestor.
+- `tsconfig.json` calls the quarantined walker the only working recursive
+  walker; live code uses `src/ir/visit.ts`.
+- smoke/stress headers still describe the historical 1,648-file corpus, and
+  smoke calls h3 a demo candidate even though it is the motivating consumer.
+- the `ReadonlyArray` emitter comment cites `T-07` (bare null) rather than the
+  readonly-array work.
+
+These comments should be corrected alongside the S4 code they describe. They
+are recorded here now because this audit was documentation-only.

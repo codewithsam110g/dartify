@@ -19,8 +19,6 @@
       "@engine/*": ["src/engine/*"],
       "@emitter/*": ["src/engine/emitter/*"],
       "@parser/*": ["src/engine/parser/*"],
-      "@passes/*": ["src/engine/passes/*"],
-      "@transformers/*": ["src/engine/transformers/*"],
       "@utils/*": ["src/utils/*"],
       "@legacy/*": ["src/legacy/*"],
 
@@ -29,11 +27,5 @@
       "@typeEmitter/*": ["src/engine/emitter/old/type/*"]
     }
   },
-  "include": ["src", "test", "tools"],
-
-  // Orphaned by the 3-phase refactor. Kept on disk because transformers/ holds
-  // the only working overload grouper and recursive IR walker, which S4 mines
-  // before deleting both directories (D-01, D-02). Excluded so their 5 stale
-  // type errors don't mask real ones.
-  "exclude": ["src/engine/passes", "src/engine/transformers"]
+  "include": ["src", "test", "tools"]
 }

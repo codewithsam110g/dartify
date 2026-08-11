@@ -1,6 +1,7 @@
 import { IRParameter } from "@ir/signature";
 import { emitType } from "@typeEmitter/emit";
 import { IRType } from "@ir/type";
+import { dartName } from "./names";
 
 export function returnTypeAliasName(irType: IRType): string {
   return emitType(irType);
@@ -15,7 +16,7 @@ export function formatParameterList(params: IRParameter[]): string {
     // Check if we have typeBefore and can extract a type alias name
     type = emitType(p.type);
 
-    let result = `${type} ${p.name}`;
+    let result = `${type} ${dartName(p)}`;
     if (p.isRest) {
       // Dart doesn't support rest parameters, so mark for review
       result = `/* rest */ ${result}`;
@@ -50,7 +51,7 @@ export function formatNamedParameters(params: IRParameter[]): string {
     .map((p) => {
       const typeStr = emitType(p.type);
       const prefix = p.isOptional ? "" : "required ";
-      return `${prefix}${typeStr} ${p.name}`;
+      return `${prefix}${typeStr} ${dartName(p)}`;
     })
     .join(", ");
 

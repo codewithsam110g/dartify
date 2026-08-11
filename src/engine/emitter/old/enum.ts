@@ -1,12 +1,16 @@
 import { IREnum } from "@ir/enum";
-import { stripQuotes } from "@/utils/utils";
+import {
+  dartName,
+  qualifiedJsName,
+  renamedMemberAnnotation,
+} from "../shared/names";
 
 export function emitEnum(
   irEnum: IREnum,
   prefix: string,
   debug = false,
 ): string {
-  const internalVal = stripQuotes(`${prefix}${irEnum.name}`);
+  const internalVal = qualifiedJsName(irEnum, prefix);
   const jsAnnotation = `@JS("${internalVal}")`;
 
   // Generate Dart enum
@@ -18,11 +22,15 @@ export function emitEnum(
           : member.initializer.kind === "computed"
             ? member.initializer.computedValue
             : member.initializer.value;
-      return `  external static ${inferDartType(value)} get ${member.name};`;
+      return [
+        ...renamedMemberAnnotation(member),
+        `  external static ${inferDartType(value)} get ${dartName(member)};`,
+      ].join("\n");
     })
     .join("\n");
 
-  return `${jsAnnotation}\nclass ${irEnum.name}{}\n${jsAnnotation}\nextension ${irEnum.name}Enum on ${irEnum.name}{\n${members}\n}`;
+  const name = dartName(irEnum);
+  return `${jsAnnotation}\nclass ${name}{}\n${jsAnnotation}\nextension ${name}Enum on ${name}{\n${members}\n}`;
 }
 
 function inferDartType(value: string | number | undefined): string {

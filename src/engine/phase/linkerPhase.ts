@@ -3,7 +3,9 @@ import {
   ResolutionResult,
   resolveReference,
 } from "@/symbol/resolve";
-import { registerAliasSymbols } from "@engine/alias/register";
+import { runSemanticPass } from "@engine/semantic/run";
+import { SemanticReport } from "@engine/semantic/types";
+import { Symbol } from "@/symbol";
 
 export enum LinkState {
   LinkedIndependent = "LinkedIndependent",
@@ -45,6 +47,7 @@ export interface LinkDiagnostic {
 }
 
 export interface LinkReport {
+  semantic: SemanticReport;
   results: Map<string, LinkResult>;
   edges: LinkEdge[];
   diagnostics: LinkDiagnostic[];
@@ -82,8 +85,8 @@ function edgeSortKey(edge: LinkEdge): string {
 }
 
 export async function runLinker(debug: boolean): Promise<LinkReport> {
+  const semantic = runSemanticPass(transpilerContext.symbolTable);
   const table = transpilerContext.symbolTable.getSymbolTable();
-  const aliases = registerAliasSymbols(table);
   const edges: LinkEdge[] = [];
   const diagnostics: LinkDiagnostic[] = [];
   const edgesByFQN = new Map<string, LinkEdge[]>();
@@ -112,9 +115,13 @@ export async function runLinker(debug: boolean): Promise<LinkReport> {
         );
         if (resolution.kind === "resolved") {
           dependency.resolvedFQN = resolution.fqn;
+          dependency.resolvedDartName = resolvedTypeName(
+            table.get(resolution.fqn) ?? [],
+          );
           resolvedDeps.add(resolution.fqn);
         } else {
           delete dependency.resolvedFQN;
+          delete dependency.resolvedDartName;
         }
 
         const edge: LinkEdge = {
@@ -228,12 +235,26 @@ export async function runLinker(debug: boolean): Promise<LinkReport> {
   }
 
   return {
+    semantic: semantic.report,
     results,
     edges,
     diagnostics,
     valid,
     broken,
-    aliasesMinted: aliases.total,
-    aliasUseSites: aliases.useSites,
+    aliasesMinted: semantic.aliasesMinted,
+    aliasUseSites: semantic.aliasUseSites,
   };
+}
+
+function resolvedTypeName(
+  symbols: readonly Symbol[],
+): string | undefined {
+  for (const symbol of symbols) {
+    const facet = symbol.facets.find(
+      (candidate) =>
+        candidate.namespace === "type" || candidate.namespace === "both",
+    );
+    if (facet) return facet.ir.dartName ?? facet.ir.name;
+  }
+  return undefined;
 }

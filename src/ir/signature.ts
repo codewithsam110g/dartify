@@ -1,9 +1,9 @@
 import type { IRNode } from "./node";
 import type { IRVisibility } from "./node";
+import type { IRBindingName } from "./node";
 import type { IRType } from "./type";
 
-export interface IRTypeParam extends IRNode {
-  name: string;
+export interface IRTypeParam extends IRNode, IRBindingName {
   constraint?: IRType;
   default?: IRType;
 }
@@ -13,9 +13,8 @@ export interface IRBindingPattern {
   text: string;
 }
 
-export interface IRParameter extends IRNode {
+export interface IRParameter extends IRNode, IRBindingName {
   /** Identifier or exact binding-pattern text as written in TypeScript. */
-  name: string;
   type: IRType;
   isOptional: boolean;
   isRest: boolean;

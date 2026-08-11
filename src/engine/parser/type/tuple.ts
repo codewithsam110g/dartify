@@ -13,17 +13,18 @@ export function handleTupleType(
   // Every branch spreads into a fresh object. `isOptional` / `isRestParameter`
   // describe the *position in this tuple*, not the type sitting in it, so they
   // must never be written onto whatever `parseType` handed back (T-03).
-  const elementTypes = elements.map((e): IRType => {
+  const elementTypes = elements.map((e, index): IRType => {
+    const elementContext = context.child(`tuple_${index}`);
     if (ts.Node.isRestTypeNode(e)) {
       return {
-        ...parseType(e.getTypeNode(), depth + 1, context),
+        ...parseType(e.getTypeNode(), depth + 1, elementContext),
         isRestParameter: true,
       };
     }
 
     if (ts.Node.isNamedTupleMember(e)) {
       return {
-        ...parseType(e.getTypeNode(), depth + 1, context),
+        ...parseType(e.getTypeNode(), depth + 1, elementContext),
         ...(e.hasQuestionToken() ? { isOptional: true } : {}),
         ...(e.getDotDotDotToken() ? { isRestParameter: true } : {}),
       };
@@ -34,12 +35,12 @@ export function handleTupleType(
       // that the inner node was unreachable through the typed API and this
       // branch parsed the `string?` wrapper itself, yielding `any` (`T-10`).
       return {
-        ...parseType(e.getTypeNode(), depth + 1, context),
+        ...parseType(e.getTypeNode(), depth + 1, elementContext),
         isOptional: true,
       };
     }
 
-    return parseType(e, depth + 1, context);
+    return parseType(e, depth + 1, elementContext);
   });
 
   return {

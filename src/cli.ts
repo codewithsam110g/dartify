@@ -11,7 +11,10 @@ import fg from "fast-glob";
 import { promises as fsPromises, constants as fsConstants } from "fs";
 import path from "path";
 import { Transpiler, TranspilerOptions } from "./transpiler";
-import { formatVerboseLinkReport } from "./reporting/linker";
+import {
+  formatSemanticWarning,
+  formatVerboseLinkReport,
+} from "./reporting/linker";
 import pkg from "../package.json";
 
 interface CliOptions {
@@ -171,6 +174,8 @@ async function processFiles(
   };
   let transpiler: Transpiler = new Transpiler(transpilerOptions);
   const report = await transpiler.transpile();
+  const semanticWarning = formatSemanticWarning(report.analysis.link);
+  if (semanticWarning) console.warn(semanticWarning);
   if (options.verbose) {
     console.log(formatVerboseLinkReport(report.analysis.link));
   }

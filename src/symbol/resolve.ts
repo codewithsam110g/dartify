@@ -41,7 +41,7 @@ function uniqueOrAmbiguous(
 /** Resolves one concrete IR reference without ever choosing arbitrarily. */
 export function resolveReference(
   reference: IRReferenceTarget,
-  table: ReadonlyMap<string, Symbol[]>,
+  table: ReadonlyMap<string, readonly Symbol[]>,
   namespaceExports: ReadonlyMap<string, ReadonlySet<string>> = new Map(),
 ): ResolutionResult {
   if (reference.lookup.kind === "checker") {

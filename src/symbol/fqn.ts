@@ -61,7 +61,9 @@ export function declarationFQN(
   let parent = declaration.getParent();
   while (parent) {
     if (morph.Node.isModuleDeclaration(parent)) {
-      scopes.unshift(parent.getName());
+      if (parent.getDeclarationKind() !== "global") {
+        scopes.unshift(parent.getName());
+      }
     }
     parent = parent.getParent();
   }

@@ -49,13 +49,14 @@ export function emitType(type: IRType): string {
 
     // TypeReference (Generics)
     case TypeKind.TypeReference: {
-      let typeName = type.name;
-      if (typeName === "Array") typeName = "List";
+      const resolvedName = type.reference?.resolvedDartName;
+      let typeName = resolvedName ?? type.name;
+      if (!resolvedName && typeName === "Array") typeName = "List";
       // Dart has no read-only list type, so this collapses to List the same
-      // way `readonly T[]` does — js_facade_gen §14.4 (`T-07`).
-      if (typeName === "ReadonlyArray") typeName = "List";
-      if (typeName === "Promise") typeName = "Future";
-      if (typeName === "Date") typeName = "DateTime";
+      // way `readonly T[]` does — js_facade_gen §14.4 (S1.4).
+      if (!resolvedName && typeName === "ReadonlyArray") typeName = "List";
+      if (!resolvedName && typeName === "Promise") typeName = "Future";
+      if (!resolvedName && typeName === "Date") typeName = "DateTime";
 
       if (type.genericArgs && type.genericArgs.length > 0) {
         const args = type.genericArgs.map(emitType).join(", ");

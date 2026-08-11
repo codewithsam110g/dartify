@@ -26,18 +26,22 @@ export function parseInterface(
     declaration.getName(),
   ),
 ): IRInterface {
-  const properties: IRProperties[] = declaration.getProperties().map((node) => {
-    const memberContext = context.child(node.getName());
-    return {
-      ...nodeMetadata(node),
-      name: node.getName(),
-      type: parseType(node.getTypeNode(), 0, memberContext),
-      isReadonly: node.isReadonly(),
-      isOptional: node.hasQuestionToken(),
-      isStatic: false,
-      isAbstract: false,
-    };
-  });
+  const properties: IRProperties[] = declaration
+    .getProperties()
+    .map((node, index) => {
+      const memberContext = context.child(
+        `property_${index}_${node.getName()}`,
+      );
+      return {
+        ...nodeMetadata(node),
+        name: node.getName(),
+        type: parseType(node.getTypeNode(), 0, memberContext),
+        isReadonly: node.isReadonly(),
+        isOptional: node.hasQuestionToken(),
+        isStatic: false,
+        isAbstract: false,
+      };
+    });
 
   const methods: IRMethod[] = declaration.getMethods().map((node, index) => {
     const memberContext = context.child(`method_${index}_${node.getName()}`);
@@ -75,8 +79,8 @@ export function parseInterface(
 
   const getAccessors: IRGetAccessor[] = declaration
     .getGetAccessors()
-    .map((node) => {
-      const memberContext = context.child(node.getName());
+    .map((node, index) => {
+      const memberContext = context.child(`getter_${index}_${node.getName()}`);
       return {
         ...nodeMetadata(node),
         name: node.getName(),
@@ -88,8 +92,8 @@ export function parseInterface(
 
   const setAccessors: IRSetAccessor[] = declaration
     .getSetAccessors()
-    .map((node) => {
-      const memberContext = context.child(node.getName());
+    .map((node, index) => {
+      const memberContext = context.child(`setter_${index}_${node.getName()}`);
       return {
         ...nodeMetadata(node),
         name: node.getName(),
@@ -101,12 +105,20 @@ export function parseInterface(
 
   const indexSignatures: IRIndexSignatures[] = declaration
     .getIndexSignatures()
-    .map((node) => {
-      const memberContext = context.child("indexSig");
+    .map((node, index) => {
+      const memberContext = context.child(`indexSig_${index}`);
       return {
         ...nodeMetadata(node),
-        keyType: parseType(node.getKeyTypeNode(), 0, memberContext),
-        valueType: parseType(node.getReturnTypeNode(), 0, memberContext),
+        keyType: parseType(
+          node.getKeyTypeNode(),
+          0,
+          memberContext.child("key"),
+        ),
+        valueType: parseType(
+          node.getReturnTypeNode(),
+          0,
+          memberContext.child("value"),
+        ),
         isReadonly: node.isReadonly(),
       };
     });
@@ -119,7 +131,9 @@ export function parseInterface(
     typeParams: parseTypeParameters(declaration, context),
     extends: declaration
       .getExtends()
-      .map((heritage) => parseType(heritage, 0, context)),
+      .map((heritage, index) =>
+        parseType(heritage, 0, context.child(`heritage_${index}`)),
+      ),
     properties,
     methods,
     callSignatures,

@@ -38,7 +38,14 @@ function formatFailure(fqn: string, result: LinkResult): string | null {
   return `  ! ${fqn}: ${result.state} — ${failure}${via}`;
 }
 
-/** Formats the structured S2 link report for the CLI's verbose mode. */
+/** One-line warning for normal CLI output when semantic decisions need review. */
+export function formatSemanticWarning(report: LinkReport): string | null {
+  const count = report.semantic.diagnostics.length;
+  if (count === 0) return null;
+  return `⚠️  Semantic analysis: ${count} diagnostic(s); rerun with -lv for complete records`;
+}
+
+/** Formats the structured linker and semantic report for verbose CLI mode. */
 export function formatVerboseLinkReport(report: LinkReport): string {
   const resolvedEdges = report.edges.filter(
     (edge) => edge.resolution.kind === "resolved",
@@ -63,11 +70,40 @@ export function formatVerboseLinkReport(report: LinkReport): string {
 
   const lines = [
     "\n🔎 Verbose linker report",
+    `  Semantic bindings: ${report.semantic.inputDeclarations} input declarations, ${report.semantic.outputSymbols} output symbols, ${report.semantic.outputFacets} output facets`,
+    `  Semantic changes: merges=${report.semantic.declarationGroupsMerged}, anonymous redirects=${report.semantic.anonymousSymbolsCanonicalized}, overloads=${report.semantic.overloadsRenamed}, keywords=${report.semantic.keywordRenames}, namespaces=${report.semantic.namespaceRenames}, dual facets=${report.semantic.dualFacetRenames}, globals=${report.semantic.globalDeclarationsHoisted}, augmentations suppressed=${report.semantic.externalAugmentationsSuppressed}`,
     `  Symbols: ${report.results.size} total, ${report.valid} valid, ${report.broken} broken`,
     `  States: ${formatCounts(states) || "none"}`,
     `  Edges: ${report.edges.length} total, ${resolvedEdges.length} resolved, ${missingEdges.length} missing, ${ambiguousEdges.length} ambiguous`,
     `  Resolution strategies: ${formatCounts(strategies) || "none"}`,
   ];
+
+  if (report.semantic.redirects.length > 0) {
+    lines.push("  Semantic redirects:");
+    for (const redirect of report.semantic.redirects) {
+      lines.push(
+        `  ↪ ${redirect.fromFQN} -> ${redirect.toFQN} [${redirect.reason}]`,
+      );
+    }
+  }
+
+  if (report.semantic.suppressedAugmentations.length > 0) {
+    lines.push("  Suppressed external augmentations:");
+    for (const augmentation of report.semantic.suppressedAugmentations) {
+      lines.push(
+        `  ⊘ ${augmentation.ownerFQN}: ${augmentation.moduleSpecifier} -> ${augmentation.canonicalTarget} [${augmentation.declarationKinds.join(", ")}]`,
+      );
+    }
+  }
+
+  if (report.semantic.diagnostics.length > 0) {
+    lines.push("  Semantic diagnostics:");
+    for (const diagnostic of report.semantic.diagnostics) {
+      lines.push(
+        `  ⚠ ${diagnostic.code} ${diagnostic.ownerFQN} [${diagnostic.action}]: ${diagnostic.message}`,
+      );
+    }
+  }
 
   if (report.edges.length > 0) {
     lines.push("  Edges:");

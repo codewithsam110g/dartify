@@ -12,6 +12,16 @@ export interface IRNode {
   jsDoc?: string;
 }
 
+/** Source and target-language identities carried without rewriting source IR. */
+export interface IRBindingName {
+  /** Identifier exactly as written in the TypeScript declaration. */
+  name: string;
+  /** Dart-visible identifier assigned by the semantic layer. */
+  dartName?: string;
+  /** Exact JavaScript identifier retained when the Dart name changes. */
+  jsName?: string;
+}
+
 export type IRVisibility = "public" | "protected" | "private";
 
 export type IRExportKind = "none" | "named" | "default";

@@ -1,21 +1,18 @@
 import * as ts from "ts-morph";
-import { Symbol, SymbolType } from "@/symbol";
+import {
+  ModuleScope,
+  namespaceOfSymbolType,
+  Symbol,
+  SymbolFacet,
+  SymbolType,
+} from "@/symbol";
 import * as parser from "@parser/index";
 import { transpilerContext } from "@/context";
 import { TranspileException } from "@/transpiler";
-import { IRDeclaration } from "@ir/declaration";
-import { IRReferenceTarget } from "@ir/type";
-import { forEachIRType } from "@ir/visit";
+import { IRDeclarationUnion } from "@ir/declaration";
 import { createFQN, createFQNPrefix } from "@/symbol/fqn";
 import { ParseContext } from "@parser/context";
-
-function dependenciesOf(ir: IRDeclaration): IRReferenceTarget[] {
-  const dependencies: IRReferenceTarget[] = [];
-  forEachIRType(ir, (type) => {
-    if (type.reference) dependencies.push(type.reference);
-  });
-  return dependencies;
-}
+import { dependenciesOf } from "@/symbol/dependencies";
 
 /**
  * Top-level entry point for symbol generation.
@@ -30,18 +27,46 @@ export async function generateSymbols(
 }
 
 class SymbolGenerator {
-  private moduleScopes: string[] = [];
+  private moduleScopes: ModuleScope[] = [];
+  private sourceOrder = 0;
 
-  private parseContext(fqn: string): ParseContext {
+  private parseContext(fqn: string, filePath: string): ParseContext {
     return new ParseContext(fqn, (hoistedFQN, declaration) => {
-      transpilerContext.symbolTable.register(hoistedFQN, {
-        type: SymbolType.INTERFACE,
-        ir: declaration,
-        fqn: hoistedFQN,
-        deps: dependenciesOf(declaration),
-        resolvedDeps: [],
-      });
+      this.register(hoistedFQN, SymbolType.INTERFACE, declaration, filePath);
     });
+  }
+
+  private fqnScopes(): string[] {
+    return this.moduleScopes.flatMap((scope) =>
+      scope.kind === "global" ? [] : [scope.sourceName],
+    );
+  }
+
+  private register(
+    fqn: string,
+    type: SymbolType,
+    ir: IRDeclarationUnion,
+    filePath: string,
+  ): void {
+    const facet: SymbolFacet = {
+      type,
+      namespace: namespaceOfSymbolType(type),
+      ir,
+      origin: {
+        filePath,
+        scopes: this.moduleScopes.map((scope) => ({ ...scope })),
+        sourceOrder: this.sourceOrder++,
+      },
+      emit: true,
+      provenance: [{ fqn, type, loc: ir.loc }],
+    };
+    const symbol: Symbol = {
+      fqn,
+      facets: [facet],
+      deps: dependenciesOf(ir),
+      resolvedDeps: [],
+    };
+    transpilerContext.symbolTable.register(fqn, symbol);
   }
 
   public async generateSymbols(fp: string, sourceFile: ts.SourceFile) {
@@ -170,16 +195,12 @@ class SymbolGenerator {
     filePath: string,
   ): void {
     const interfaceName = node.getName();
-    let fqn = createFQN(filePath, this.moduleScopes, interfaceName);
-    const parsedInterface = parser.parseInterface(node, this.parseContext(fqn));
-    let symbol: Symbol = {
-      type: SymbolType.INTERFACE,
-      ir: parsedInterface,
-      fqn,
-      deps: dependenciesOf(parsedInterface),
-      resolvedDeps: [],
-    };
-    transpilerContext.symbolTable.register(fqn, symbol);
+    const fqn = createFQN(filePath, this.fqnScopes(), interfaceName);
+    const parsedInterface = parser.parseInterface(
+      node,
+      this.parseContext(fqn, filePath),
+    );
+    this.register(fqn, SymbolType.INTERFACE, parsedInterface, filePath);
   }
 
   private processTypeAliasDeclaration(
@@ -187,80 +208,60 @@ class SymbolGenerator {
     filePath: string,
   ): void {
     const aliasName = node.getName();
-    let fqn = createFQN(filePath, this.moduleScopes, aliasName);
-    const parsedTypeAlias = parser.parseTypeAlias(node, this.parseContext(fqn));
-    let symbol: Symbol = {
-      type: SymbolType.TYPE_ALIAS,
-      ir: parsedTypeAlias,
-      fqn,
-      deps: dependenciesOf(parsedTypeAlias),
-      resolvedDeps: [],
-    };
-    transpilerContext.symbolTable.register(fqn, symbol);
+    const fqn = createFQN(filePath, this.fqnScopes(), aliasName);
+    const parsedTypeAlias = parser.parseTypeAlias(
+      node,
+      this.parseContext(fqn, filePath),
+    );
+    this.register(fqn, SymbolType.TYPE_ALIAS, parsedTypeAlias, filePath);
   }
 
   private processClassDeclaration(
     node: ts.ClassDeclaration,
     filePath: string,
   ): void {
-    let className = node.getName() || "Error_Class";
-    let fqn = createFQN(filePath, this.moduleScopes, className);
-    const parsedClass = parser.parseClass(node, this.parseContext(fqn));
-    let symbol: Symbol = {
-      type: SymbolType.CLASS,
-      ir: parsedClass,
-      fqn,
-      deps: dependenciesOf(parsedClass),
-      resolvedDeps: [],
-    };
-    transpilerContext.symbolTable.register(fqn, symbol);
+    const className = node.getName() || "Error_Class";
+    const fqn = createFQN(filePath, this.fqnScopes(), className);
+    const parsedClass = parser.parseClass(
+      node,
+      this.parseContext(fqn, filePath),
+    );
+    this.register(fqn, SymbolType.CLASS, parsedClass, filePath);
   }
 
   private processFunctionDeclaration(
     node: ts.FunctionDeclaration,
     filePath: string,
   ): void {
-    let functionName = node.getName() || "Error_Function";
-    let fqn = createFQN(filePath, this.moduleScopes, functionName);
-    const parsedFunction = parser.parseFunction(node, this.parseContext(fqn));
-    let symbol: Symbol = {
-      type: SymbolType.FUNCTION,
-      ir: parsedFunction,
-      fqn,
-      deps: dependenciesOf(parsedFunction),
-      resolvedDeps: [],
-    };
-    transpilerContext.symbolTable.register(fqn, symbol);
+    const functionName = node.getName() || "Error_Function";
+    const fqn = createFQN(filePath, this.fqnScopes(), functionName);
+    const parsedFunction = parser.parseFunction(
+      node,
+      this.parseContext(fqn, filePath),
+    );
+    this.register(fqn, SymbolType.FUNCTION, parsedFunction, filePath);
   }
 
   private processVariableStatement(
     node: ts.VariableStatement,
     filePath: string,
   ): void {
-    const fqnPrefix = createFQNPrefix(filePath, this.moduleScopes);
+    const fqnPrefix = createFQNPrefix(filePath, this.fqnScopes());
     const parsedVariables = parser.parseVariableStmt(
       fqnPrefix,
       node,
       new ParseContext(fqnPrefix, (hoistedFQN, declaration) => {
-        transpilerContext.symbolTable.register(hoistedFQN, {
-          type: SymbolType.INTERFACE,
-          ir: declaration,
-          fqn: hoistedFQN,
-          deps: dependenciesOf(declaration),
-          resolvedDeps: [],
-        });
+        this.register(
+          hoistedFQN,
+          SymbolType.INTERFACE,
+          declaration,
+          filePath,
+        );
       }),
     );
     for (const variable of parsedVariables) {
-      let fqn = createFQN(filePath, this.moduleScopes, variable.name);
-      let symbol: Symbol = {
-        type: SymbolType.VARIABLE,
-        ir: variable,
-        fqn,
-        deps: dependenciesOf(variable),
-        resolvedDeps: [],
-      };
-      transpilerContext.symbolTable.register(fqn, symbol);
+      const fqn = createFQN(filePath, this.fqnScopes(), variable.name);
+      this.register(fqn, SymbolType.VARIABLE, variable, filePath);
     }
   }
 
@@ -269,16 +270,9 @@ class SymbolGenerator {
     filePath: string,
   ): void {
     const enumName = node.getName();
-    let fqn = createFQN(filePath, this.moduleScopes, enumName);
+    const fqn = createFQN(filePath, this.fqnScopes(), enumName);
     const parsedEnum = parser.parseEnum(node);
-    let symbol: Symbol = {
-      type: SymbolType.ENUM,
-      ir: parsedEnum,
-      fqn,
-      deps: dependenciesOf(parsedEnum),
-      resolvedDeps: [],
-    };
-    transpilerContext.symbolTable.register(fqn, symbol);
+    this.register(fqn, SymbolType.ENUM, parsedEnum, filePath);
   }
 
   private async processModuleDeclaration(
@@ -286,9 +280,9 @@ class SymbolGenerator {
     filePath: string,
     errors: TranspileException[],
   ): Promise<void> {
-    const moduleName = node.getName();
+    const scope = this.moduleScope(node);
     try {
-      this.moduleScopes.push(moduleName);
+      this.moduleScopes.push(scope);
       const statements = node.getStatements();
       // The caller's array, not a fresh one. This used to pass `[]`, so every
       // error raised inside a `declare module` or `namespace` was pushed into
@@ -299,5 +293,35 @@ class SymbolGenerator {
     } finally {
       this.moduleScopes.pop();
     }
+  }
+
+  private moduleScope(node: ts.ModuleDeclaration): ModuleScope {
+    const sourceName = node.getName();
+    const declarationKind = node.getDeclarationKind();
+    if (declarationKind === "global") {
+      return { kind: "global", sourceName: "global" };
+    }
+
+    if (declarationKind === "namespace") {
+      return {
+        kind: "namespace",
+        sourceName,
+        jsSegments: sourceName.split(".").filter(Boolean),
+      };
+    }
+
+    const nameNode = node.getNameNode();
+    const specifier = ts.Node.isStringLiteral(nameNode)
+      ? nameNode.getLiteralText()
+      : sourceName.replace(/^['"]|['"]$/g, "");
+    return {
+      kind: "externalModule",
+      sourceName,
+      specifier,
+      canonicalTarget: specifier,
+      isAugmentation:
+        ts.Node.isStringLiteral(nameNode) &&
+        ts.ts.isExternalModule(node.getSourceFile().compilerNode),
+    };
   }
 }

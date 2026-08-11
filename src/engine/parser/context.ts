@@ -1,9 +1,9 @@
 import * as ts from "ts-morph";
-import { IRDeclaration } from "@ir/declaration";
+import { IRDeclarationUnion } from "@ir/declaration";
 
 export type RegisterHoistedDeclaration = (
   fqn: string,
-  declaration: IRDeclaration,
+  declaration: IRDeclarationUnion,
 ) => void;
 
 /**
@@ -31,7 +31,7 @@ export class ParseContext {
     return new ParseContext(fqn, this.registerHoistedDeclaration);
   }
 
-  public registerHoisted(fqn: string, declaration: IRDeclaration): void {
+  public registerHoisted(fqn: string, declaration: IRDeclarationUnion): void {
     this.registerHoistedDeclaration?.(fqn, declaration);
   }
 }

@@ -8,7 +8,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import { basename, dirname, extname, join, relative } from "path";
 import { transpilerContext } from "@/context";
-import { Symbol, SymbolType } from "@/symbol";
+import { Symbol, SymbolFacet } from "@/symbol";
 import {
     IRClass,
     IRDeclaration,
@@ -73,7 +73,11 @@ export function renderAllFiles(
             sourceFile,
             outputPath,
             content: emitFileContent(sourceFile, symbols, debug),
-            symbolCount: symbols.length,
+            symbolCount: symbols.reduce(
+                (count, symbol) =>
+                    count + symbol.facets.filter((facet) => facet.emit).length,
+                0,
+            ),
         });
     }
 
@@ -125,7 +129,7 @@ export async function emitAllFiles(
  * The source file is extracted from the FQN (everything before "::").
  */
 function groupSymbolsByFile(
-    table: Map<string, Symbol[]>,
+    table: ReadonlyMap<string, readonly Symbol[]>,
 ): Map<string, Symbol[]> {
     const groups = new Map<string, Symbol[]>();
 
@@ -154,35 +158,14 @@ function extractSourceFile(fqn: string): string {
     return fqn.substring(0, sepIndex);
 }
 
-/**
- * Extracts the JS module prefix from the FQN scope path for @JS() annotations.
- * FQN: "file.d.ts::"h3"|isValidCell" → scope = '"h3"|isValidCell'
- * We strip the declaration name (last segment after |) and convert | to .
- *
- * Examples:
- *   '"h3"|isValidCell'     → 'h3.'
- *   '"h3"|UNITS|m'         → 'h3.UNITS.'
- *   'isValidCell'          → '' (no module)
- *   ''                     → '' (global scope)
- */
-function extractJsPrefix(fqn: string): string {
-    const sepIndex = fqn.indexOf("::");
-    if (sepIndex === -1) return "";
-
-    const scopePath = fqn.substring(sepIndex + 2);
-    const segments = scopePath.split("|");
-
-    // Remove the last segment (the declaration name itself)
-    segments.pop();
-
-    if (segments.length === 0) return "";
-
-    // Strip quotes from module names and join with dots
-    return (
-        segments
-            .map((s) => s.replace(/['"]/g, ""))
-            .join(".") + "."
-    );
+/** Derives the JavaScript object path from explicit semantic module scopes. */
+function jsPrefixOf(facet: SymbolFacet): string {
+    const segments = facet.origin.scopes.flatMap((scope) => {
+        if (scope.kind === "global") return [];
+        if (scope.kind === "namespace") return scope.jsSegments;
+        return [scope.specifier];
+    });
+    return segments.length > 0 ? `${segments.join(".")}.` : "";
 }
 
 /**
@@ -262,15 +245,30 @@ function emitFileContent(
     // interleaved with the translated declarations (`E-16`). They are not
     // things the author wrote, and a reader scanning the bindings for the API
     // should not have to step over dartify's bookkeeping to find it.
-    const declared = symbols.filter((s) => !s.minted);
+    const declared = symbols
+        .filter((symbol) => !symbol.minted)
+        .flatMap((symbol) =>
+            symbol.facets
+                .filter((facet) => facet.emit)
+                .map((facet) => ({ symbol, facet })),
+        )
+        .sort(
+            (a, b) =>
+                a.facet.origin.sourceOrder - b.facet.origin.sourceOrder,
+        );
     const minted = symbols
-        .filter((s) => s.minted)
-        .sort((a, b) => a.fqn.localeCompare(b.fqn));
+        .filter((symbol) => symbol.minted)
+        .flatMap((symbol) =>
+            symbol.facets
+                .filter((facet) => facet.emit)
+                .map((facet) => ({ symbol, facet })),
+        )
+        .sort((a, b) => a.symbol.fqn.localeCompare(b.symbol.fqn));
 
-    const emit = (symbol: Symbol) => {
+    const emit = ({ symbol, facet }: { symbol: Symbol; facet: SymbolFacet }) => {
         try {
-            const jsPrefix = extractJsPrefix(symbol.fqn);
-            const code = emitSymbol(symbol, jsPrefix, debug);
+            const jsPrefix = jsPrefixOf(facet);
+            const code = emitFacet(facet, jsPrefix, debug);
             if (code) {
                 parts.push(code);
                 parts.push(""); // blank line between declarations
@@ -306,16 +304,21 @@ const TYPE_DEFINITIONS_HEADER = [
 /**
  * Dispatches a single Symbol to the appropriate emitter function.
  */
-function emitSymbol(
-    symbol: Symbol,
+function emitFacet(
+    facet: SymbolFacet,
     jsPrefix: string,
     debug: boolean,
 ): string {
-    const decl = symbol.ir;
+    const decl = facet.ir;
 
     switch (decl.kind) {
         case IRDeclKind.Interface:
-            return emitter.emitInterface(decl as IRInterface, jsPrefix, debug);
+            return emitter.emitInterface(
+                decl as IRInterface,
+                jsPrefix,
+                debug,
+                facet.namespace === "both",
+            );
 
         case IRDeclKind.Class:
             return emitter.emitClass(decl as IRClass, jsPrefix, debug);
@@ -333,9 +336,13 @@ function emitSymbol(
             return emitter.emitEnum(decl as IREnum, jsPrefix, debug);
 
         default:
-            throw new TranspileException(
-                `Unsupported declaration kind for emission: ${decl.kind}`,
-                "UNSUPPORTED_EMISSION_KIND",
-            );
+            return unsupportedDeclaration(decl);
     }
+}
+
+function unsupportedDeclaration(declaration: never): never {
+    throw new TranspileException(
+        `Unsupported declaration for emission: ${String(declaration)}`,
+        "UNSUPPORTED_EMISSION_KIND",
+    );
 }

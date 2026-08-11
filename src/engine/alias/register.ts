@@ -1,4 +1,9 @@
-import { Symbol, SymbolType } from "@/symbol";
+import {
+  namespaceOfSymbolType,
+  Symbol,
+  SymbolFacet,
+  SymbolType,
+} from "@/symbol";
 import { IRDeclKind } from "@ir/declaration";
 import { IRTypeAlias } from "@ir/typealias";
 import { IRType, TypeKind } from "@ir/type";
@@ -89,27 +94,26 @@ export function registerAliasSymbols(
     const registry = new AliasRegistry((name) => declared.has(name));
 
     for (const symbol of symbols) {
-      // `type Mapped = { [K in keyof T]: T[K] }` already *is* a named
-      // degradation — the author named it. Minting a second name would emit
-      // `typedef Mapped = MappedKInKeyOfTTK;` on top of
-      // `typedef MappedKInKeyOfTTK = dynamic;`, a hop that names nothing new.
-      // S1.7 documents this node in place instead.
-      const authorNamed =
-        symbol.ir.kind === IRDeclKind.TypeAlias
-          ? (symbol.ir as IRTypeAlias).type
-          : undefined;
+      for (const facet of symbol.facets) {
+        // `type Mapped = { [K in keyof T]: T[K] }` already *is* a named
+        // degradation. Minting a second name would add an empty alias hop.
+        const authorNamed =
+          facet.ir.kind === IRDeclKind.TypeAlias
+            ? (facet.ir as IRTypeAlias).type
+            : undefined;
 
-      forEachIRType(symbol.ir, (type) => {
-        if (type.kind !== TypeKind.Unsupported) return;
-        if (type === authorNamed) return;
+        forEachIRType(facet.ir, (type) => {
+          if (type.kind !== TypeKind.Unsupported) return;
+          if (type === authorNamed) return;
 
-        const alias = registry.mint(
-          type.originalText ?? "",
-          type.unsupportedReason!,
-        );
-        type.aliasName = alias.name;
-        useSites++;
-      });
+          const alias = registry.mint(
+            type.originalText ?? "",
+            type.unsupportedReason!,
+          );
+          type.aliasName = alias.name;
+          useSites++;
+        });
+      }
     }
 
     const minted = registry.all();
@@ -140,10 +144,21 @@ export function registerAliasSymbols(
       };
 
       const fqn = `${file}::${alias.name}`;
-      const symbol: Symbol = {
+      const facet: SymbolFacet = {
         type: SymbolType.TYPE_ALIAS,
-        fqn,
+        namespace: namespaceOfSymbolType(SymbolType.TYPE_ALIAS),
         ir: declaration,
+        origin: {
+          filePath: file,
+          scopes: [],
+          sourceOrder: Number.MAX_SAFE_INTEGER,
+        },
+        emit: true,
+        provenance: [],
+      };
+      const symbol: Symbol = {
+        fqn,
+        facets: [facet],
         // `dynamic` depends on nothing. Registering it with an empty dep list
         // keeps it `LinkedIndependent` rather than absent from the graph.
         deps: [],
@@ -152,7 +167,7 @@ export function registerAliasSymbols(
       };
 
       const existing = table.get(fqn);
-      if (existing) existing.push(symbol);
+      if (existing) table.set(fqn, [...existing, symbol]);
       else table.set(fqn, [symbol]);
     }
   }

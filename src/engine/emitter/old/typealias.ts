@@ -1,13 +1,14 @@
 import { IRTypeAlias } from "@ir/typealias";
 import { TypeKind } from "@ir/type";
 import { emitType } from "@typeEmitter/emit";
+import { dartName } from "../shared/names";
 
 export function emitTypeAlias(
   irTypeAlias: IRTypeAlias,
   prefix: string,
   debug = false,
 ): string {
-  const declaration = `typedef ${irTypeAlias.name} = ${emitType(irTypeAlias.type)};`;
+  const declaration = `typedef ${dartName(irTypeAlias)} = ${emitType(irTypeAlias.type)};`;
 
   // A typedef standing in for something with no Dart representation says so,
   // once, with the original spelling (`E-16`, design principle 2).

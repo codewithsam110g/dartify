@@ -181,7 +181,7 @@ export class TypeParser {
         result = this.parseType(
           (typeNode as ts.ParenthesizedTypeNode).getTypeNode(),
           depth + 1,
-          context,
+          context.child("parenthesized_inner"),
         );
         break;
 

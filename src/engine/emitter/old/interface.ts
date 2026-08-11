@@ -1,76 +1,150 @@
 import { IRInterface } from "@ir/interface";
+import { emitType } from "@typeEmitter/emit";
 import {
-  formatParameterList,
   formatNamedParameters,
+  formatParameterList,
   returnTypeAliasName,
 } from "../shared/shared";
-import { emitType } from "@typeEmitter/emit";
+import {
+  dartName,
+  memberJsAnnotation,
+  qualifiedJsName,
+  renamedMemberAnnotation,
+} from "../shared/names";
 
 export function emitInterface(
   irInterface: IRInterface,
   prefix: string,
-  debug: boolean = false,
-) {
-  const dartParts: string[] = [];
+  debug = false,
+  hasRuntimeBinding = false,
+): string {
+  const parts: string[] = [];
+  const name = dartName(irInterface);
 
-  dartParts.push("@JS()");
-  dartParts.push("@anonymous");
-
-  // Constructor
-  if (irInterface.constructSignatures.length > 0) {
-    dartParts.push(`class ${irInterface.name}{`);
-    dartParts.push(
-      `  external factory ${irInterface.name}(${formatNamedParameters(irInterface.constructSignatures[0].parameters)});`,
-    );
-    dartParts.push("}");
+  if (hasRuntimeBinding) {
+    parts.push(`@JS("${qualifiedJsName(irInterface, prefix)}")`);
   } else {
-    dartParts.push(`abstract class ${irInterface.name}{}`);
+    parts.push("@JS()");
+    parts.push("@anonymous");
+  }
+  const classKeyword =
+    !hasRuntimeBinding && irInterface.constructSignatures.length === 0
+      ? "abstract class"
+      : "class";
+  const staticMemberCount =
+    irInterface.properties.filter((value) => value.isStatic).length +
+    irInterface.methods.filter((value) => value.isStatic).length +
+    irInterface.getAccessors.filter((value) => value.isStatic).length +
+    irInterface.setAccessors.filter((value) => value.isStatic).length;
+  const emptyAbstract =
+    classKeyword === "abstract class" && staticMemberCount === 0;
+  parts.push(
+    emptyAbstract ? `${classKeyword} ${name}{}` : `${classKeyword} ${name}{`,
+  );
+
+  // Construct-signature overload lowering is deliberately deferred to S5.
+  const constructor = irInterface.constructSignatures[0];
+  if (constructor) {
+    parts.push(
+      `  external factory ${name}(${formatNamedParameters(constructor.parameters)});`,
+    );
   }
 
-  dartParts.push(
-    `extension ${irInterface.name}Extension on ${irInterface.name} {`,
+  emitProperties(
+    parts,
+    irInterface.properties.filter((property) => property.isStatic),
+    true,
   );
-  // Properties
-  irInterface.properties.forEach((prop) => {
-    if (prop.isReadonly) {
-      dartParts.push(`  external ${emitType(prop.type)} get ${prop.name};`);
-    } else {
-      dartParts.push(`  external ${emitType(prop.type)} get ${prop.name};`);
-      dartParts.push(
-        `  external set ${prop.name}(${emitType(prop.type)} value);`,
+  emitMethods(
+    parts,
+    irInterface.methods.filter((method) => method.isStatic),
+    true,
+  );
+  for (const getter of irInterface.getAccessors.filter(
+    (value) => value.isStatic,
+  )) {
+    parts.push(...renamedMemberAnnotation(getter));
+    parts.push(
+      `  external static ${returnTypeAliasName(getter.type)} get ${dartName(getter)};`,
+    );
+  }
+  for (const setter of irInterface.setAccessors.filter(
+    (value) => value.isStatic,
+  )) {
+    parts.push(...renamedMemberAnnotation(setter));
+    parts.push(
+      `  external static set ${dartName(setter)}(${formatParameterList([setter.parameter])});`,
+    );
+  }
+  if (!emptyAbstract) parts.push("}");
+
+  parts.push(`extension ${name}Extension on ${name} {`);
+  emitProperties(
+    parts,
+    irInterface.properties.filter((property) => !property.isStatic),
+    false,
+  );
+  emitMethods(
+    parts,
+    irInterface.methods.filter((method) => !method.isStatic),
+    false,
+  );
+  for (const getter of irInterface.getAccessors.filter(
+    (value) => !value.isStatic,
+  )) {
+    parts.push(...renamedMemberAnnotation(getter));
+    parts.push(
+      `  external ${returnTypeAliasName(getter.type)} get ${dartName(getter)};`,
+    );
+  }
+  for (const setter of irInterface.setAccessors.filter(
+    (value) => !value.isStatic,
+  )) {
+    parts.push(...renamedMemberAnnotation(setter));
+    parts.push(
+      `  external set ${dartName(setter)}(${formatParameterList([setter.parameter])});`,
+    );
+  }
+
+  if (irInterface.indexSignatures.length > 0) {
+    parts.push("  external dynamic operator [](Object key);");
+    parts.push("  external void operator []=(Object key, dynamic value);");
+  }
+
+  parts.push("}");
+  return parts.join("\n");
+}
+
+function emitProperties(
+  parts: string[],
+  properties: IRInterface["properties"],
+  isStatic: boolean,
+): void {
+  const staticText = isStatic ? "static " : "";
+  for (const property of properties) {
+    parts.push(...renamedMemberAnnotation(property));
+    parts.push(
+      `  external ${staticText}${emitType(property.type)} get ${dartName(property)};`,
+    );
+    if (!property.isReadonly) {
+      parts.push(...renamedMemberAnnotation(property));
+      parts.push(
+        `  external ${staticText}set ${dartName(property)}(${emitType(property.type)} value);`,
       );
     }
-  });
-
-  // Methods
-  irInterface.methods.forEach((method) => {
-    dartParts.push(`  @JS("${method.name.split("_")[0]}")`);
-    dartParts.push(
-      `  external ${returnTypeAliasName(method.returnType)} ${method.name}(${formatParameterList(method.parameters)});`,
-    );
-  });
-
-  // Getters
-  irInterface.getAccessors.forEach((getter) => {
-    dartParts.push(
-      `  external ${returnTypeAliasName(getter.type)} get ${getter.name};`,
-    );
-  });
-
-  // Setters
-  irInterface.setAccessors.forEach((setter) => {
-    dartParts.push(
-      `  external set ${setter.name}(${formatParameterList([setter.parameter])});`,
-    );
-  });
-
-  // Index signatures
-  // Note: this is base implementation not precise one
-  if (irInterface.indexSignatures.length > 0) {
-    dartParts.push("  external dynamic operator [](Object key);");
-    dartParts.push("  external void operator []=(Object key, dynamic value);");
   }
+}
 
-  dartParts.push("}");
-  return dartParts.join("\n");
+function emitMethods(
+  parts: string[],
+  methods: IRInterface["methods"],
+  isStatic: boolean,
+): void {
+  const staticText = isStatic ? "static " : "";
+  for (const method of methods) {
+    parts.push(memberJsAnnotation(method));
+    parts.push(
+      `  external ${staticText}${returnTypeAliasName(method.returnType)} ${dartName(method)}(${formatParameterList(method.parameters)});`,
+    );
+  }
 }

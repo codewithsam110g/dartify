@@ -1,6 +1,6 @@
 import { IRType } from "./type";
 import { IRDeclaration, IRDeclKind } from "./declaration";
-import { IRNode, IRVisibility } from "./node";
+import { IRBindingName, IRNode, IRVisibility } from "./node";
 import {
   IRCallSignature,
   IRConstructSignature,
@@ -8,9 +8,8 @@ import {
   IRTypeParam,
 } from "./signature";
 
-export interface IRInterface extends IRDeclaration {
+export interface IRInterface extends IRDeclaration, IRBindingName {
   kind: IRDeclKind.Interface;
-  name: string;
   typeParams: IRTypeParam[];
   extends: IRType[];
   properties: IRProperties[];
@@ -22,8 +21,7 @@ export interface IRInterface extends IRDeclaration {
   indexSignatures: IRIndexSignatures[];
 }
 
-export interface IRProperties extends IRNode {
-  name: string;
+export interface IRProperties extends IRNode, IRBindingName {
   type: IRType;
   isOptional: boolean;
   isReadonly: boolean;
@@ -32,8 +30,7 @@ export interface IRProperties extends IRNode {
   visibility?: IRVisibility;
 }
 
-export interface IRMethod extends IRNode {
-  name: string;
+export interface IRMethod extends IRNode, IRBindingName {
   typeParams: IRTypeParam[];
   parameters: IRParameter[];
   returnType: IRType;
@@ -43,16 +40,14 @@ export interface IRMethod extends IRNode {
   visibility?: IRVisibility;
 }
 
-export interface IRGetAccessor extends IRNode {
-  name: string;
+export interface IRGetAccessor extends IRNode, IRBindingName {
   type: IRType;
   isStatic: boolean;
   isAbstract: boolean;
   visibility?: IRVisibility;
 }
 
-export interface IRSetAccessor extends IRNode {
-  name: string;
+export interface IRSetAccessor extends IRNode, IRBindingName {
   parameter: IRParameter;
   isStatic: boolean;
   isAbstract: boolean;

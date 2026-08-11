@@ -8,10 +8,10 @@ import {
 } from "./interface";
 import { IRType } from "./type";
 import { IRConstructSignature, IRTypeParam } from "./signature";
+import { IRBindingName } from "./node";
 
-export interface IRClass extends IRDeclaration {
+export interface IRClass extends IRDeclaration, IRBindingName {
   kind: IRDeclKind.Class;
-  name: string;
   extends?: IRType;
   implements: IRType[];
   isAbstract: boolean;

@@ -11,7 +11,11 @@ export function handleRestType(
   // Spread rather than mutate: the flag belongs to this position, not to the
   // inner type, and `parseType`'s result must never be assumed unshared (T-03).
   return {
-    ...parseType(node.getTypeNode(), depth + 1, context),
+    ...parseType(
+      node.getTypeNode(),
+      depth + 1,
+      context.child("rest_inner"),
+    ),
     isRestParameter: true,
   };
 }

@@ -1,5 +1,5 @@
 import { IRDeclaration, IRDeclKind } from "./declaration";
-import { IRNode } from "./node";
+import { IRBindingName, IRNode } from "./node";
 
 export type IREnumInitializer =
   | { kind: "implicit"; computedValue?: string | number }
@@ -7,13 +7,11 @@ export type IREnumInitializer =
   | { kind: "string"; text: string; value: string }
   | { kind: "computed"; text: string; computedValue?: string | number };
 
-export interface IREnumMember extends IRNode {
-  name: string;
+export interface IREnumMember extends IRNode, IRBindingName {
   initializer: IREnumInitializer;
 }
 
-export interface IREnum extends IRDeclaration {
+export interface IREnum extends IRDeclaration, IRBindingName {
   kind: IRDeclKind.Enum;
-  name: string;
   members: IREnumMember[];
 }

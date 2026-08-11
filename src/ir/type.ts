@@ -17,6 +17,8 @@ export interface IRReferenceTarget {
   lookup: IRReferenceLookup;
   /** Written by the linker after the target is proven to exist. */
   resolvedFQN?: string;
+  /** Dart-visible type name of the resolved target after semantic renaming. */
+  resolvedDartName?: string;
 }
 
 /**

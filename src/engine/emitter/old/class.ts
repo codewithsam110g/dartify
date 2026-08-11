@@ -1,123 +1,70 @@
 import { IRClass } from "@ir/class";
-import { IRMethod } from "@ir/interface";
-import { stripQuotes } from "@/utils/utils";
-
-import { formatParameterList,returnTypeAliasName } from "../shared/shared";
 import { emitType } from "@typeEmitter/emit";
+import { formatParameterList, returnTypeAliasName } from "../shared/shared";
+import {
+  dartName,
+  memberJsAnnotation,
+  qualifiedJsName,
+  renamedMemberAnnotation,
+} from "../shared/names";
 
 export function emitClass(
   irClass: IRClass,
   prefix: string,
-  debug: boolean = false,
-):string{
-  let dartParts: string[] = [];
-  const internalVal = stripQuotes(`${prefix}${irClass.name}`);
-  const jsAnnotation = `@JS("${internalVal}")`;
-  dartParts.push(`${jsAnnotation}\nclass ${irClass.name} {`);
+  debug = false,
+): string {
+  const parts: string[] = [];
+  const name = dartName(irClass);
+  parts.push(`@JS("${qualifiedJsName(irClass, prefix)}")`);
+  parts.push(`class ${name} {`);
 
-  // Constructors
-  let constructorCount = 0;
-  for (let constructor of irClass.constructors) {
-    let constructorName = irClass.name + "_".repeat(constructorCount);
-    dartParts.push(
-      `  external factory ${constructorName}(${formatParameterList(constructor.parameters)});`,
+  // Named-constructor lowering is Stage 5. Emitting only the first signature
+  // avoids generating duplicate unnamed Dart factories in the meantime.
+  const constructor = irClass.constructors[0];
+  if (constructor) {
+    parts.push(
+      `  external factory ${name}(${formatParameterList(constructor.parameters)});`,
     );
   }
-  // Properties
-  //
-  irClass.properties.forEach((prop) => {
-    if (prop.isReadonly) {
-      if (prop.isStatic) {
-        dartParts.push(`  external static ${emitType(prop.type)} get ${prop.name};`);
-      } else {
-        dartParts.push(`  external ${emitType(prop.type)} get ${prop.name};`);
-      }
-    } else {
-      if (prop.isStatic) {
-        dartParts.push(`  external static ${emitType(prop.type)} get ${prop.name};`);
-        dartParts.push(
-          `  external static set ${prop.name}(${emitType(prop.type)} value);`,
-        );
-      } else {
-        dartParts.push(`  external ${emitType(prop.type)} get ${prop.name};`);
-        dartParts.push(`  external set ${prop.name}(${emitType(prop.type)} value);`);
-      }
-    }
-  });
 
-  // let overloadMethods = getOverloadFuncs(irClass.methods);
-
-  // for (let [func_name, func_arr] of overloadMethods.entries()) {
-  //   let count = 0;
-  //   for (let func of func_arr) {
-  //     if (func_arr.length == 1) {
-  //       if (func.isStatic) {
-  //         dartParts.push(
-  //           `  external static ${returnTypeAliasName(func.returnType)} ${func.name}(${formatParameterList(func.parameters)});`,
-  //         );
-  //       } else {
-  //         dartParts.push(
-  //           `  external ${returnTypeAliasName(func.returnType)} ${func.name}(${formatParameterList(func.parameters)});`,
-  //         );
-  //       }
-  //     } else {
-  //       count += 1;
-  //       let name = func_name + "_" + count;
-  //       // this.getParamTypeSuffix(func.functionDecl.getParameters());
-  //       if (func.isStatic) {
-  //         dartParts.push(`  @JS("${func_name}")`);
-  //         dartParts.push(
-  //           `  external static ${returnTypeAliasName(func.returnType)} ${name}(${formatParameterList(func.parameters)});`,
-  //         );
-  //       } else {
-  //         dartParts.push(`  @JS("${func_name}")`);
-  //         dartParts.push(
-  //           `  external ${returnTypeAliasName(func.returnType)} ${name}(${formatParameterList(func.parameters)});`,
-  //         );
-  //       }
-  //     }
-  //   }
-  // }
-
-  //Methods
-  irClass.methods.forEach((method) => {
-    dartParts.push(`  @JS("${method.name.split("_")[0]}")`);
-    dartParts.push(
-      `  external ${returnTypeAliasName(method.returnType)} ${method.name}(${formatParameterList(method.parameters)});`,
+  for (const property of irClass.properties) {
+    parts.push(...renamedMemberAnnotation(property));
+    const staticText = property.isStatic ? "static " : "";
+    parts.push(
+      `  external ${staticText}${emitType(property.type)} get ${dartName(property)};`,
     );
-  });
-
-  // Getters
-  irClass.getAccessors.forEach((getter) => {
-    if (getter.isStatic) {
-      dartParts.push(
-        `  external static ${returnTypeAliasName(getter.type)} get ${getter.name};`,
+    if (!property.isReadonly) {
+      parts.push(...renamedMemberAnnotation(property));
+      parts.push(
+        `  external ${staticText}set ${dartName(property)}(${emitType(property.type)} value);`,
       );
-    } else {
-      dartParts.push(`  external ${returnTypeAliasName(getter.type)} get ${getter.name};`);
     }
-  });
-
-  // Setters
-  irClass.setAccessors.forEach((setter) => {
-    if (setter.isStatic) {
-      dartParts.push(
-        `  external static set ${setter.name}(${formatParameterList([setter.parameter])});`,
-      );
-    } else {
-      dartParts.push(`  external set ${setter.name}(${formatParameterList([setter.parameter])});`);
-    }
-  });
-  dartParts.push("}");
-  return dartParts.join("\n");
-}
-
-function getOverloadFuncs(funcs: IRMethod[]): Map<String, IRMethod[]> {
-  const map = new Map<string, IRMethod[]>();
-  for (const func of funcs) {
-    const list = map.get(func.name) ?? [];
-    list.push(func);
-    map.set(func.name, list);
   }
-  return map;
+
+  for (const method of irClass.methods) {
+    parts.push(memberJsAnnotation(method));
+    const staticText = method.isStatic ? "static " : "";
+    parts.push(
+      `  external ${staticText}${returnTypeAliasName(method.returnType)} ${dartName(method)}(${formatParameterList(method.parameters)});`,
+    );
+  }
+
+  for (const getter of irClass.getAccessors) {
+    parts.push(...renamedMemberAnnotation(getter));
+    const staticText = getter.isStatic ? "static " : "";
+    parts.push(
+      `  external ${staticText}${returnTypeAliasName(getter.type)} get ${dartName(getter)};`,
+    );
+  }
+
+  for (const setter of irClass.setAccessors) {
+    parts.push(...renamedMemberAnnotation(setter));
+    const staticText = setter.isStatic ? "static " : "";
+    parts.push(
+      `  external ${staticText}set ${dartName(setter)}(${formatParameterList([setter.parameter])});`,
+    );
+  }
+
+  parts.push("}");
+  return parts.join("\n");
 }

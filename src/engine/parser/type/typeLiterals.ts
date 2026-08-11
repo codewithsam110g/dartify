@@ -34,18 +34,22 @@ export function handleTypeLiterals(
     };
   }
 
-  const properties: IRProperties[] = node.getProperties().map((property) => {
-    const memberContext = context.child(property.getName());
-    return {
-      ...nodeMetadata(property),
-      name: property.getName(),
-      type: parseType(property.getTypeNode(), depth + 1, memberContext),
-      isReadonly: property.isReadonly(),
-      isOptional: property.hasQuestionToken(),
-      isStatic: false,
-      isAbstract: false,
-    };
-  });
+  const properties: IRProperties[] = node
+    .getProperties()
+    .map((property, index) => {
+      const memberContext = context.child(
+        `property_${index}_${property.getName()}`,
+      );
+      return {
+        ...nodeMetadata(property),
+        name: property.getName(),
+        type: parseType(property.getTypeNode(), depth + 1, memberContext),
+        isReadonly: property.isReadonly(),
+        isOptional: property.hasQuestionToken(),
+        isStatic: false,
+        isAbstract: false,
+      };
+    });
 
   const methods: IRMethod[] = node.getMethods().map((method, index) => {
     const memberContext = context.child(`method_${index}_${method.getName()}`);
@@ -82,47 +86,59 @@ export function handleTypeLiterals(
       ),
     );
 
-  const getAccessors: IRGetAccessor[] = node.getGetAccessors().map((accessor) => {
-    const memberContext = context.child(accessor.getName());
-    return {
-      ...nodeMetadata(accessor),
-      name: accessor.getName(),
-      type: parseType(accessor.getReturnTypeNode(), depth + 1, memberContext),
-      isStatic: false,
-      isAbstract: false,
-    };
-  });
+  const getAccessors: IRGetAccessor[] = node
+    .getGetAccessors()
+    .map((accessor, index) => {
+      const memberContext = context.child(
+        `getter_${index}_${accessor.getName()}`,
+      );
+      return {
+        ...nodeMetadata(accessor),
+        name: accessor.getName(),
+        type: parseType(
+          accessor.getReturnTypeNode(),
+          depth + 1,
+          memberContext,
+        ),
+        isStatic: false,
+        isAbstract: false,
+      };
+    });
 
-  const setAccessors: IRSetAccessor[] = node.getSetAccessors().map((accessor) => {
-    const memberContext = context.child(accessor.getName());
-    return {
-      ...nodeMetadata(accessor),
-      name: accessor.getName(),
-      parameter: parseParameter(
-        accessor.getParameters()[0],
-        memberContext,
-        depth,
-      ),
-      isStatic: false,
-      isAbstract: false,
-    };
-  });
+  const setAccessors: IRSetAccessor[] = node
+    .getSetAccessors()
+    .map((accessor, index) => {
+      const memberContext = context.child(
+        `setter_${index}_${accessor.getName()}`,
+      );
+      return {
+        ...nodeMetadata(accessor),
+        name: accessor.getName(),
+        parameter: parseParameter(
+          accessor.getParameters()[0],
+          memberContext,
+          depth,
+        ),
+        isStatic: false,
+        isAbstract: false,
+      };
+    });
 
   const indexSignatures: IRIndexSignatures[] = node
     .getIndexSignatures()
-    .map((signature) => {
-      const memberContext = context.child("indexSig");
+    .map((signature, index) => {
+      const memberContext = context.child(`indexSig_${index}`);
       return {
         ...nodeMetadata(signature),
         keyType: parseType(
           signature.getKeyTypeNode(),
           depth + 1,
-          memberContext,
+          memberContext.child("key"),
         ),
         valueType: parseType(
           signature.getReturnTypeNode(),
           depth + 1,
-          memberContext,
+          memberContext.child("value"),
         ),
         isReadonly: signature.isReadonly(),
       };

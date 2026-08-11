@@ -9,7 +9,11 @@ export function handleDirectArrayType(
   context: ParseContext,
 ): IRType {
   const elementType = node.getElementTypeNode();
-  let arg = parseType(elementType, depth + 1, context);
+  const arg = parseType(
+    elementType,
+    depth + 1,
+    context.child("array_element"),
+  );
   return {
     kind: TypeKind.Array,
     name: TypeKind.Array,

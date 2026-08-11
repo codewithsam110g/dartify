@@ -154,8 +154,12 @@ export function handleTypeReferences(
 
   const typeArgs = node.getTypeArguments();
   let genericArgs: IRType[] = [];
-  for (let typeArg of typeArgs) {
-    let res = parseType(typeArg, depth + 1, context);
+  for (const [index, typeArg] of typeArgs.entries()) {
+    const res = parseType(
+      typeArg,
+      depth + 1,
+      context.child(`arg_${index}`),
+    );
     genericArgs.push(res);
   }
   return {

@@ -16,7 +16,7 @@ export function handleIntersectionType(
 
   const intersectionNodes: IRType[] = [];
 
-  for (const typeNode of rawTypes) {
+  for (const [index, typeNode] of rawTypes.entries()) {
     // Dispatched on SyntaxKind, not on `getText()` (`T-08`). Text comparison
     // made this the one handler that could be fooled by a comment inside the
     // node or by whitespace the printer leaves alone.
@@ -35,7 +35,11 @@ export function handleIntersectionType(
       continue; // skip by default
     }
 
-    const parsed = parseType(typeNode, depth + 1, context);
+    const parsed = parseType(
+      typeNode,
+      depth + 1,
+      context.child(`intersection_${index}`),
+    );
     if (parsed) {
       intersectionNodes.push(parsed);
     }

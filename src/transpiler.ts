@@ -190,7 +190,7 @@ export class Transpiler {
         await this.transpileFile(filePath, sourceFile);
       }
 
-      // Phase 2: Linker — dependency graph, (future) overloads + augmentation
+      // Phase 2: semantic normalization followed by reference linking.
       const link = await runLinker(this.debug);
       return { resolution, link };
     });
@@ -232,9 +232,8 @@ export class Transpiler {
   /**
    * Root that output paths are made relative to.
    *
-   * Currently the directory of the *first* input file, which collides when
-   * inputs come from sibling trees (`R-03`). Replaced by a longest-common-
-   * ancestor computation in S2.
+   * Uses the longest common ancestor of all resolved input files so sibling
+   * source trees remain distinct under the output directory (`R-03`).
    */
   private resolvedInputRoot(): string {
     const directories = [...this.inputFiles.keys()].map((file) =>

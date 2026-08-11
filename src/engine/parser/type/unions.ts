@@ -12,12 +12,16 @@ export function handleUnionType(
   const unionNodes = node.getTypeNodes();
 
   const isNullable = unionNodes.some(isNullOrUndefined);
-  const nonNullUnionNodes = unionNodes.filter(
-    (node) => !isNullOrUndefined(node),
-  );
-
-  const unionIRs = nonNullUnionNodes.map((uNode) =>
-    parseType(uNode, depth + 1, context),
+  const unionIRs = unionNodes.flatMap((unionNode, index) =>
+    isNullOrUndefined(unionNode)
+      ? []
+      : [
+          parseType(
+            unionNode,
+            depth + 1,
+            context.child(`union_${index}`),
+          ),
+        ],
   );
 
   // `null | undefined` filters down to nothing. The old shape returned a Union

@@ -9,7 +9,7 @@ export interface TestProject {
   root: string;
   files: Map<string, string>;
   analysis: AnalysisReport;
-  symbols: Map<string, Symbol[]>;
+  symbols: ReadonlyMap<string, readonly Symbol[]>;
 }
 
 export async function withTestProject<T>(

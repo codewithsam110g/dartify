@@ -25,6 +25,7 @@
     "test:stress": "DARTIFY_STRESS=1 vitest run test/stress.test.ts",
     "test:s2": "DARTIFY_S2_CORPUS=1 vitest run test/linker/corpus.test.ts",
     "test:s3": "DARTIFY_S3_CORPUS=1 vitest run test/decl/corpus.test.ts",
+    "test:s4": "vitest run test/linker/symbol-table.test.ts test/linker/semantic.test.ts test/linker/reporting.test.ts test/decl/decl-emitter.test.ts",
     "test:coverage": "vitest --coverage",
     "test:debug": "vitest --inspect-brk --no-coverage --reporter=verbose",
     "test:cli": "pnpm build && node dist/cli.js -d \"def_files/h3/h3.d.ts\" -o ./output",

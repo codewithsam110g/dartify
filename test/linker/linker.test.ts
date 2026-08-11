@@ -28,7 +28,7 @@ describe("S2 linker", () => {
         const usesFQN = `${files.get("derived.d.ts")}::Uses`;
         const fooFQN = `${files.get("base.d.ts")}::Foo`;
         const symbol = symbols.get(usesFQN)![0];
-        const reference = references(symbol.ir).find(
+        const reference = references(symbol.facets[0].ir).find(
           (type) => type.name === "Bar",
         )!.reference!;
 
@@ -53,7 +53,7 @@ describe("S2 linker", () => {
       ({ analysis, symbols, files }) => {
         expect(analysis.link.broken).toBe(0);
         const box = symbols.get(`${files.get("derived.d.ts")}::Box`)![0];
-        const ir = box.ir as IRClass;
+        const ir = box.facets[0].ir as IRClass;
 
         expect(ir.extends?.kind).toBe(TypeKind.TypeReference);
         expect(ir.extends?.name).toBe("Base");

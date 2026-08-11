@@ -243,7 +243,7 @@ describe("Declaration Emitter Unit Tests", () => {
       class ApiClient {
         external factory ApiClient(String baseUrl);
         @JS("create")
-        external ApiClient create();
+        external static ApiClient create();
       }"
     `);
   });

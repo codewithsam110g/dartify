@@ -106,19 +106,27 @@ describe.skipIf(!ENABLED)("S3 declaration fidelity corpus census", () => {
       ["def_files/three/src/Three.Core.d.ts"],
     ].map((files) => files.map((file) => resolve(file)));
     const census = emptyCensus();
+    let inputDeclarations = 0;
 
     for (const files of inputSets) {
-      await new Transpiler({ files }).analyze();
+      const analysis = await new Transpiler({ files }).analyze();
+      inputDeclarations += analysis.link.semantic.inputDeclarations;
       for (const group of transpilerContext.symbolTable.getSymbolTable().values()) {
         for (const symbol of group) {
           if (symbol.minted) continue;
-          censusDeclaration(symbol.ir as unknown as Record<string, unknown>, census);
+          for (const facet of symbol.facets) {
+            censusDeclaration(
+              facet.ir as unknown as Record<string, unknown>,
+              census,
+            );
+          }
         }
       }
     }
 
     console.info(`[S3 census] ${JSON.stringify(census)}`);
 
+    expect(inputDeclarations).toBe(2_530);
     expect(census.declarations).toBeGreaterThan(0);
     expect(census.declarationsMissingLocation).toBe(0);
     expect(census.parsedTypes).toBeGreaterThan(0);

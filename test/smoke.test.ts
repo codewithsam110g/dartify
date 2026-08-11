@@ -2,7 +2,7 @@
  * Tier 2 — smoke.
  *
  * A handful of representative libraries, snapshotted byte-exact. Replaces the
- * previous suite, which snapshotted all 1,648 files in `def_files/` (X-02):
+ * previous suite, which snapshotted the entire `def_files/` corpus (X-02):
  * 4.3 MB of snapshots that no human could review, where one `emitType` change
  * rewrote every file and a fix was indistinguishable from a regression.
  *
@@ -22,7 +22,7 @@ const defFilesDir = join(process.cwd(), "def_files");
 const SMOKE_FILES = [
   // Every known-broken construct in one file — see the header comment there.
   "synthetic/probe.d.ts",
-  // Small, clean, modern. The demo candidate.
+  // Small, clean, modern, and the motivating real-world consumer.
   "h3/h3.d.ts",
   // Namespaces and dotted qualified names — exercises L-02.
   "leaflet/leaflet.d.ts",

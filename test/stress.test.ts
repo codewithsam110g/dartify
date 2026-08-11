@@ -3,7 +3,7 @@
  *
  *   DARTIFY_STRESS=1 pnpm test:run test/stress.test.ts
  *
- * Runs the entire 1,648-file `def_files/` corpus and asserts only that nothing
+ * Runs the current 1,650-file `def_files/` corpus and asserts only that nothing
  * *crashes*. Deliberately snapshot-free: byte-exact output over a corpus this
  * size is unreviewable (X-02), but "the tool survived every file in
  * DefinitelyTyped" is a real and cheap signal, and it is the thing most likely

@@ -1,12 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { LinkReport, LinkState } from "../../src/engine/phase/linkerPhase";
 import { buildDot } from "../../tools/graphModel";
+import { emptySemanticReport } from "../../src/engine/semantic/types";
 
 describe("S2 graph model", () => {
   test("uses full FQNs as IDs when basenames and scopes collide", () => {
     const first = "/project/core/Uniform.d.ts::Uniform";
     const second = "/project/renderers/common/Uniform.d.ts::Uniform";
     const report: LinkReport = {
+      semantic: emptySemanticReport(),
       results: new Map([
         [first, { state: LinkState.LinkedIndependent }],
         [second, { state: LinkState.LinkedIndependent }],

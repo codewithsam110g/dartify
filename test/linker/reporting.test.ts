@@ -3,11 +3,48 @@ import {
   LinkReport,
   LinkState,
 } from "../../src/engine/phase/linkerPhase";
-import { formatVerboseLinkReport } from "../../src/reporting/linker";
+import {
+  formatSemanticWarning,
+  formatVerboseLinkReport,
+} from "../../src/reporting/linker";
+import { emptySemanticReport } from "../../src/engine/semantic/types";
 
 describe("verbose linker reporting", () => {
   test("renders structured strategies, edge outcomes and failure chains", () => {
+    const semantic = emptySemanticReport();
+    Object.assign(semantic, {
+      inputDeclarations: 5,
+      outputSymbols: 3,
+      outputFacets: 4,
+      declarationGroupsMerged: 1,
+      overloadsRenamed: 2,
+      externalAugmentationsSuppressed: 1,
+      redirects: [
+        {
+          fromFQN: "/a.d.ts::Old",
+          toFQN: "/a.d.ts::New",
+          reason: "constructorCompanion" as const,
+        },
+      ],
+      suppressedAugmentations: [
+        {
+          ownerFQN: '/augment.d.ts::"./target"|Target',
+          moduleSpecifier: "./target",
+          canonicalTarget: "./target",
+          declarationKinds: ["interface"],
+        },
+      ],
+      diagnostics: [
+        {
+          code: "EXTERNAL_MODULE_AUGMENTATION_SUPPRESSED" as const,
+          ownerFQN: '/augment.d.ts::"./target"|Target',
+          action: "suppressed" as const,
+          message: "not emitted",
+        },
+      ],
+    });
     const report: LinkReport = {
+      semantic,
       results: new Map([
         ["/a.d.ts::A", { state: LinkState.LinkedResolved }],
         [
@@ -92,5 +129,22 @@ describe("verbose linker reporting", () => {
     );
     expect(output).toContain("via /b.d.ts::B");
     expect(output).toContain("checker unavailable");
+    expect(output).toContain(
+      "Semantic bindings: 5 input declarations, 3 output symbols, 4 output facets",
+    );
+    expect(output).toContain("merges=1");
+    expect(output).toContain(
+      "↪ /a.d.ts::Old -> /a.d.ts::New [constructorCompanion]",
+    );
+    expect(output).toContain("./target -> ./target [interface]");
+    expect(output).toContain("EXTERNAL_MODULE_AUGMENTATION_SUPPRESSED");
+    expect(formatSemanticWarning(report)).toContain("1 diagnostic(s)");
+  });
+
+  test("omits the normal semantic warning when no diagnostics exist", () => {
+    const report = {
+      semantic: emptySemanticReport(),
+    } as LinkReport;
+    expect(formatSemanticWarning(report)).toBeNull();
   });
 });

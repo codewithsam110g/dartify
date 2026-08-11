@@ -252,26 +252,26 @@ external String version;
 
 @JS()
 @anonymous
-class Anon_Class_method_0_extend_return{
-  external factory Anon_Class_method_0_extend_return({List<dynamic> args});
+class Anon_Class_method_0_extend_return_intersection_0{
+  external factory Anon_Class_method_0_extend_return_intersection_0({List<dynamic> args});
 }
-extension Anon_Class_method_0_extend_returnExtension on Anon_Class_method_0_extend_return {
+extension Anon_Class_method_0_extend_return_intersection_0Extension on Anon_Class_method_0_extend_return_intersection_0 {
 }
 
 @JS("Class")
 class Class {
   @JS("extend")
-  external Anon_Class_method_0_extend_return /* Anon_Class_method_0_extend_return&TypeOfClass */ extend(dynamic props);
+  external static Anon_Class_method_0_extend_return_intersection_0 /* Anon_Class_method_0_extend_return_intersection_0&TypeOfClass */ extend(dynamic props);
   @JS("include")
-  external dynamic /* dynamic&TypeOfClass */ include(dynamic props);
+  external static dynamic /* dynamic&TypeOfClass */ include(dynamic props);
   @JS("mergeOptions")
-  external dynamic /* dynamic&TypeOfClass */ mergeOptions(dynamic props);
+  external static dynamic /* dynamic&TypeOfClass */ mergeOptions(dynamic props);
   @JS("addInitHook")
-  external dynamic /* dynamic&TypeOfClass */ addInitHook(void Function() initHookFn);
+  external static dynamic /* dynamic&TypeOfClass */ addInitHook_1(void Function() initHookFn);
   @JS("addInitHook")
-  external dynamic /* dynamic&TypeOfClass */ addInitHook(String methodName, [/* rest */ List<dynamic> args]);
+  external static dynamic /* dynamic&TypeOfClass */ addInitHook_2(String methodName, [/* rest */ List<dynamic> args]);
   @JS("callInitHooks")
-  external void callInitHooks();
+  external static void callInitHooks();
 }
 
 @JS("Transformation")
@@ -284,10 +284,10 @@ class Transformation {
 }
 
 @JS("transformation")
-external Transformation transformation(num a, num b, num c, num d);
+external Transformation transformation_1(num a, num b, num c, num d);
 
 @JS("transformation")
-external Transformation transformation(List<num> coefficients);
+external Transformation transformation_2(List<num> coefficients);
 
 @JS("LineUtil.simplify")
 external List<Point> simplify(List<Point> points, num tolerance);
@@ -320,10 +320,10 @@ external HTMLElement? get(dynamic /* String|HTMLElement */ element);
 external String? getStyle(HTMLElement el, String styleAttrib);
 
 @JS("DomUtil.create")
-external IndexedHTMLElementTagNameMapT create(T tagName, [String className, HTMLElement container]);
+external IndexedHTMLElementTagNameMapT create_1(T tagName, [String className, HTMLElement container]);
 
 @JS("DomUtil.create")
-external HTMLElement create(String tagName, [String className, HTMLElement container]);
+external HTMLElement create_2(String tagName, [String className, HTMLElement container]);
 
 @JS("DomUtil.remove")
 external void remove(HTMLElement el);
@@ -531,15 +531,12 @@ typedef LatLngTuple = List<num>;
 typedef LatLngExpression = dynamic /* LatLng|LatLngLiteral|LatLngTuple */;
 
 @JS("latLng")
-external LatLng latLng(num latitude, num longitude, [num altitude]);
-
-@JS("latLng")
-external LatLng latLng(dynamic /* LatLngTuple|List<num>|LatLngLiteral|Anon_latLng_overload_1_param_0_coords */ coords);
+external LatLng latLng_1(num latitude, num longitude, [num altitude]);
 
 @JS()
 @anonymous
-abstract class Anon_latLng_overload_1_param_0_coords{}
-extension Anon_latLng_overload_1_param_0_coordsExtension on Anon_latLng_overload_1_param_0_coords {
+abstract class Anon_latLng_overload_1_param_0_coords_union_3{}
+extension Anon_latLng_overload_1_param_0_coords_union_3Extension on Anon_latLng_overload_1_param_0_coords_union_3 {
   external num get lat;
   external set lat(num value);
   external num get lng;
@@ -548,10 +545,12 @@ extension Anon_latLng_overload_1_param_0_coordsExtension on Anon_latLng_overload
   external set alt(num? value);
 }
 
+@JS("latLng")
+external LatLng latLng_2(dynamic /* LatLngTuple|List<num>|LatLngLiteral|Anon_latLng_overload_1_param_0_coords_union_3 */ coords);
+
 @JS("LatLngBounds")
 class LatLngBounds {
   external factory LatLngBounds(LatLngExpression southWest, LatLngExpression northEast);
-  external factory LatLngBounds(List<LatLngExpression> latlngs);
   @JS("extend")
   external LatLngBounds extend(dynamic /* LatLngExpression|LatLngBoundsExpression */ latlngOrBounds);
   @JS("pad")
@@ -593,10 +592,10 @@ typedef LatLngBoundsLiteral = List<LatLngTuple>;
 typedef LatLngBoundsExpression = dynamic /* LatLngBounds|LatLngBoundsLiteral */;
 
 @JS("latLngBounds")
-external LatLngBounds latLngBounds(LatLngExpression southWest, LatLngExpression northEast);
+external LatLngBounds latLngBounds_1(LatLngExpression southWest, LatLngExpression northEast);
 
 @JS("latLngBounds")
-external LatLngBounds latLngBounds(List<LatLngExpression> latlngs);
+external LatLngBounds latLngBounds_2(List<LatLngExpression> latlngs);
 
 typedef PointTuple = List<num>;
 
@@ -650,35 +649,34 @@ extension CoordsExtension on Coords {
 typedef PointExpression = dynamic /* Point|PointTuple */;
 
 @JS("point")
-external Point point(num x, num y, [bool round]);
-
-@JS("point")
-external Point point(dynamic /* PointTuple|Anon_point_overload_1_param_0_coords */ coords);
+external Point point_1(num x, num y, [bool round]);
 
 @JS()
 @anonymous
-abstract class Anon_point_overload_1_param_0_coords{}
-extension Anon_point_overload_1_param_0_coordsExtension on Anon_point_overload_1_param_0_coords {
+abstract class Anon_point_overload_1_param_0_coords_union_1{}
+extension Anon_point_overload_1_param_0_coords_union_1Extension on Anon_point_overload_1_param_0_coords_union_1 {
   external num get x;
   external set x(num value);
   external num get y;
   external set y(num value);
 }
 
+@JS("point")
+external Point point_2(dynamic /* PointTuple|Anon_point_overload_1_param_0_coords_union_1 */ coords);
+
 typedef BoundsLiteral = List<PointTuple>;
 
 @JS("Bounds")
 class Bounds {
   external factory Bounds(PointExpression topLeft, PointExpression bottomRight);
-  external factory Bounds([dynamic /* List<Point>|BoundsLiteral */ points]);
   external Point? get min;
   external set min(Point? value);
   external Point? get max;
   external set max(Point? value);
   @JS("extend")
-  external Bounds extend(PointExpression point);
+  external Bounds extend_1(PointExpression point);
   @JS("extend")
-  external Bounds extend(BoundsExpression otherBounds);
+  external Bounds extend_2(BoundsExpression otherBounds);
   @JS("getCenter")
   external Point getCenter([bool round]);
   @JS("getBottomLeft")
@@ -708,10 +706,10 @@ class Bounds {
 typedef BoundsExpression = dynamic /* Bounds|BoundsLiteral */;
 
 @JS("bounds")
-external Bounds bounds(PointExpression topLeft, PointExpression bottomRight);
+external Bounds bounds_1(PointExpression topLeft, PointExpression bottomRight);
 
 @JS("bounds")
-external Bounds bounds(dynamic /* List<Point>|BoundsLiteral */ points);
+external Bounds bounds_2(dynamic /* List<Point>|BoundsLiteral */ points);
 
 typedef LeafletEventHandlerFn = void Function(LeafletEvent);
 
@@ -852,239 +850,239 @@ extension LeafletEventHandlerFnMapExtension on LeafletEventHandlerFnMap {
 @JS("Events")
 class Events {
   @JS("on")
-  external Events on(String type, LayersControlEventHandlerFn fn, [dynamic context]);
+  external Events on_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, LayerEventHandlerFn fn, [dynamic context]);
+  external Events on_2(String type, LayerEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Events on_3(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, ResizeEventHandlerFn fn, [dynamic context]);
+  external Events on_4(String type, ResizeEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, PopupEventHandlerFn fn, [dynamic context]);
+  external Events on_5(String type, PopupEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, TooltipEventHandlerFn fn, [dynamic context]);
+  external Events on_6(String type, TooltipEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, ErrorEventHandlerFn fn, [dynamic context]);
+  external Events on_7(String type, ErrorEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, LocationEventHandlerFn fn, [dynamic context]);
+  external Events on_8(String type, LocationEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
+  external Events on_9(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
+  external Events on_10(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
+  external Events on_11(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, DragEndEventHandlerFn fn, [dynamic context]);
+  external Events on_12(String type, DragEndEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, TileEventHandlerFn fn, [dynamic context]);
+  external Events on_13(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, TileErrorEventHandlerFn fn, [dynamic context]);
+  external Events on_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Events on_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Events on(LeafletEventHandlerFnMap eventMap);
+  external Events on_16(LeafletEventHandlerFnMap eventMap);
   @JS("off")
-  external Events off(String type, [LayersControlEventHandlerFn fn, dynamic context]);
+  external Events off_1(String type, [LayersControlEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [LayerEventHandlerFn fn, dynamic context]);
+  external Events off_2(String type, [LayerEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  external Events off_3(String type, [LeafletEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [ResizeEventHandlerFn fn, dynamic context]);
+  external Events off_4(String type, [ResizeEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [PopupEventHandlerFn fn, dynamic context]);
+  external Events off_5(String type, [PopupEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [TooltipEventHandlerFn fn, dynamic context]);
+  external Events off_6(String type, [TooltipEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [ErrorEventHandlerFn fn, dynamic context]);
+  external Events off_7(String type, [ErrorEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [LocationEventHandlerFn fn, dynamic context]);
+  external Events off_8(String type, [LocationEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [LeafletMouseEventHandlerFn fn, dynamic context]);
+  external Events off_9(String type, [LeafletMouseEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [LeafletKeyboardEventHandlerFn fn, dynamic context]);
+  external Events off_10(String type, [LeafletKeyboardEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [ZoomAnimEventHandlerFn fn, dynamic context]);
+  external Events off_11(String type, [ZoomAnimEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [DragEndEventHandlerFn fn, dynamic context]);
+  external Events off_12(String type, [DragEndEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [TileEventHandlerFn fn, dynamic context]);
+  external Events off_13(String type, [TileEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [TileErrorEventHandlerFn fn, dynamic context]);
+  external Events off_14(String type, [TileErrorEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  external Events off_15(String type, [LeafletEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Events off(LeafletEventHandlerFnMap eventMap);
+  external Events off_16(LeafletEventHandlerFnMap eventMap);
   @JS("off")
-  external Events off();
+  external Events off_17();
   @JS("fire")
   external Events fire(String type, [dynamic data, bool propagate]);
   @JS("listens")
-  external bool listens(String type, [bool propagate]);
+  external bool listens_1(String type, [bool propagate]);
   @JS("listens")
-  external bool listens(String type, LayersControlEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_2(String type, LayersControlEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LayerEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_3(String type, LayerEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LeafletEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_4(String type, LeafletEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, ResizeEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_5(String type, ResizeEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, PopupEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_6(String type, PopupEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, TooltipEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_7(String type, TooltipEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, ErrorEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_8(String type, ErrorEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LocationEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_9(String type, LocationEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LeafletMouseEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_10(String type, LeafletMouseEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_11(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, ZoomAnimEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_12(String type, ZoomAnimEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, DragEndEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_13(String type, DragEndEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, TileEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_14(String type, TileEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, TileEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_15(String type, TileEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LeafletEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_16(String type, LeafletEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("once")
-  external Events once(String type, LayersControlEventHandlerFn fn, [dynamic context]);
+  external Events once_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, LayerEventHandlerFn fn, [dynamic context]);
+  external Events once_2(String type, LayerEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Events once_3(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, ResizeEventHandlerFn fn, [dynamic context]);
+  external Events once_4(String type, ResizeEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, PopupEventHandlerFn fn, [dynamic context]);
+  external Events once_5(String type, PopupEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, TooltipEventHandlerFn fn, [dynamic context]);
+  external Events once_6(String type, TooltipEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, ErrorEventHandlerFn fn, [dynamic context]);
+  external Events once_7(String type, ErrorEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, LocationEventHandlerFn fn, [dynamic context]);
+  external Events once_8(String type, LocationEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
+  external Events once_9(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
+  external Events once_10(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
+  external Events once_11(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, DragEndEventHandlerFn fn, [dynamic context]);
+  external Events once_12(String type, DragEndEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, TileEventHandlerFn fn, [dynamic context]);
+  external Events once_13(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, TileEventHandlerFn fn, [dynamic context]);
+  external Events once_14(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Events once_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Events once(LeafletEventHandlerFnMap eventMap);
+  external Events once_16(LeafletEventHandlerFnMap eventMap);
   @JS("addEventParent")
   external Events addEventParent(Evented obj);
   @JS("removeEventParent")
   external Events removeEventParent(Evented obj);
   @JS("addEventListener")
-  external Events addEventListener(String type, LayersControlEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, LayerEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_2(String type, LayerEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_3(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, ResizeEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_4(String type, ResizeEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, PopupEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_5(String type, PopupEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, TooltipEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_6(String type, TooltipEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, ErrorEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_7(String type, ErrorEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, LocationEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_8(String type, LocationEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_9(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_10(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_11(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, DragEndEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_12(String type, DragEndEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, TileEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_13(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, TileErrorEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Events addEventListener_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Events addEventListener(LeafletEventHandlerFnMap eventMap);
+  external Events addEventListener_16(LeafletEventHandlerFnMap eventMap);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [LayersControlEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_1(String type, [LayersControlEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [LayerEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_2(String type, [LayerEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_3(String type, [LeafletEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [ResizeEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_4(String type, [ResizeEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [PopupEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_5(String type, [PopupEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [TooltipEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_6(String type, [TooltipEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [ErrorEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_7(String type, [ErrorEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [LocationEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_8(String type, [LocationEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [LeafletMouseEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_9(String type, [LeafletMouseEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [LeafletKeyboardEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_10(String type, [LeafletKeyboardEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [ZoomAnimEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_11(String type, [ZoomAnimEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [DragEndEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_12(String type, [DragEndEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [TileEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_13(String type, [TileEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [TileErrorEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_14(String type, [TileErrorEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  external Events removeEventListener_15(String type, [LeafletEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Events removeEventListener(LeafletEventHandlerFnMap eventMap);
+  external Events removeEventListener_16(LeafletEventHandlerFnMap eventMap);
   @JS("clearAllEventListeners")
   external Events clearAllEventListeners();
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, LayersControlEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, LayerEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_2(String type, LayerEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_3(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, ResizeEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_4(String type, ResizeEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, PopupEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_5(String type, PopupEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, TooltipEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_6(String type, TooltipEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, ErrorEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_7(String type, ErrorEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, LocationEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_8(String type, LocationEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_9(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_10(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_11(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, DragEndEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_12(String type, DragEndEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, TileEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_13(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, TileErrorEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Events addOneTimeEventListener_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Events addOneTimeEventListener(LeafletEventHandlerFnMap eventMap);
+  external Events addOneTimeEventListener_16(LeafletEventHandlerFnMap eventMap);
   @JS("fireEvent")
   external Events fireEvent(String type, [dynamic data, bool propagate]);
   @JS("hasEventListeners")
@@ -1103,239 +1101,239 @@ external MixinType Mixin;
 @JS("Evented")
 class Evented {
   @JS("on")
-  external Evented on(String type, LayersControlEventHandlerFn fn, [dynamic context]);
+  external Evented on_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, LayerEventHandlerFn fn, [dynamic context]);
+  external Evented on_2(String type, LayerEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Evented on_3(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, ResizeEventHandlerFn fn, [dynamic context]);
+  external Evented on_4(String type, ResizeEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, PopupEventHandlerFn fn, [dynamic context]);
+  external Evented on_5(String type, PopupEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, TooltipEventHandlerFn fn, [dynamic context]);
+  external Evented on_6(String type, TooltipEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, ErrorEventHandlerFn fn, [dynamic context]);
+  external Evented on_7(String type, ErrorEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, LocationEventHandlerFn fn, [dynamic context]);
+  external Evented on_8(String type, LocationEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
+  external Evented on_9(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
+  external Evented on_10(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
+  external Evented on_11(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, DragEndEventHandlerFn fn, [dynamic context]);
+  external Evented on_12(String type, DragEndEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, TileEventHandlerFn fn, [dynamic context]);
+  external Evented on_13(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, TileErrorEventHandlerFn fn, [dynamic context]);
+  external Evented on_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Evented on_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("on")
-  external Evented on(LeafletEventHandlerFnMap eventMap);
+  external Evented on_16(LeafletEventHandlerFnMap eventMap);
   @JS("off")
-  external Evented off(String type, [LayersControlEventHandlerFn fn, dynamic context]);
+  external Evented off_1(String type, [LayersControlEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [LayerEventHandlerFn fn, dynamic context]);
+  external Evented off_2(String type, [LayerEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  external Evented off_3(String type, [LeafletEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [ResizeEventHandlerFn fn, dynamic context]);
+  external Evented off_4(String type, [ResizeEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [PopupEventHandlerFn fn, dynamic context]);
+  external Evented off_5(String type, [PopupEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [TooltipEventHandlerFn fn, dynamic context]);
+  external Evented off_6(String type, [TooltipEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [ErrorEventHandlerFn fn, dynamic context]);
+  external Evented off_7(String type, [ErrorEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [LocationEventHandlerFn fn, dynamic context]);
+  external Evented off_8(String type, [LocationEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [LeafletMouseEventHandlerFn fn, dynamic context]);
+  external Evented off_9(String type, [LeafletMouseEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [LeafletKeyboardEventHandlerFn fn, dynamic context]);
+  external Evented off_10(String type, [LeafletKeyboardEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [ZoomAnimEventHandlerFn fn, dynamic context]);
+  external Evented off_11(String type, [ZoomAnimEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [DragEndEventHandlerFn fn, dynamic context]);
+  external Evented off_12(String type, [DragEndEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [TileEventHandlerFn fn, dynamic context]);
+  external Evented off_13(String type, [TileEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [TileErrorEventHandlerFn fn, dynamic context]);
+  external Evented off_14(String type, [TileErrorEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  external Evented off_15(String type, [LeafletEventHandlerFn fn, dynamic context]);
   @JS("off")
-  external Evented off(LeafletEventHandlerFnMap eventMap);
+  external Evented off_16(LeafletEventHandlerFnMap eventMap);
   @JS("off")
-  external Evented off();
+  external Evented off_17();
   @JS("fire")
   external Evented fire(String type, [dynamic data, bool propagate]);
   @JS("listens")
-  external bool listens(String type, [bool propagate]);
+  external bool listens_1(String type, [bool propagate]);
   @JS("listens")
-  external bool listens(String type, LayersControlEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_2(String type, LayersControlEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LayerEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_3(String type, LayerEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LeafletEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_4(String type, LeafletEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, ResizeEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_5(String type, ResizeEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, PopupEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_6(String type, PopupEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, TooltipEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_7(String type, TooltipEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, ErrorEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_8(String type, ErrorEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LocationEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_9(String type, LocationEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LeafletMouseEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_10(String type, LeafletMouseEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_11(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, ZoomAnimEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_12(String type, ZoomAnimEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, DragEndEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_13(String type, DragEndEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, TileEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_14(String type, TileEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, TileEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_15(String type, TileEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
-  external bool listens(String type, LeafletEventHandlerFn fn, [dynamic context, bool propagate]);
+  external bool listens_16(String type, LeafletEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("once")
-  external Evented once(String type, LayersControlEventHandlerFn fn, [dynamic context]);
+  external Evented once_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, LayerEventHandlerFn fn, [dynamic context]);
+  external Evented once_2(String type, LayerEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Evented once_3(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, ResizeEventHandlerFn fn, [dynamic context]);
+  external Evented once_4(String type, ResizeEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, PopupEventHandlerFn fn, [dynamic context]);
+  external Evented once_5(String type, PopupEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, TooltipEventHandlerFn fn, [dynamic context]);
+  external Evented once_6(String type, TooltipEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, ErrorEventHandlerFn fn, [dynamic context]);
+  external Evented once_7(String type, ErrorEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, LocationEventHandlerFn fn, [dynamic context]);
+  external Evented once_8(String type, LocationEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
+  external Evented once_9(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
+  external Evented once_10(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
+  external Evented once_11(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, DragEndEventHandlerFn fn, [dynamic context]);
+  external Evented once_12(String type, DragEndEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, TileEventHandlerFn fn, [dynamic context]);
+  external Evented once_13(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, TileEventHandlerFn fn, [dynamic context]);
+  external Evented once_14(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Evented once_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("once")
-  external Evented once(LeafletEventHandlerFnMap eventMap);
+  external Evented once_16(LeafletEventHandlerFnMap eventMap);
   @JS("addEventParent")
   external Evented addEventParent(Evented obj);
   @JS("removeEventParent")
   external Evented removeEventParent(Evented obj);
   @JS("addEventListener")
-  external Evented addEventListener(String type, LayersControlEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, LayerEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_2(String type, LayerEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_3(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, ResizeEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_4(String type, ResizeEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, PopupEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_5(String type, PopupEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, TooltipEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_6(String type, TooltipEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, ErrorEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_7(String type, ErrorEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, LocationEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_8(String type, LocationEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_9(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_10(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_11(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, DragEndEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_12(String type, DragEndEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, TileEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_13(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, TileErrorEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Evented addEventListener_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
-  external Evented addEventListener(LeafletEventHandlerFnMap eventMap);
+  external Evented addEventListener_16(LeafletEventHandlerFnMap eventMap);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [LayersControlEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_1(String type, [LayersControlEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [LayerEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_2(String type, [LayerEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_3(String type, [LeafletEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [ResizeEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_4(String type, [ResizeEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [PopupEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_5(String type, [PopupEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [TooltipEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_6(String type, [TooltipEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [ErrorEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_7(String type, [ErrorEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [LocationEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_8(String type, [LocationEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [LeafletMouseEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_9(String type, [LeafletMouseEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [LeafletKeyboardEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_10(String type, [LeafletKeyboardEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [ZoomAnimEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_11(String type, [ZoomAnimEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [DragEndEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_12(String type, [DragEndEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [TileEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_13(String type, [TileEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [TileErrorEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_14(String type, [TileErrorEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  external Evented removeEventListener_15(String type, [LeafletEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
-  external Evented removeEventListener(LeafletEventHandlerFnMap eventMap);
+  external Evented removeEventListener_16(LeafletEventHandlerFnMap eventMap);
   @JS("clearAllEventListeners")
   external Evented clearAllEventListeners();
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, LayersControlEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, LayerEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_2(String type, LayerEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_3(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, ResizeEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_4(String type, ResizeEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, PopupEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_5(String type, PopupEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, TooltipEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_6(String type, TooltipEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, ErrorEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_7(String type, ErrorEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, LocationEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_8(String type, LocationEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_9(String type, LeafletMouseEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_10(String type, LeafletKeyboardEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_11(String type, ZoomAnimEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, DragEndEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_12(String type, DragEndEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, TileEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_13(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, TileErrorEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  external Evented addOneTimeEventListener_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
-  external Evented addOneTimeEventListener(LeafletEventHandlerFnMap eventMap);
+  external Evented addOneTimeEventListener_16(LeafletEventHandlerFnMap eventMap);
   @JS("fireEvent")
   external Evented fireEvent(String type, [dynamic data, bool propagate]);
   @JS("hasEventListeners")
@@ -1492,8 +1490,8 @@ typedef DoneCallback = void Function([Error, HTMLElement]);
 
 @JS()
 @anonymous
-abstract class Anon_InternalTiles_indexSig{}
-extension Anon_InternalTiles_indexSigExtension on Anon_InternalTiles_indexSig {
+abstract class Anon_InternalTiles_indexSig_0_value{}
+extension Anon_InternalTiles_indexSig_0_valueExtension on Anon_InternalTiles_indexSig_0_value {
   external bool? get active;
   external set active(bool? value);
   external Coords get coords;
@@ -1541,9 +1539,9 @@ class GridLayer {
   external Point getTileSize();
   @JS("createTile")
   external HTMLElement createTile(Coords coords, DoneCallback done);
-  @JS("")
+  @JS("_tileCoordsToKey")
   external String _tileCoordsToKey(Coords coords);
-  @JS("")
+  @JS("_wrapCoords")
   external Coords _wrapCoords(Coords parameter);
 }
 
@@ -1582,14 +1580,14 @@ class TileLayer {
   @JS("setUrl")
   external TileLayer setUrl(String url, [bool noRedraw]);
   @JS("getTileUrl")
-  external String getTileUrl(L.Coords coords);
-  @JS("")
-  external void _tileOnLoad(L.DoneCallback done, HTMLElement tile);
-  @JS("")
-  external void _tileOnError(L.DoneCallback done, HTMLElement tile, Error e);
-  @JS("")
+  external String getTileUrl(Coords coords);
+  @JS("_tileOnLoad")
+  external void _tileOnLoad(DoneCallback done, HTMLElement tile);
+  @JS("_tileOnError")
+  external void _tileOnError(DoneCallback done, HTMLElement tile, Error e);
+  @JS("_abortLoading")
   external void _abortLoading();
-  @JS("")
+  @JS("_getZoomForUrl")
   external num _getZoomForUrl();
 }
 
@@ -1652,7 +1650,7 @@ extension WMSParamsExtension on WMSParams {
 }
 
 @JS("tileLayer.wms")
-external TileLayer.WMS wms(String baseUrl, [WMSOptions options]);
+external WMS wms(String baseUrl, [WMSOptions options]);
 
 typedef CrossOrigin = String;
 
@@ -1945,7 +1943,6 @@ typedef CircleOptions = CircleMarkerOptions;
 @JS("Circle")
 class Circle {
   external factory Circle(LatLngExpression latlng, CircleOptions options);
-  external factory Circle(LatLngExpression latlng, num radius, [CircleOptions options]);
   @JS("toGeoJSON")
   external dynamic toGeoJSON([dynamic /* num|bool */ precision]);
   @JS("getBounds")
@@ -1959,10 +1956,10 @@ class Circle {
 }
 
 @JS("circle")
-external Circle<P> circle(LatLngExpression latlng, CircleMarkerOptions options);
+external Circle<P> circle_1(LatLngExpression latlng, CircleMarkerOptions options);
 
 @JS("circle")
-external Circle<P> circle(LatLngExpression latlng, num radius, [CircleMarkerOptions options]);
+external Circle<P> circle_2(LatLngExpression latlng, num radius, [CircleMarkerOptions options]);
 
 @JS()
 @anonymous
@@ -1986,10 +1983,10 @@ class SVG {
 }
 
 @JS("SVG.create")
-external IndexedSVGElementTagNameMapK create(K name);
+external IndexedSVGElementTagNameMapK SVG_create_1(K name);
 
 @JS("SVG.create")
-external SVGElement create(String name);
+external SVGElement SVG_create_2(String name);
 
 @JS("SVG.pointsToPath")
 external String pointsToPath(List<PointExpression> rings, bool closed);
@@ -2083,19 +2080,19 @@ class GeoJSON {
   external GeoJSONOptions<P, G> get options;
   external set options(GeoJSONOptions<P, G> value);
   @JS("getFeature")
-  external geojson.Feature<G, P> getFeature(Layer layer, dynamic /* geojson.Feature<G, P>|G */ newGeometry);
+  external static geojson.Feature<G, P> getFeature(Layer layer, dynamic /* geojson.Feature<G, P>|G */ newGeometry);
   @JS("geometryToLayer")
-  external Layer geometryToLayer(geojson.Feature<G, P> featureData, [GeoJSONOptions<P, G> options]);
+  external static Layer geometryToLayer(geojson.Feature<G, P> featureData, [GeoJSONOptions<P, G> options]);
   @JS("coordsToLatLng")
-  external LatLng coordsToLatLng(List<num> coords);
+  external static LatLng coordsToLatLng(List<num> coords);
   @JS("coordsToLatLngs")
-  external List<dynamic> coordsToLatLngs(List<dynamic> coords, [num levelsDeep, LatLng Function(List<num>) coordsToLatLng]);
+  external static List<dynamic> coordsToLatLngs(List<dynamic> coords, [num levelsDeep, LatLng Function(List<num>) coordsToLatLng]);
   @JS("latLngToCoords")
-  external List<num> latLngToCoords(LatLng latlng);
+  external static List<num> latLngToCoords(LatLng latlng);
   @JS("latLngsToCoords")
-  external List<dynamic> latLngsToCoords(List<dynamic> latlngs, [num levelsDeep, bool closed]);
+  external static List<dynamic> latLngsToCoords(List<dynamic> latlngs, [num levelsDeep, bool closed]);
   @JS("asFeature")
-  external geojson.Feature<G, P> asFeature(dynamic /* geojson.Feature<G, P>|G */ geojson);
+  external static geojson.Feature<G, P> asFeature(dynamic /* geojson.Feature<G, P>|G */ geojson);
   @JS("addData")
   external GeoJSON addData(geojson.GeoJsonObject data);
   @JS("resetStyle")
@@ -2206,10 +2203,10 @@ extension ControlOptionsExtension on ControlOptions {
 
 @JS()
 @anonymous
-class Anon_Control_method_0_extend_return{
-  external factory Anon_Control_method_0_extend_return({List<dynamic> args});
+class Anon_Control_method_0_extend_return_intersection_0{
+  external factory Anon_Control_method_0_extend_return_intersection_0({List<dynamic> args});
 }
-extension Anon_Control_method_0_extend_returnExtension on Anon_Control_method_0_extend_return {
+extension Anon_Control_method_0_extend_return_intersection_0Extension on Anon_Control_method_0_extend_return_intersection_0 {
 }
 
 @JS("Control")
@@ -2218,7 +2215,7 @@ class Control {
   external Options get options;
   external set options(Options value);
   @JS("extend")
-  external Anon_Control_method_0_extend_return /* Anon_Control_method_0_extend_return&TypeOfControlOptions */ extend(T props);
+  external static Anon_Control_method_0_extend_return_intersection_0 /* Anon_Control_method_0_extend_return_intersection_0&TypeOfControlOptions */ extend(T props);
   @JS("getPosition")
   external ControlPosition getPosition();
   @JS("setPosition")
@@ -2237,8 +2234,8 @@ class Control {
 
 @JS()
 @anonymous
-abstract class ZoomOptions{}
-extension ZoomOptionsExtension on ZoomOptions {
+abstract class Control_ZoomOptions{}
+extension Control_ZoomOptionsExtension on Control_ZoomOptions {
   external String? get zoomInText;
   external set zoomInText(String? value);
   external String? get zoomInTitle;
@@ -2250,10 +2247,10 @@ extension ZoomOptionsExtension on ZoomOptions {
 }
 
 @JS("Control.Zoom")
-class Zoom {
-  external factory Zoom([ZoomOptions options]);
-  external ZoomOptions get options;
-  external set options(ZoomOptions value);
+class Control_Zoom {
+  external factory Control_Zoom([Control_ZoomOptions options]);
+  external Control_ZoomOptions get options;
+  external set options(Control_ZoomOptions value);
 }
 
 @JS()
@@ -2340,16 +2337,16 @@ class Scale {
 }
 
 @JS("control.zoom")
-external Control.Zoom zoom([Control.ZoomOptions options]);
+external Control_Zoom zoom([Control_ZoomOptions options]);
 
 @JS("control.attribution")
-external Control.Attribution attribution([Control.AttributionOptions options]);
+external Attribution attribution([AttributionOptions options]);
 
 @JS("control.layers")
-external Control.Layers layers([Control.LayersObject baseLayers, Control.LayersObject overlays, Control.LayersOptions options]);
+external Layers layers([LayersObject baseLayers, LayersObject overlays, LayersOptions options]);
 
 @JS("control.scale")
-external Control.Scale scale([Control.ScaleOptions options]);
+external Scale scale([ScaleOptions options]);
 
 @JS()
 @anonymous
@@ -2370,7 +2367,6 @@ extension DivOverlayOptionsExtension on DivOverlayOptions {
 @JS("DivOverlay")
 class DivOverlay {
   external factory DivOverlay(LatLngExpression latlng, [TooltipOptions options]);
-  external factory DivOverlay([DivOverlayOptions options, Layer source]);
   external DivOverlayOptions get options;
   external set options(DivOverlayOptions value);
   @JS("getLatLng")
@@ -2434,7 +2430,6 @@ typedef Content = dynamic /* String|HTMLElement */;
 @JS("Popup")
 class Popup {
   external factory Popup(LatLngExpression latlng, [TooltipOptions options]);
-  external factory Popup([PopupOptions options, Layer source]);
   external PopupOptions get options;
   external set options(PopupOptions value);
   @JS("openOn")
@@ -2442,10 +2437,10 @@ class Popup {
 }
 
 @JS("popup")
-external Popup popup(LatLngExpression latlng, [PopupOptions options]);
+external Popup popup_1(LatLngExpression latlng, [PopupOptions options]);
 
 @JS("popup")
-external Popup popup([PopupOptions options, Layer source]);
+external Popup popup_2([PopupOptions options, Layer source]);
 
 typedef Direction = String;
 
@@ -2470,7 +2465,6 @@ extension TooltipOptionsExtension on TooltipOptions {
 @JS("Tooltip")
 class Tooltip {
   external factory Tooltip(LatLngExpression latlng, [TooltipOptions options]);
-  external factory Tooltip([TooltipOptions options, Layer source]);
   external TooltipOptions get options;
   external set options(TooltipOptions value);
   @JS("setOpacity")
@@ -2478,10 +2472,10 @@ class Tooltip {
 }
 
 @JS("tooltip")
-external Tooltip tooltip(LatLngExpression latlng, [TooltipOptions options]);
+external Tooltip tooltip_1(LatLngExpression latlng, [TooltipOptions options]);
 
 @JS("tooltip")
-external Tooltip tooltip([TooltipOptions options, Layer source]);
+external Tooltip tooltip_2([TooltipOptions options, Layer source]);
 
 @JS()
 @anonymous
@@ -2751,10 +2745,7 @@ typedef EventHandlerFn = void Function(Event);
 typedef PropagableEvent = dynamic /* LeafletMouseEvent|LeafletKeyboardEvent|LeafletEvent|Event */;
 
 @JS("DomEvent.on")
-external TypeOfDomEvent on(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
-
-@JS("DomEvent.on")
-external TypeOfDomEvent on(HTMLElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent on_1(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS()
 @anonymous
@@ -2764,22 +2755,17 @@ extension Anon_DomEvent_on_overload_1_param_1_eventMapExtension on Anon_DomEvent
   external void operator []=(Object key, dynamic value);
 }
 
-@JS("DomEvent.off")
-external TypeOfDomEvent off(HTMLElement el);
+@JS("DomEvent.on")
+external TypeOfDomEvent on_2(HTMLElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
 @JS("DomEvent.off")
-external TypeOfDomEvent off(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
+external TypeOfDomEvent off_1(HTMLElement el);
 
 @JS("DomEvent.off")
-external TypeOfDomEvent off(HTMLElement el, Anon_DomEvent_off_overload_2_param_1_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent off_2(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
-@JS()
-@anonymous
-abstract class Anon_DomEvent_off_overload_2_param_1_eventMap{}
-extension Anon_DomEvent_off_overload_2_param_1_eventMapExtension on Anon_DomEvent_off_overload_2_param_1_eventMap {
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
-}
+@JS("DomEvent.off")
+external TypeOfDomEvent off_3(HTMLElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
 @JS("DomEvent.stopPropagation")
 external TypeOfDomEvent stopPropagation(PropagableEvent ev);
@@ -2803,32 +2789,16 @@ external Point getMousePosition(MouseEvent ev, [HTMLElement container]);
 external num getWheelDelta(Event ev);
 
 @JS("DomEvent.addListener")
-external TypeOfDomEvent addListener(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
+external TypeOfDomEvent addListener_1(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.addListener")
-external TypeOfDomEvent addListener(HTMLElement el, Anon_DomEvent_addListener_overload_1_param_1_eventMap eventMap, [dynamic context]);
-
-@JS()
-@anonymous
-abstract class Anon_DomEvent_addListener_overload_1_param_1_eventMap{}
-extension Anon_DomEvent_addListener_overload_1_param_1_eventMapExtension on Anon_DomEvent_addListener_overload_1_param_1_eventMap {
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
-}
+external TypeOfDomEvent addListener_2(HTMLElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
 @JS("DomEvent.removeListener")
-external TypeOfDomEvent removeListener(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
+external TypeOfDomEvent removeListener_1(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.removeListener")
-external TypeOfDomEvent removeListener(HTMLElement el, Anon_DomEvent_removeListener_overload_1_param_1_eventMap eventMap, [dynamic context]);
-
-@JS()
-@anonymous
-abstract class Anon_DomEvent_removeListener_overload_1_param_1_eventMap{}
-extension Anon_DomEvent_removeListener_overload_1_param_1_eventMapExtension on Anon_DomEvent_removeListener_overload_1_param_1_eventMap {
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
-}
+external TypeOfDomEvent removeListener_2(HTMLElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
 @JS("DomEvent.getPropagationPath")
 external List<HTMLElement> getPropagationPath(Event ev);
@@ -2855,8 +2825,8 @@ extension DefaultMapPanesExtension on DefaultMapPanes {
 
 @JS()
 @anonymous
-abstract class Anon_Map_method_35_getPanes_return{}
-extension Anon_Map_method_35_getPanes_returnExtension on Anon_Map_method_35_getPanes_return {
+abstract class Anon_Map_method_35_getPanes_return_intersection_0{}
+extension Anon_Map_method_35_getPanes_return_intersection_0Extension on Anon_Map_method_35_getPanes_return_intersection_0 {
   external dynamic operator [](Object key);
   external void operator []=(Object key, dynamic value);
 }
@@ -2872,8 +2842,8 @@ extension Anon_Map_method_37_whenReady_param_0_fn_param_0_eventExtension on Anon
 @JS("Map")
 class Map {
   external factory Map(dynamic /* String|HTMLElement */ element, [MapOptions options]);
-  external L.Control.Attribution get attributionControl;
-  external set attributionControl(L.Control.Attribution value);
+  external Attribution get attributionControl;
+  external set attributionControl(Attribution value);
   external Handler get boxZoom;
   external set boxZoom(Handler value);
   external Handler get doubleClickZoom;
@@ -2888,8 +2858,8 @@ class Map {
   external set tapHold(Handler? value);
   external Handler get touchZoom;
   external set touchZoom(Handler value);
-  external Control.Zoom get zoomControl;
-  external set zoomControl(Control.Zoom value);
+  external Control_Zoom get zoomControl;
+  external set zoomControl(Control_Zoom value);
   external MapOptions get options;
   external set options(MapOptions value);
   @JS("getRenderer")
@@ -2907,15 +2877,15 @@ class Map {
   @JS("eachLayer")
   external Map eachLayer(void Function(Layer) fn, [dynamic context]);
   @JS("openPopup")
-  external Map openPopup(Popup popup);
+  external Map openPopup_1(Popup popup);
   @JS("openPopup")
-  external Map openPopup(Content content, LatLngExpression latlng, [PopupOptions options]);
+  external Map openPopup_2(Content content, LatLngExpression latlng, [PopupOptions options]);
   @JS("closePopup")
   external Map closePopup([Popup popup]);
   @JS("openTooltip")
-  external Map openTooltip(Tooltip tooltip);
+  external Map openTooltip_1(Tooltip tooltip);
   @JS("openTooltip")
-  external Map openTooltip(Content content, LatLngExpression latlng, [TooltipOptions options]);
+  external Map openTooltip_2(Content content, LatLngExpression latlng, [TooltipOptions options]);
   @JS("closeTooltip")
   external Map closeTooltip([Tooltip tooltip]);
   @JS("setView")
@@ -2963,7 +2933,7 @@ class Map {
   @JS("getPane")
   external HTMLElement? getPane(dynamic /* String|HTMLElement */ pane);
   @JS("getPanes")
-  external Anon_Map_method_35_getPanes_return /* Anon_Map_method_35_getPanes_return&DefaultMapPanes */ getPanes();
+  external Anon_Map_method_35_getPanes_return_intersection_0 /* Anon_Map_method_35_getPanes_return_intersection_0&DefaultMapPanes */ getPanes();
   @JS("getContainer")
   external HTMLElement getContainer();
   @JS("whenReady")
@@ -3267,34 +3237,34 @@ external bool mobileGecko;
 external bool retina;
 
 @JS("Browser.canvas")
-external bool canvas;
+external bool Browser_canvas;
 
 @JS("Browser.svg")
-external bool svg;
+external bool Browser_svg;
 
 @JS("Browser.vml")
 external bool vml;
 
 @JS("Util.extend")
-external D /* D&S1 */ extend(D dest, [S1 src]);
+external D /* D&S1 */ extend_1(D dest, [S1 src]);
 
 @JS("Util.extend")
-external D /* D&S1&S2 */ extend(D dest, S1 src1, S2 src2);
+external D /* D&S1&S2 */ extend_2(D dest, S1 src1, S2 src2);
 
 @JS("Util.extend")
-external D /* D&S1&S2&S3 */ extend(D dest, S1 src1, S2 src2, S3 src3);
+external D /* D&S1&S2&S3 */ extend_3(D dest, S1 src1, S2 src2, S3 src3);
 
 @JS("Util.extend")
-external dynamic extend(dynamic dest, [/* rest */ List<dynamic> src]);
+external dynamic extend_4(dynamic dest, [/* rest */ List<dynamic> src]);
 
 @JS("Util.create")
 external dynamic create(dynamic proto, [PropertyDescriptorMap properties]);
 
 @JS("Util.bind")
-external void Function() bind(void Function([List<dynamic>]) fn, [/* rest */ List<dynamic> obj]);
+external void Function() Util_bind(void Function([List<dynamic>]) fn, [/* rest */ List<dynamic> obj]);
 
 @JS("Util.stamp")
-external num stamp(dynamic obj);
+external num Util_stamp(dynamic obj);
 
 @JS("Util.throttle")
 external void Function() throttle(void Function() fn, num time, dynamic context);
@@ -3315,7 +3285,7 @@ external String trim(String str);
 external List<String> splitWords(String str);
 
 @JS("Util.setOptions")
-external dynamic setOptions(dynamic obj, dynamic options);
+external dynamic Util_setOptions(dynamic obj, dynamic options);
 
 @JS("Util.getParamString")
 external String getParamString(dynamic obj, [String existingUrl, bool uppercase]);
@@ -3437,7 +3407,6 @@ extension NamedExtension on Named {
 @JS("Box")
 class Box {
   external factory Box(String a);
-  external factory Box(String a, num b);
   external T get held;
   external set held(T value);
   external String get name;
@@ -3446,11 +3415,11 @@ class Box {
   external set value(T value);
   @JS("map")
   external Box<U> map(U Function(T) fn);
-  @JS("to")
+  @JS("to_json")
   external String to_json();
 }
 
-@JS("my")
+@JS("my_func")
 external void my_func(String a);
 
 @JS("readonly_const")
@@ -3550,10 +3519,14 @@ abstract class Keywords{}
 extension KeywordsExtension on Keywords {
   external bool get static;
   external set static(bool value);
-  external String get class;
-  external set class(String value);
-  external num get extends;
-  external set extends(num value);
+  @JS("class")
+  external String get JS$class;
+  @JS("class")
+  external set JS$class(String value);
+  @JS("extends")
+  external num get JS$extends;
+  @JS("extends")
+  external set JS$extends(num value);
 }
 
 @JS()
@@ -3579,8 +3552,8 @@ extension OptsExtension on Opts {
 
 @JS()
 @anonymous
-abstract class Opts{}
-extension OptsExtension on Opts {
+abstract class B_Opts{}
+extension B_OptsExtension on B_Opts {
   external num get b;
   external set b(num value);
 }

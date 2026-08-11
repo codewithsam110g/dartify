@@ -23,7 +23,9 @@ async function parseFixture() {
   const analysis = await new Transpiler({ files: [fixture] }).analyze();
   const symbols = transpilerContext.symbolTable.getSymbolTable();
   const declarations = (name: string) =>
-    symbols.get(`${fixture}::${name}`)?.map((symbol) => symbol.ir) ?? [];
+    symbols
+      .get(`${fixture}::${name}`)
+      ?.flatMap((symbol) => symbol.facets.map((facet) => facet.ir)) ?? [];
 
   return { analysis, declarations, symbols };
 }

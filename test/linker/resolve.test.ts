@@ -4,20 +4,29 @@ import { Symbol, SymbolType } from "../../src/symbol";
 import { resolveReference } from "../../src/symbol/resolve";
 
 function symbol(fqn: string): Symbol {
+  const ir = {
+    kind: "interface",
+    name: fqn.split("::").pop()!,
+    extends: [],
+    properties: [],
+    methods: [],
+    constructors: [],
+    getAccessors: [],
+    setAccessors: [],
+    indexSignatures: [],
+  } as never;
   return {
-    type: SymbolType.INTERFACE,
     fqn,
-    ir: {
-      kind: "interface",
-      name: fqn.split("::").pop()!,
-      extends: [],
-      properties: [],
-      methods: [],
-      constructors: [],
-      getAccessors: [],
-      setAccessors: [],
-      indexSignatures: [],
-    } as never,
+    facets: [
+      {
+        type: SymbolType.INTERFACE,
+        namespace: "type",
+        ir,
+        origin: { filePath: "/types.d.ts", scopes: [], sourceOrder: 0 },
+        emit: true,
+        provenance: [{ fqn, type: SymbolType.INTERFACE }],
+      },
+    ],
     deps: [],
     resolvedDeps: [],
   };

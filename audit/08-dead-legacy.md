@@ -3,10 +3,9 @@
 Covers `src/engine/passes/**`, `src/engine/transformers/**`, `src/legacy/**`,
 `src/log.ts`.
 
-**4,385 of 10,152 `src` lines are currently unreachable.** None is on the
-execution path. The 1,684 lines under `engine/{passes,transformers}` are
-excluded from TypeScript checking; `legacy/**` and `log.ts` remain checked.
-The post-S3 bundle scan confirms none of these modules ships in `dist/cli.js`.
+S4 deleted the 1,684 quarantined lines under
+`engine/{passes,transformers}`. `legacy/**` and `log.ts` remain checked and
+tree-shaken from the production bundle by deliberate project policy.
 
 Verification:
 ```
@@ -20,7 +19,12 @@ grep -rn "legacy" src test --include="*.ts" | grep -v "^src/legacy/"
 
 ---
 
-## D-01 — The 5-pass pipeline is orphaned and quarantined `[verified]`
+## D-01 — The 5-pass pipeline is orphaned and quarantined `[verified]` **[FIXED — S4]**
+
+After the focused semantic gate protected the retained requirements, S4 deleted
+both directories and removed their `tsconfig` aliases/exclusions. A final import
+scan is empty and the full tree typechecks without exclusions. Original finding
+follows.
 
 `src/engine/passes/**` (880 lines) and `src/engine/transformers/**` (804 lines)
 have zero inbound references. They historically accounted for five compiler
@@ -44,7 +48,11 @@ aliases pointing here.
 
 ---
 
-## D-02 — Mine transformer concepts, not implementations `[inspection]`
+## D-02 — Mine transformer concepts, not implementations `[inspection]` **[FIXED — S4]**
+
+The overload contract and structural canonicalization requirement were rebuilt
+against current facets, `IRBindingName`, and `ir/visit.ts`; no obsolete
+implementation was copied. Original finding follows.
 
 The original audit treated `engine/transformers/` as a reference implementation.
 The post-S3 line read narrows what is actually reusable:

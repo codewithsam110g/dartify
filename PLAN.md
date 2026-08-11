@@ -115,7 +115,7 @@ the tree.*
 | 0.4 | **Decouple the graph.** `runLinker` returns `LinkState` and imports no visualiser; move `visualizeGraph.ts` → `tools/graph.ts` with a `pnpm graph` script; delete the two `console.log`s; write to the given path, never `cwd`; gitignore + untrack `dependency_graph.svg` | `L-07`, `D-07` |
 | 0.5 | Fix `test/decl/decl-parser.test.ts:65` signature; type the `(error, index)` params | `X-03` |
 | 0.6 | Retier the suite: conformance / smoke / opt-in stress. Delete the 27 obsolete snapshots | `X-02` |
-| 0.7 | Quarantine `engine/passes/**` + `engine/transformers/**` from `tsc` (do **not** delete — see S4) | `D-01`, `D-02` |
+| 0.7 | Quarantine `engine/passes/**` + `engine/transformers/**` from `tsc` pending their verified S4 deletion | `D-01`, `D-02` |
 | 0.8 | Read `--version` from `package.json`; fix `test:cli` flags; point `pnpm test` at `vitest run` | `R-07`, `X-07`, `X-08` |
 | 0.9 | Promote the audit probe file into `def_files/synthetic/` as a permanent fixture | `X-10` |
 
@@ -274,27 +274,28 @@ bundle is 112.24 KB, and generated h3 remains `dart analyze` clean.
 *Use the live IR walker; preserve concepts from the quarantined code, not its
 obsolete implementations.*
 
+The implemented semantic contract, locked policies, merge matrix, and test
+sequence live in [`STAGE4_PLAN.md`](STAGE4_PLAN.md); measured evidence lives in
+[`audit/S4-EVIDENCE.md`](audit/S4-EVIDENCE.md).
+
 | # | Task | Findings |
 |---|---|---|
-| 4.1 | Add a semantic-pass contract plus `SymbolTable.replace`/`unregister`; expose a readonly snapshot instead of the live `Map`. Transformations must update symbols, use-site FQNs and dependency edges atomically | `L-10` |
-| 4.2 | Fix anonymous structural identity before dedup: every sibling position gets a deterministic path; compute a semantic shape key that excludes location, docs and resolved-link metadata; reuse canonical symbols and rewrite references. Keep regression cases for union siblings and nested array/generic literals | `P-13`, `D-02` |
-| 4.3 | Represent module kind explicitly (`namespace`, ambient/external module, global augmentation) and hoist `declare global` to file scope. Do not infer kind from the textual scope string | `L-11` |
-| 4.4 | Group free functions and class/interface methods by owning scope + source name; for an overloaded group assign stable `name_1…name_n` Dart names in source order and retain the exact original as `jsName`. Never recover JS names with `.split("_")` | `L-05`, `E-01` |
-| 4.5 | Merge declaration augmentation into one semantic symbol: `interface`+`var`, default form and type-alias+var; mark members originating on the variable side static | `L-05`, `P-10` |
-| 4.6 | Apply the §10 identifier-context rules: reserved words and illegal built-in declaration/type names become `JS$<name>`; legal built-in member names stay unchanged. Retain the exact source name as `jsName` | `E-09` |
-| 4.7 | Apply §8.4/§8.5 collision naming from explicit module identity: keep the first legal bare name, then use the shortest namespace suffix (`m2_A`) and a numeric suffix only if still needed; rewrite every reference | `E-10`, `L-11` |
-| 4.8 | Delete `engine/passes/**` and `engine/transformers/**`; remove their path aliases and correct the audited stale comments after semantic tests protect retained behaviour | `D-01`, `D-02`, `X-13` |
-| 4.9 | Add IR/symbol acceptance tests for all four legacy fixtures and `P-13`; rerun normal, S2, S3, stress, typecheck, build and Dart analyzer baselines | S4 gate |
+| 4.1 | ✅ Atomic semantic-pass contract; readonly snapshots plus `replace`, `unregister`, and transactional `apply` | `L-10` |
+| 4.2 | ✅ Positional structural identities, metadata-free shape keys, same-file canonicalization, and transitive redirects | `P-13`, `D-02` |
+| 4.3 | ✅ Explicit namespace, ambient-module, augmentation, and global scope records; globals hoist | `L-11` |
+| 4.4 | ✅ Stable free-function/method overload names with exact `jsName`; no `.split("_")` recovery | `L-05`, `E-01` |
+| 4.5 | ✅ Supported interface/class/value/constructor-companion merges with static variable-side members and preserved conflicts | `L-05`, `P-10` |
+| 4.6 | ✅ Context-aware Dart identifiers plus computed-name sanitation (`E-22`) | `E-09`, `E-22` |
+| 4.7 | ✅ Top-level priority, shortest namespace suffixes, numeric fallback, dual facets, and resolved Dart target names | `E-10`, `L-11` |
+| 4.8 | ✅ Deleted 1,684 quarantined lines, removed aliases/exclusions, and corrected six stale comments | `D-01`, `D-02`, `X-13` |
+| 4.9 | ✅ `test:s4` plus normal/S2/S3/stress/typecheck/build/Dart analyzer acceptance | S4 gate |
 
-**Measured starting point:** overloads 18 analyzer issues, augmentation 11,
-keywords 9, modules 25. These fixtures currently retain duplicate Dart names,
-unmerged declarations, verbatim keywords and nine declarations flattened to
-`A` (eight collisions).
-
-**Done when:** semantic assertions prove unique Dart-visible names with preserved
-`jsName`, one merged augmentation symbol, explicit module kinds, correct
-reference rewrites, and collision-free/canonical anonymous shapes. S4 does not
-claim final analyzer-clean Dart; backend completeness remains S5.
+**Done:** 26 focused S4 tests and 241 normal tests pass; S2 is 2/2, S3 retains
+the exact 2,530 input declaration floor, and all 1,650 stress files complete
+with zero returned/emission errors. h3 is unchanged and analyzer-error-free;
+the four semantic fixtures, Leaflet, and three.js have zero S4-owned duplicate,
+keyword, or syntax errors. Complete Leaflet improves from 522 to 239 analyzer
+issues. The remaining import/generic/heritage/backend categories belong to S5.
 
 ---
 
@@ -386,7 +387,7 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 | S1 types | ☑ **done** | unsupported nodes 1,410 → **112**; 68 minted typedefs (**64 three.js+leaflet + 4 probe**), 0 dangling / 0 duplicate; suite 57 → **199 passed**; `dist` 75 KB → **90.6 KB**. Fixed `T-01`–`T-16` bar `T-11`, plus `P-07`, `E-16`, `E-17`. No unrepresentable use site emits bare `dynamic`. Residual: 28 nodes across `object`/`undefined` (`E-19`), and `E-14`/`E-18` which bypass `emitType` — all S5. h3 `dart analyze` clean (was already); leaflet 510, probe 19, dominated by `E-03` and `L-05`/`E-10` |
 | S2 links | ☑ **done** | Leaflet 328/328 symbols and 1,050/1,050 edges resolved; three.js 0 ambiguity and 8,184 resolved edges, with 31 honest misses from two absent external type packages. Suite **214 passed**, focused S2 tests 15/15, corpus 2/2, `tsc` and build clean, h3 byte-identical; `-lv` exposes the structured report |
 | S3 decls | ☑ **done** | Complete metadata/signature IR; six semantic acceptance tests; census 2,530 declarations / 26,240 parsed types with 0 missing locations; suite **222 passed**, S2/S3 corpus gates and 1,650-file stress clean; h3 `dart analyze` clean |
-| S4 semantics | ☐ not started | |
+| S4 semantics | ☑ **done** | Canonical semantic bindings, supported merges, overload/identifier/namespace naming, explicit module scopes, CLI diagnostics, 26-test S4 gate; full acceptance recorded in `audit/S4-EVIDENCE.md` |
 | S5 emitter | ☐ not started | |
 | S6 ship | ☐ not started | |
 

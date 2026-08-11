@@ -27,11 +27,15 @@ propose intermediate point releases.
 | [`audit/FINDINGS.md`](audit/FINDINGS.md) | Every known defect, severity-ranked, with stable IDs |
 | [`audit/README.md`](audit/README.md) | Index into the per-area audit files |
 | [`PLAN.md`](PLAN.md) | Staged implementation plan S0–S6 to v1; every task cites a finding ID |
+| [`STAGE4_PLAN.md`](STAGE4_PLAN.md) | Decision-complete S4 semantic design, tests, audit workflow, and delivery sequence |
 | [`ROADMAP.md`](ROADMAP.md) | The public short version of the same thing |
 | `def_files/js_facade_gen_test_cases.md` | ~120 input/output pairs from the reference tool — the de facto spec |
 
 Do not re-derive findings from scratch. If you discover something new, add it to
 the audit with a new ID rather than reporting it only in chat.
+
+S0-S4 are complete. `STAGE4_PLAN.md` is the semantic contract and
+`audit/S4-EVIDENCE.md` is its measured record. S5 is the next stage.
 
 ## Commands
 
@@ -45,6 +49,7 @@ pnpm test:update                    # accept snapshot changes (vitest run -u)
 pnpm test:stress                    # opt-in full 1,650-file corpus, ~3 min currently
 pnpm test:s2                        # opt-in linker corpus gate
 pnpm test:s3                        # opt-in declaration-fidelity census
+pnpm test:s4                        # focused semantic + emitter-adapter gate
 pnpm exec tsc --noEmit              # typecheck — must stay at 0 errors
 pnpm dev -d "<glob>" -o <outdir>    # run the CLI from source
 pnpm dev -d "<file>" -o <out> -l    # phase + module-resolution logs
@@ -62,11 +67,11 @@ printf 'name: dc\nenvironment:\n  sdk: ">=3.0.0 <4.0.0"\ndependencies:\n  js: ^0
 dart pub get && cp <generated>.dart lib/ && dart analyze
 ```
 
-Probe currently reports 19 errors, all of them known findings — `E-03` (type
-params never emitted), `E-09` (keyword escaping), `L-05` (augmentation
-duplicates). Check new errors against `audit/FINDINGS.md` before assuming
-they're new. `leaflet.dart` reports 510 issues; the separately generated
-`geojson.dart` adds 12. Analyze both files when evaluating the S5 gate.
+At S4 close, h3 has zero analyzer errors/warnings (plus the expected
+`package:js` deprecation info), the four semantic fixtures have no S4-owned
+errors, and complete Leaflet has 239 issues with zero duplicates or syntax
+errors. three.js has zero duplicate, syntax, or identifier errors; its
+remaining diagnostics are S5 import/generic categories.
 
 `test:ui` accepts the same filters as the CLI — `pnpm test:ui type` opens the UI
 scoped to the type tests. `test:stress` sets `DARTIFY_STRESS=1` inline, which is
@@ -74,10 +79,10 @@ POSIX-shell syntax; on Windows use `pnpm test:run test/stress.test.ts` with the
 variable set separately.
 
 Test tiers: `simple` (sanity) · `smoke` (3 files, byte-exact snapshots) ·
-`test:s2` (link corpus) · `test:s3` (declaration-fidelity census) · `stress`
-(1,650-file corpus, opt-in, asserts only that nothing throws). Post-S3's
-independent census found 0 returned errors and 0 emission-error comments, but
-the test still does not assert either (`X-12`).
+`test:s2` (link corpus) · `test:s3` (declaration-fidelity census) · `test:s4`
+(semantic contract) · `stress` (1,650-file corpus, opt-in). S4's independent
+census found 0 returned errors and 0 emission-error comments; 719 empty outputs
+are the 710 known barrels/comment files plus 9 Lodash augmentation-only files.
 
 Useful corpora in `def_files/` (1,650 `.d.ts` files, not shipped to npm):
 
@@ -95,8 +100,8 @@ Useful corpora in `def_files/` (1,650 `.d.ts` files, not shipped to npm):
 ```
 cli.ts → transpiler.ts
            ├ PHASE 1  phase/symbolGeneration.ts  → parser/* → IR → SymbolTable
-           ├ PHASE 2  phase/linkerPhase.ts       → mints alias symbols, dep graph,
-           │                                        (future) overloads + augmentation
+           ├ PHASE 2  semantic/* + linkerPhase.ts → canonicalizes/merges/names,
+           │                                        mints aliases, links dep graph
            └ PHASE 3  phase/emitterPhase.ts      → emitter/old/* → .dart
 
 Transpiler seams:  analyze()   phases 1-2, returns LinkReport, no emission
@@ -112,8 +117,9 @@ FQN scheme: `<abs file path>::<scope|segments|>Name`. `::` splits physical from
 logical; `|` splits scope segments. Anonymous hoisted types become
 `<file>::Anon_<sanitised scope>`.
 
-This replaced a 5-pass architecture. `src/engine/passes/**` and
-`src/engine/transformers/**` are **orphaned** — see below.
+This replaced a 5-pass architecture. Its orphaned `passes/**` and
+`transformers/**` directories were deleted in S4; `src/legacy/**` remains as a
+deliberate historical exhibit.
 
 ## Why this project exists
 
@@ -140,21 +146,12 @@ Consequences worth holding on to:
 
 ## Non-obvious things that will bite you
 
-- **4,385 of 10,152 `src` lines are dead.** `engine/passes/**` (880),
-  `engine/transformers/**` (804), `legacy/**` (2,450), `log.ts` (251). The
-  first two are excluded from `tsconfig` but still on disk; `legacy/**` is
-  **not** excluded, so it is typechecked on every run. All dead groups are
-  tree-shaken from the current 112.24 KB bundle (`D-06`).
-- **Do not port the transformer walker.** It targets deleted IR, omits current
-  fields and hashes non-semantic metadata. `src/ir/visit.ts` is already the
-  live walker, and nested literals already hoist through recursive parsing.
-  Preserve only the overload-renaming behaviour and structural-dedup
-  requirement, then delete both quarantined directories in S4 (`D-02`).
-- **Anonymous hoist scope is not a structural identity.** S3 made owner scopes
-  deterministic, but sibling shapes inside one type still reuse one FQN:
-  `{a: string} | {b: number}` produces duplicate anonymous classes and
-  collapsed references (`P-13`). S4 must add position identity before a
-  location/docs-independent canonical shape key.
+- **The obsolete transformer walker is gone.** `src/ir/visit.ts` is the live
+  walker; `src/engine/semantic/shape.ts` provides metadata-free structural
+  identity and same-file canonicalization.
+- **Semantic names do not overwrite source names.** IR nodes retain `name`,
+  while `dartName`/`jsName` and reference `resolvedDartName` carry output
+  identity. Never recover JS spellings by splitting a Dart identifier.
 - **`src/legacy/**` is the author's original 3-day implementation.** Self-contained,
   compiles clean, deliberately kept as an architectural exhibit. Do not "clean
   it up".

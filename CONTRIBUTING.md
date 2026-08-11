@@ -1,104 +1,49 @@
 # Contributing to dart_bindgen
 
-First off, thanks for considering contributing! You are helping build the infrastructure that will power the next generation of Dart web apps.
+`dart_bindgen` is a TypeScript `.d.ts` to Dart `package:js` binding compiler.
+The live architecture is a three-phase pipeline: symbol generation, semantic
+linking, and emission. The obsolete five-pass implementation was deleted in S4.
 
-`dart_bindgen` is not just a regex script; it is a full-blown compiler that transforms TypeScript ASTs into Dart. It was born out of necessity to support the [official H3 Dart SDK](https://github.com/uber/h3-js) and is designed to handle the "horror" of TypeScript types that other tools ignore.
+## Start Here
 
-## ⚡ The "Too Long; Didn't Read"
+Read `AGENTS.md` for repository conventions, then use these project records:
 
-1.  **Stack:** TypeScript, `ts-morph` (AST parsing), Vitest (Testing).
-2.  **Architecture:** A 5-Pass Compiler Pipeline (Parser -> IR -> Transformer -> Emitter).
-3.  **Current Focus:** v0.6 Refactor (Symbol Tables & Recursive Visitors).
-4.  **Setup:** `npm install` then `npm test`.
+- `PLAN.md` — canonical S0-S6 implementation sequence.
+- `STAGE4_PLAN.md` — implemented semantic contract and acceptance plan.
+- `ROADMAP.md` — concise public direction.
+- `audit/FINDINGS.md` — stable finding IDs and current status.
+- `def_files/js_facade_gen_test_cases.md` — reference-tool behavior.
 
----
+S0-S4 are complete. S5 rebuilds the `package:js` backend over stable semantic
+identities; do not reintroduce output concerns into parsing or linking.
 
-## 🏗️ The Architecture (Hacker's Guide)
+## Development
 
-To contribute effectively, you need to understand how data flows through the compiler. We don't modify strings until the very end; we manipulate an **Intermediate Representation (IR)**.
+Use the pinned pnpm 10 toolchain:
 
-### The 5-Pass Pipeline
+```sh
+pnpm install
+pnpm test
+pnpm exec tsc --noEmit
+pnpm build
+```
 
-1.  **Pass 1: Type Collection** (`src/passes/typePass`)
-    * Scans the `.d.ts` AST.
-    * Collects all Type definitions (Interfaces, Type Aliases, Enums).
-    * Converts them into our custom **IR**.
+Stage gates are `pnpm test:s2`, `pnpm test:s3`, `pnpm test:s4`, and
+`pnpm test:stress`. Run the
+source CLI with `pnpm dev -d "def_files/h3/h3.d.ts" -o output -lv`. Generated
+h3 bindings must remain `dart analyze` clean; use Leaflet and three.js for
+multi-file and namespace behavior.
 
-2.  **Pass 2: Type Transformation** (`src/transformers/typeTransformers.ts`)
-    * *The "Cleaner".* This is where we handle TypeScript's nesting.
-    * **Goal:** Convert anonymous object literals (`{ x: int }`) into named IR references (`AnonInterface$1`).
-    * **Current Mission:** We are refactoring this to use a **Recursive Visitor** pattern to handle deep nesting (`Promise<Map<string, { x: int }>>`).
+## Change Requirements
 
-3.  **Pass 3: Declaration Collection** (`src/passes/declarationPass`)
-    * Scans for actual code: `var`, `function`, `class`, `const`.
-    * Uses the Type Cache from Pass 1 to resolve types.
+- Write strict TypeScript with two-space indentation and ESM imports.
+- Avoid `any`; narrow `unknown` or extend explicit IR types.
+- Keep transformations deterministic and preserve unsupported source syntax.
+- Add focused semantic assertions and inspect generated Dart diffs.
+- Update the finding's area file and `audit/FINDINGS.md` in the same commit.
+- Never renumber finding IDs.
+- Use scoped Conventional Commits such as `fix(P-13): ...` or
+  `feat(linker): ...`, with validation recorded in the body.
 
-4.  **Pass 4: Declaration Transformation** (`src/transformers/declarationTransformers.ts`)
-    * *The "Fixer".* This resolves conflicts between Dart and JS semantics.
-    * **Function Overloading:** Groups `func(x: int)` and `func(x: string)` into specific Dart methods.
-    * **Current Mission:** We are implementing a **Symbol Table** here to handle Declaration Augmentation (merging `interface` + `var`).
-
-5.  **Pass 5: Emission** (`src/passes/emissionPass`)
-    * *The "Printer".* Takes the final, clean IR and outputs Dart code strings.
-    * Currently targets `package:js` (Legacy).
-    * **Future Goal:** A v2 Emitter for `package:web` (Wasm support).
-
----
-
-## 🛠️ Development Setup
-
-This project uses **Node.js** and **npm**.
-
-1.  **Clone & Install:**
-    ```bash
-    git clone [https://github.com/codewithsam110g/dart_bindgen.git](https://github.com/codewithsam110g/dart_bindgen.git)
-    cd dart_bindgen
-    npm install
-    ```
-
-2.  **Run Tests (The Safety Net):**
-    We rely heavily on Snapshot Testing.
-    ```bash
-    npm test
-    ```
-    * If you change compiler logic, the snapshots *will* fail. This is good!
-    * Check the diff. Does the generated Dart code look better?
-    * If yes, update snapshots: `npm test -- -u`.
-
-3.  **Build & Link:**
-    To test the CLI locally against a real project:
-    ```bash
-    npm run build
-    npm link
-    ```
-
----
-
-## 🗺️ How You Can Help (Current Roadmap)
-
-We are currently working towards **v0.6.0** and **v1.0.0**.
-
-### 🟢 Good First Issues
-* **Test Coverage:** Add a new `.d.ts` file to `test/snapshots/` that covers a weird edge case (e.g., complex Generics) and verify the output.
-* **Documentation:** Improve JSDoc comments on the `IR` interfaces.
-
-### 🟡 Intermediate (Compiler Logic)
-* **Symbol Table:** We need a robust `SymbolTable` class to track variable scopes.
-* **Recursive Visitor:** Help rewrite Pass 2 to support deep traversal of types.
-
-### 🔴 Advanced (The Fun Stuff)
-* **Wasm Emitter:** Design the `Emitterv2` class that outputs `package:web` compatible code.
-
----
-
-## 📝 Coding Standards
-
-* **No `any`:** We use strict TypeScript. If you need dynamic behavior, use our specific IR types.
-* **Comment "Why", not "What":** The AST traversal code can be dense. Explain *why* you are skipping a node, not just that you are skipping it.
-* **Keep it Pure:** Transformations should optimally be pure functions where possible. Avoid global mutable state outside the `TranspilerContext`.
-
----
-
-## License
-
-By contributing, you agree that your contributions will be licensed under its Apache-2.0 License.
+The next release is v1.0.0. Intermediate 0.x releases and a primary
+`dart:js_interop` backend are out of scope.

@@ -14,9 +14,10 @@ Transpiler (transpiler.ts)
   │     structural IR walk derives checker-backed reference dependencies
   │
   ├─ PHASE 2  runLinker()         (phase/linkerPhase.ts)
+  │     semantic/* canonicalizes, merges and allocates names atomically
   │     DFS over dep graph, memoised, cycle-safe
-  │     → LinkReport (states, resolved edges, diagnostics)
-  │     → writes resolvedDeps + IR use-site resolvedFQN
+  │     → LinkReport (semantic report, states, edges, diagnostics)
+  │     → writes resolvedDeps + IR use-site resolvedFQN/resolvedDartName
   │
   └─ PHASE 3  renderAllFiles() → writeAllFiles()  (phase/emitterPhase.ts)
         group symbols by source file → emitter/old/* → optionally write .dart
@@ -57,6 +58,7 @@ selection and writes both symbol-level `resolvedDeps` and use-site
 | `src/symbol/{index,table,resolve,fqn}.ts` | symbol model, table, FQN construction and structured resolution |
 | `src/resolution/*` | shared stdlib classification, module host and resolution reports |
 | `src/ir/visit.ts` | structural type-reference walker used by generation/linking |
+| `src/engine/semantic/*` | canonical shape, merge, overload/name, and atomic semantic passes |
 | `src/engine/phase/symbolGeneration.ts` | Phase 1 |
 | `src/engine/phase/linkerPhase.ts` | Phase 2 |
 | `src/engine/phase/emitterPhase.ts` | Phase 3 |
@@ -75,19 +77,12 @@ Verified with `grep -rn ... src test --include="*.ts"` excluding self-directory:
 
 | Path | Lines | Notes |
 |---|---|---|
-| `src/engine/passes/**` | 880 | The old 5-pass pipeline. |
-| `src/engine/transformers/**` | 804 | Overload grouping + hoisting lived here. |
 | `src/legacy/**` | ~2450 | Original 3-day implementation. Self-contained, compiles clean. |
 | `src/log.ts` | 251 | Full logger implementation; not imported by any live module. |
 
-**4,385 of 10,152 `src` TypeScript lines are currently unreachable; 5,767 are
-live.** The quarantined pass/transformer directories are excluded from `tsc`;
-the post-S3 bundle scan confirms all dead groups are tree-shaken from `dist`.
-
-> Note: current recursive traversal is `src/ir/visit.ts`. The transformer walker
-> targets deleted IR and must not be ported. Retain only its overload-renaming
-> intent and structural-canonicalisation requirement before S4 deletes it. See
-> `08-dead-legacy.md` and `P-13`.
+S4 deleted the 1,684-line pass/transformer quarantine after reimplementing its
+requirements against current IR. `legacy/**` and `log.ts` remain intentionally
+unreachable and tree-shaken from `dist`.
 
 ## Path aliases (`tsconfig.json`)
 
@@ -97,8 +92,6 @@ the post-S3 bundle scan confirms all dead groups are tree-shaken from `dist`.
 @engine/*      src/engine/*
 @emitter/*     src/engine/emitter/*
 @parser/*      src/engine/parser/*
-@passes/*      src/engine/passes/*        ← points at dead code
-@transformers/* src/engine/transformers/* ← points at dead code
 @utils/*       src/utils/*
 @legacy/*      src/legacy/*
 @typeParser/*  src/engine/parser/type/*

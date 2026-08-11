@@ -207,7 +207,12 @@ signature overloads.
 
 ---
 
-## P-10 — Static modifiers are captured for classes but hardcoded `false` for interfaces `[inspection]`
+## P-10 — Static modifiers are captured for classes but hardcoded `false` for interfaces `[inspection]` **[FIXED — S4]**
+
+Plain interface members remain correctly non-static. During supported
+interface/value and constructor-companion merges, S4 clones variable-side
+properties, methods, and accessors with `isStatic: true`; rendered tests prove
+the transitional adapter emits them as static. Original finding follows.
 
 `parser/class.ts` correctly reads `prop.isStatic()`, `method.isStatic()`, etc.
 `parser/interface.ts` hardcodes `isStatic: false` at lines 37, 76, 113, 129, 148.
@@ -251,7 +256,13 @@ declaration work in S3, not as a parser patch.
 
 ---
 
-## P-13 — Sibling inline shapes reuse one anonymous identity `[verified]`
+## P-13 — Sibling inline shapes reuse one anonymous identity `[verified]` **[FIXED — S4]**
+
+All recursive type positions now add deterministic child roles (`union_0`,
+`arg_0`, `tuple_0`, `array_element`, wrapper roles, and member/signature roles).
+Focused tests first reproduced the collision, then proved distinct siblings and
+same-file-only semantic canonicalization with rewritten uses. Original finding
+follows.
 
 Immutable `ParseContext` fixed cross-parameter, return and overload collisions,
 but `handleTypeLiterals` derives its hoist name only from the owning context.

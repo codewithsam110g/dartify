@@ -16,7 +16,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 
 | ID | Finding | Where | Ev. |
 |---|---|---|---|
-| `E-01` | `.split("_")[0]` truncates JS names at the first underscore — `my_func` binds to `@JS("my")` | `emitter/old/function.ts:11`, `class.ts:83`, `interface.ts:48` | ✅ |
+| `E-01` **[FIXED — S4]** | Exact source `jsName` is carried separately from overload/collision `dartName`; all split-based recovery paths are deleted | `semantic/names.ts`, `emitter/shared/names.ts` | ✅ |
 | `L-01` **[FIXED — S2]** | ~~Cross-file dep FQNs name the importing file, not the declaring file~~ — checker-backed targets now retain declaring file and target name; three.js has 0 checker-target fallbacks | `parser/type/typeRefernce.ts`, `symbol/fqn.ts` | ✅ |
 | `P-01` **[FIXED — S2]** | ~~Heritage clauses bypass `parseType`~~ — class/interface heritage is `IRType[]` and contributes reference edges | `parser/{interface,class}.ts` | ✅ |
 | `E-08` | No cross-file imports are ever emitted — 415/415 three.js files uncompilable | `phase/emitterPhase.ts:188-195` | ✅ |
@@ -46,20 +46,22 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `I-04` **[FIXED — S2]** | ~~Heritage stored as raw strings~~ — class/interface `extends` and `implements` now use `IRType` | `ir/{interface,class}.ts` | ✅ |
 | `T-01` / `I-03` **[FIXED — S1]** | ~~Unsupported constructs collapsed to `Any` with no reason~~ — `TypeKind.Unsupported` + `UnsupportedReason`; checker-backed `typeof` handling reduced the corpus from 1,410 to **112** unsupported nodes, with 0 unclassified. Remaining nodes are explicit, named degradations | `type/unsupported.ts`, `type/typeQuery.ts` | ✅ |
 | `P-07` **[FIXED]** | ~~`this` type → `dynamic`, 900 occurrences — the #1 type gap~~ — resolves to the enclosing class/interface per js_facade_gen §3.10 (S1.4). Owner found via AST ancestors, not by parsing `currentFQN` | `type/thisType.ts` | ✅ |
-| `E-09` | No Dart keyword escaping (`external bool get static;`) | all emitters | ✅ |
+| `E-09` **[FIXED — S4]** | Context-aware Dart reserved/built-in names are escaped with `JS$`; source spellings remain in `@JS` annotations | `semantic/{keywords,names}.ts` | ✅ |
+| `E-22` **[FIXED — S4]** | Computed/non-identifier member names such as `[Symbol.iterator]` are sanitized to legal Dart names while preserving exact JS spelling; discovered and analyzer-verified during S4 | `semantic/keywords.ts`, `semantic.test.ts` | ✅ |
 | `P-12` **[FIXED — S3]** | Classes now retain index signatures in the same shape as interfaces/type literals | `parser/class.ts`, `ir/class.ts` | ✅ |
+| `P-10` **[FIXED — S4]** | Variable-side object members are promoted to static properties/methods/accessors during supported interface/value and constructor-companion merges | `semantic/merge.ts`, `emitter/old/{class,interface}.ts` | ✅ |
 | `E-20` | `IRClass.isAbstract` parsed and never emitted — abstract classes emit as concrete | `emitter/old/class.ts:16` | ✅ |
-| `E-10` | Namespace flattening collides (two `abstract class ZoomOptions` in leaflet) | `phase/emitterPhase.ts:198-211` | ✅ |
+| `E-10` **[FIXED — S4]** | Top-level priority plus shortest namespace suffix/numeric fallback produces unique Dart-visible names and rewrites references; Leaflet duplicate definitions 245 -> 0 | `semantic/names.ts`, `emitterPhase.ts` | ✅ |
 | `E-05` | Variables emit mutable fields; `isReadonly`/`isConst` ignored | `emitter/old/variable.ts:13` | ✅ |
-| `L-05` | Overload grouping + augmentation not implemented in the new pipeline | `phase/linkerPhase.ts` | ✅ |
+| `L-05` **[FIXED — S4 matrix]** | Atomic semantic pass groups overloads, merges supported declaration families/constructor companions, retains dual facets, redirects identities, and diagnoses preserved conflicts | `engine/semantic/*`, `linkerPhase.ts` | ✅ |
 | `L-08` **[FIXED — S2]** | Persisted `LinkReport.edges`, symbol `resolvedDeps`, and use-site identities replace graph-side re-resolution | `phase/linkerPhase.ts`, `symbol/index.ts` | ✅ |
 | `E-11` **[FIXED]** | ~~Emission coupled to `fs`~~ — split into `renderAllFiles()` / `writeAllFiles()` in S0.1 | `phase/emitterPhase.ts` | 🔍 |
 | `T-09` **[FIXED]** | ~~Intersections parsed correctly, then dropped to `dynamic` at emit~~ — emits `Foo /*Foo&Bar*/` per js_facade_gen §5.3 (S1.9). It was the one gap making dartify *worse* than the tool it replaces | `emitter/old/type/emit.ts` | ✅ |
 | `X-06` **[FIXED — S2]** | 15 focused linker/resolution/graph/reporting tests plus Leaflet and three.js corpus gates now assert link behaviour | `test/linker/` | ✅ |
-| `D-01` *(quarantined)* | 5-pass pipeline orphaned. Excluded from `tsconfig` in S0.7 so its 5 stale errors stop masking real ones. **Still on disk** — S4 mines `transformers/` before deleting both | `engine/{passes,transformers}` | ✅ |
+| `D-01` **[FIXED — S4]** | The orphaned 1,684-line five-pass pipeline, path aliases, and compiler exclusions are deleted after live semantic tests replaced its retained concepts | `engine/semantic/*`, `tsconfig.json` | ✅ |
 | `D-07` **[FIXED]** | ~~**95% of `dist/cli.js` was `@viz-js/viz`**~~ — a devDependency made reachable by a live import in `linkerPhase`. S0.4: **1.59 MB → 73.3 KB** | `tools/graph.ts` | ✅ |
 | `X-03` **[FIXED]** | ~~`tsc --noEmit` → 15 errors~~ — now **0**. Dead dirs excluded from `tsconfig` (kept on disk for S4 mining), test signatures fixed | `tsconfig.json` | ✅ |
-| `P-13` | Sibling structural positions share one parse-context FQN. `f(x: {a: string} \| {b: number})` registers two `Anon_f_overload_0_param_0_x` declarations and both union members collapse to that name | `parser/type/typeLiterals.ts`, `parser/context.ts` | ✅ |
+| `P-13` **[FIXED — S4]** | Every recursive structural position has a deterministic child path; distinct siblings no longer collapse before same-file shape canonicalization | `parser/type/*`, `semantic/shape.ts` | ✅ |
 
 ## S3 — Latent hazards & design debt
 
@@ -73,7 +75,8 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `T-16` **[FIXED]** | ~~`{}` synthesised a cyclic `typedef anon_dynamic = anon_dynamic;` registered under a non-FQN key~~ — emitted into 1 file while **117** use sites across **34** files referenced it. **Live in three.js.** `{}` is now `dynamic` (S1.9) | `type/typeLiterals.ts` | ✅ |
 | `T-17` **[FIXED]** | ~~`ParenthesizedType` and the `readonly` operator forwarded `depth` unchanged~~ — **`T-05` was closed prematurely**; `(((…)))` was unbounded at any nesting. Verified: 40 nested parens never tripped the guard. Fixed in the audit pass | `type/type.ts`, `type/typeOperator.ts` | ✅ |
 | `I-13` **[FIXED — S3]** | One shared `IRParameter` now serves declaration and function-type parsing with one `isRest` contract | `ir/signature.ts`, parsers | ✅ |
-| `I-14` **[FIXED — S3]** | Deleted live `ir/literal.ts` and `IRType.objectLiteral`; the quarantined transformers remain excluded until S4 mines them | `ir/type.ts`, `ir/literal.ts` | ✅ |
+| `I-14` **[FIXED — S3/S4]** | Deleted live vestigial literal IR in S3; S4 then deleted the quarantined transformer consumers | `ir/type.ts`, `engine/semantic/shape.ts` | ✅ |
+| `D-02` **[FIXED — S4]** | Overload and structural-canonicalization requirements were reimplemented against current facets/IR; obsolete transformer implementations were not ported | `engine/semantic/*`, `ir/visit.ts` | ✅ |
 | `P-11` **[FIXED — S3]** | Parameters retain exact object/array binding-pattern text and initializer text, with semantic rest/optional flags | `parser/signature.ts`, `ir/signature.ts` | ✅ |
 | `X-12` | The stress tier asserts only that nothing *escaped* `transpileFromString`; `result.errors` and `// ERROR emitting` comments are never inspected. Post-S3 census: 0 throws / 0 returned errors / 0 markers over 1,650 files, so nothing is hidden today | `test/stress.test.ts` | ✅ |
 | `R-09` **[FIXED — S3]** | Immutable `ParseContext` replaces every mutable `currentFQN` assignment and registers hoists through an explicit callback | `parser/context.ts`, parsers | ✅ |
@@ -81,8 +84,8 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `R-11` **[FIXED]** | ~~Context singleton never reset between runs~~ — `resetTranspilerState()` (`src/reset.ts`) called at the start of every run, S0.3. Verified: two `transpileFromString` calls no longer contaminate each other | `src/reset.ts` | ✅ |
 | `T-06` **[FIXED]** | ~~`IRType.name` has three incompatible meanings; Dart names leak into the IR~~ — TS-side names only, guarded by an invariant test (S1.8). Surfaced a live defect: `name: "BigInt"` was the only thing separating a bigint literal from a number literal, so `10n` emitted `num` | `type/literals.ts` | ✅ |
 | `L-03` **[FIXED — S2]** | Resolution returns an explicit ambiguous outcome and never selects `matches[0]` arbitrarily | `symbol/resolve.ts` | ✅ |
-| `L-10` | `SymbolTable` has no `unregister`/`replace`; `getSymbolTable()` leaks the live `Map` | `symbol/table.ts` | 🔍 |
-| `L-11` | Module scoping is textual; `declare module` / `namespace` / `global` indistinguishable | `phase/symbolGeneration.ts:239-253` | 🔍 |
+| `L-10` **[FIXED — S4]** | Readonly structural snapshots plus validated `replace`, `unregister`, and atomic rollback-safe `apply` protect table invariants | `symbol/table.ts`, `symbol-table.test.ts` | ✅ |
+| `L-11` **[FIXED — S4]** | Explicit namespace/external-module/global scope records drive FQNs, JS paths, augmentation suppression, and global hoisting | `symbol/index.ts`, `symbolGeneration.ts` | ✅ |
 | `R-13` | Symbol-generation errors are collected, optionally printed, then discarded; neither `LinkReport` nor `transpileFromString().errors` can surface per-statement failures | `phase/symbolGeneration.ts:11-44` | 🔍 |
 | `L-12` **[FIXED — S2]** | Direct and transitive missing states are now distinct and fixture-tested | `phase/linkerPhase.ts` | ✅ |
 | `L-13` **[FIXED — S2]** | Graph IDs derive from full FQNs; basename/scope is label-only | `tools/graphModel.ts` | ✅ |
@@ -96,8 +99,8 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `R-03` **[FIXED — S2]** | Longest-common-ancestor roots plus explicit collision checks replace first-input rooting | `transpiler.ts`, `emitterPhase.ts` | ✅ |
 | `R-02` **[FIXED — S2]** | Public reports always include resolution issues and the CLI always prints the unresolved count | `transpiler.ts`, `cli.ts` | ✅ |
 | `X-02` **[FIXED]** | ~~1,648 whole-library snapshots~~ — retiered in S0.6 into sanity / smoke (3 files) / opt-in stress. **4.3 MB → 128 KB** of snapshots | `test/{simple,smoke,stress}.test.ts` | ✅ |
-| `X-09` *(partial)* | ~~Nothing runs `dart analyze` on the output~~ — measured manually: **h3 clean**, probe 19, `leaflet.dart` 510; the separate `geojson.dart` adds 12, so complete Leaflet output is 522. Still not automated | — | ✅ |
-| `I-07` / `D-03` **[FIXED — S3]** | Live vestigial literal IR deleted after S2 supplied `ir/visit.ts`; dead S4 reference code remains quarantined for mining | `ir/type.ts`, `ir/literal.ts` | ✅ |
+| `X-09` *(partial)* | Manual S4 acceptance: h3 0 errors/warnings; semantic fixtures 0 S4-owned errors; Leaflet 239 total with 0 duplicates; three.js 0 duplicate/syntax/identifier errors. CI automation remains S6 | `audit/S4-EVIDENCE.md` | ✅ |
+| `I-07` / `D-03` **[FIXED — S3/S4]** | Live vestigial literal IR deleted after S2 supplied `ir/visit.ts`; S4 deleted its quarantined transformer consumers | `ir/type.ts`, `engine/semantic/shape.ts` | ✅ |
 | `I-08` **[FIXED — S3]** | Class constructors and interface/type-literal construct signatures share `IRConstructSignature`; fake names are gone | `ir/signature.ts`, parsers | ✅ |
 | `E-14` | Index signatures ignore parsed key/value types | `emitter/old/interface.ts:70-73` | 🔍 |
 | `E-12` | Tuples collapse to `List<dynamic>`; `literalValue` discarded | `emitter/old/type/emit.ts` | ✅ |
@@ -105,7 +108,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `P-05` **[FIXED — S3]** | Variables record `declarationKind: var | let | const` and derive `isConst`; impossible readonly state removed | `parser/variable.ts`, `ir/variable.ts` | ✅ |
 | `P-02` **[FIXED — S3]** | Constraints/defaults are parsed as full `IRType` nodes on every generic owner and participate in linking | `parser/signature.ts` | ✅ |
 | `R-10` **[FIXED — S2]** | ~~`currentDeps` shared across declarators~~ — bucket removed; deps derive from each declaration's completed IR | `phase/symbolGeneration.ts`, `ir/visit.ts` | ✅ |
-| `P-08` **[FIXED — S3]** | Return, parameter, member and overload scopes are deterministic immutable context children. Sibling positions inside one type still collide; see `P-13` | `parser/{context,function,signature}.ts` | ✅ |
+| `P-08` **[FIXED — S3/S4]** | Immutable owner/signature scopes landed in S3; S4 added deterministic recursive structural positions and closed `P-13` | `parser/{context,function,signature,type}.ts` | ✅ |
 | `P-09` **[FIXED — S3 IR]** | Every construct overload is preserved in shared IR without a fake name. The transitional emitter still reads one interface factory; full overload emission remains S5 | `parser/interface.ts`, `ir/signature.ts` | ✅ |
 
 ## S4 — Cosmetic, wasteful, drift
@@ -125,14 +128,14 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `R-07` **[FIXED]** | ~~CLI `--version` hardcoded `v0.3`~~ — read from `package.json` | `cli.ts` |
 | `X-10` **[FIXED]** | ~~Probe fixture only in the audit~~ — promoted to `def_files/synthetic/probe.d.ts`, now a smoke-tier snapshot | `def_files/synthetic/probe.d.ts` |
 | `E-15` | Redundant `isReadonly` branch emitting identical getters | `emitter/old/interface.ts:35-44` |
-| `E-21` | Emitter dead code and unused params remain: commented-out overload path + `getOverloadFuncs`, passthrough `returnTypeAliasName`, and unused `prefix`/`debug` parameters. S3 removed the stale parser locals and double-slash imports | `emitter/**` | ✅ |
+| `E-21` **[PARTIAL — S4]** | Deleted commented overload code/helper and wired interface prefixes; passthrough alias helper and compatibility `debug` parameters remain for S5 | `emitter/**` | ✅ |
 | `T-12` **[FIXED]** | ~~Single-member unions keep a meaningless `Union` wrapper~~ — normalised in the parser (S1.9); this is what exposed `E-17`'s commented-form residue | `type/unions.ts` |
 | `T-10` **[FIXED — S1]** | ts-morph 28 exposes tuple `OptionalTypeNode`; parser and focused test now handle `[string?]` | `type/tuple.ts`, `test/type/tier-a.test.ts` |
 | `T-11` | String literal values unquoted but not unescaped | `type/literals.ts:43` |
 | `I-12` | Multi-declarator `var` grouping lost (benign) | `parser/variable.ts` |
-| `D-06` **[FIXED — post-S3 audit]** | Built bundle is 114,961 bytes (112.24 KB); no pass, transformer, legacy, logger, graphology or Viz symbols are present | `dist/cli.js`, `package.json` |
+| `D-06` **[FIXED — S4 reverified]** | Built bundle is 154.11 KB with semantic/reporting code; no deleted pass/transformer, legacy, logger, graphology, or Viz code ships | `dist/cli.js`, `package.json` |
 | `E-11b` | `@typeEmitter/*` alias hardcodes `emitter/old/` | `tsconfig.json:29` |
-| `X-13` | Post-S3 comment drift: input-root docs still say first file, tsconfig calls the dead walker unique, stress/smoke say 1,648 files and call h3 a demo, and a ReadonlyArray comment cites `T-07` instead of its own finding | `transpiler.ts`, `tsconfig.json`, `test/{smoke,stress}.test.ts`, `emitter/old/type/emit.ts` |
+| `X-13` **[FIXED — S4]** | Corrected all six audited source/test/config comments alongside deletion of the obsolete pipeline | `transpiler.ts`, `tsconfig.json`, `test/{smoke,stress}.test.ts`, `emitter/old/type/emit.ts` |
 
 ---
 

@@ -101,10 +101,11 @@ Rather than patching a decade-old system, `dart_bindgen` was created to be the t
 ## Roadmap & Contribution
 
 The project now moves directly from the published v0.5.0 to v1.0.0. Stage 2's
-truthful multi-file link layer is complete; the next engineering stage fills
-the declaration IR before overload/augmentation semantics and the final emitter
-work. See [`ROADMAP.md`](ROADMAP.md) for the public overview and
-[`PLAN.md`](PLAN.md) for the tracked stage-by-stage implementation plan.
+truthful multi-file link layer, Stage 3 declaration IR, and Stage 4 semantic
+layer are complete. Stage 5 rebuilds the `package:js` emitter over canonical
+bindings and Dart-visible names. See [`ROADMAP.md`](ROADMAP.md) for the public overview,
+[`PLAN.md`](PLAN.md) for the stage sequence, and
+[`STAGE4_PLAN.md`](STAGE4_PLAN.md) for the implemented S4 contract.
 
 You can help! This is a solo-developer project, and community involvement is vital.
 

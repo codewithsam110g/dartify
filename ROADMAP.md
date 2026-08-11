@@ -2,8 +2,9 @@
 
 **The next release is `1.0.0`.**
 
-The engineering detail lives in [`PLAN.md`](PLAN.md); the defect inventory it is
-sequenced from lives in [`audit/`](audit/README.md). This file is the short
+The engineering detail lives in [`PLAN.md`](PLAN.md); the decision-complete S4
+handoff lives in [`STAGE4_PLAN.md`](STAGE4_PLAN.md); and the defect inventory it
+is sequenced from lives in [`audit/`](audit/README.md). This file is the short
 version.
 
 ---
@@ -20,7 +21,7 @@ not: overload resolution, declaration augmentation, and cross-file imports are
 whole-program questions, and there was previously no phase that saw the whole
 program. Now there is.
 
-Stages S0–S3 are complete. The link layer now carries checker-backed targets on
+Stages S0–S4 are complete. The link layer now carries checker-backed targets on
 IR reference sites, persists resolved graph edges, distinguishes missing from
 ambiguous and direct from indirect failure, resolves extensionless declaration
 imports conservatively, and exposes resolution/link reports to the CLI and
@@ -31,18 +32,19 @@ constraints/defaults, shared parameter/signature shapes, call and construct
 overloads, documentation, source locations, modifiers, enum initializer
 semantics, variable declaration kinds, and class index signatures. An opt-in
 census over h3, Leaflet, three.js and the S3 fixture found **2,530 declarations**
-and **26,240 parsed type nodes** with zero missing source locations. S4—the
-whole-program semantic layer—is next.
+and **26,240 parsed type nodes** with zero missing source locations. S4 adds an
+atomic facet-based semantic table, positional anonymous identities and
+same-file canonicalization, explicit module/global scopes, supported
+declaration merges, stable overload names, Dart identifier legality, namespace
+collision allocation, target-name rewrites, and visible suppression/conflict
+diagnostics. The obsolete 1,684-line five-pass implementation is deleted.
 
-A post-S3 line-by-line re-audit confirmed those gates and corrected the S4
-starting point. The recursive current-IR walker already exists, nested inline
-types already hoist, and quarantined transformer code is not portable. The
-remaining shape work is semantic identity and deduplication; a new verified
-blocker (`P-13`) shows sibling inline shapes can currently collapse to one
-anonymous name. S4 therefore starts with safe symbol-table mutation and shape
-identity, then module kinds, overloads, augmentation and renaming. Fresh Dart
-baselines are h3 0, probe 19, and complete Leaflet 522 issues (510 in
-`leaflet.dart`, 12 in `geojson.dart`).
+S4 closes its Dart-owned analyzer categories: h3 remains unchanged and has zero
+errors, the four semantic fixtures have no duplicate/keyword/syntax failures,
+complete Leaflet improves from 522 to 239 issues with zero duplicates, and
+three.js has zero duplicate, syntax, or identifier errors. Its remaining
+diagnostics are missing imports/types and generic backend work. S5—the emitter
+rewrite over these stable semantic identities—is next.
 
 The current Dart backend is still the transitional `emitter/old/*`
 string-template implementation: some paths work, some deliberately preserve

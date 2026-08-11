@@ -161,7 +161,14 @@ artefact of not looking at heritage at all.
 
 ---
 
-## L-05 — Overload grouping and declaration augmentation are not implemented `[verified]`
+## L-05 — Overload grouping and declaration augmentation are not implemented `[verified]` **[FIXED — S4 matrix]**
+
+The atomic semantic pass now retains function facets, numbers every overload,
+merges compatible interface/interface and class/interface groups, synthesizes
+constructor companions, folds default value objects into static members,
+preserves type/value facets, and diagnoses unsafe groups without data loss.
+External augmentations are modeled, visibly reported, and suppressed by the
+locked S4 policy. Original finding follows.
 
 This is the intended Phase 2 feature work, not a defect — recorded so the
 audit reflects reality.
@@ -304,7 +311,12 @@ performance nit rather than a correctness bug.
 
 ---
 
-## L-10 — `SymbolTable` has no removal or replacement API `[inspection]`
+## L-10 — `SymbolTable` has no removal or replacement API `[inspection]` **[FIXED — S4]**
+
+The table returns copied readonly map/array structure and exposes validated
+`replace`, `unregister`, and atomic `apply` operations. Focused tests prove
+snapshot isolation, replacement/removal, invariant rejection, and rollback.
+Original finding follows.
 
 `symbol/table.ts` exposes `register`, `lookup`, `has`, `getAll`,
 `getSymbolTable`, `clear`. Phase 2 must *replace* IR (merging augmentations,
@@ -318,7 +330,12 @@ returning a readonly view from `getSymbolTable`.
 
 ---
 
-## L-11 — Module scoping is textual, with no distinction between namespace kinds `[inspection]`
+## L-11 — Module scoping is textual, with no distinction between namespace kinds `[inspection]` **[FIXED — S4]**
+
+Every facet now carries explicit namespace, external-module, or global scope
+records. The same records drive FQN creation, namespace name expansion,
+qualified JS annotations, global hoisting, and augmentation suppression with a
+canonical module target. Original finding follows.
 
 **`symbolGeneration.ts:239-253`** — `processModuleDeclaration` appends
 `moduleName + "|"` for every `ModuleDeclaration`. That covers

@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Semantic layer
+
+- Added atomic facet-based symbols, explicit module/global origins, positional
+  anonymous identities, same-file structural canonicalization, and redirects.
+- Added supported declaration merging for reopened interfaces,
+  class/interface groups, constructor companions, default static values, and
+  type/value facets. Unsafe groups are preserved with structured diagnostics.
+- Added deterministic overload, Dart keyword, computed-member, dual-facet, and
+  namespace collision naming while preserving exact JavaScript spellings.
+- Added semantic counts, suppression records, normal CLI warnings, and verbose
+  diagnostics. External module augmentations are modeled and visibly
+  suppressed until a later merge policy is implemented.
+
+### Validation and maintenance
+
+- Added the 26-test `pnpm test:s4` gate and retained the exact 2,530
+  pre-semantic S3 declaration census.
+- Removed the orphaned 1,684-line five-pass pipeline and its TypeScript aliases.
+- Kept h3 output stable; removed all Stage 4 duplicate, keyword, and syntax
+  analyzer errors from the legacy fixtures, Leaflet, and three.js.
+
 ## [0.5.0] - 2025-08-20
 
 ### Features

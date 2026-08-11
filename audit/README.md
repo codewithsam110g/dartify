@@ -29,6 +29,9 @@ planning, so `PLAN.md` is sequenced by real dependency rather than by guess.
 Start at `FINDINGS.md` if you want the summary; go to the area file for the
 per-line reasoning behind any given ID.
 
+The implemented semantic contract is [`../STAGE4_PLAN.md`](../STAGE4_PLAN.md),
+with command results and closure evidence in [`S4-EVIDENCE.md`](S4-EVIDENCE.md).
+
 ## Finding IDs
 
 Stable IDs, referenced from `PLAN.md` and `CLAUDE.md`:
@@ -240,3 +243,27 @@ quarantined walker is obsolete current-IR code. S4 therefore begins with safe
 symbol-table mutation/pass infrastructure, fixes structural-position identity
 and semantic canonicalisation, then implements module kinds, overloads,
 augmentation, and renaming before deleting the quarantined directories.
+
+---
+
+## Stage 4 close — semantic bindings
+
+S4 implements atomic facet-based bindings, positional and canonical anonymous
+identity, explicit module/global scopes, the measured declaration merge matrix,
+overload and Dart-name allocation, resolved target names, semantic reports, and
+normal/verbose CLI diagnostics. The obsolete five-pass directories are gone.
+
+| Gate | Result |
+|---|---|
+| focused S4 acceptance | **26/26** across SymbolTable, semantics, reporting, and emitter adapter |
+| normal / S2 / S3 | **241 passed**, 4 skipped / **2/2** / **1/1** |
+| S3 input floor | **2,530** declarations before semantic rewriting |
+| full stress | **1,650/1,650**; 0 returned errors, 0 emission markers |
+| empty-output classification | 710 historical barrels/comments + **9 intentional Lodash augmentation-only files** |
+| compiler/build | `tsc --noEmit` clean; bundle **154.11 KB** |
+| Dart analyzer | h3 0 errors; semantic fixtures 0 S4-owned errors; Leaflet **522 → 239**; three.js 0 duplicate/syntax/identifier errors |
+
+Closed here: `L-05`, `L-10`, `L-11`, `P-10`, `P-13`, `E-01`, `E-09`,
+`E-10`, `D-01`, `D-02`, and `X-13`. S4 also found and fixed `E-22`, computed
+member spellings that were not valid Dart identifiers. S5 still owns imports,
+generics, heritage, callable interfaces, and constructor-overload emission.

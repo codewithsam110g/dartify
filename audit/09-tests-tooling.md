@@ -290,7 +290,10 @@ line matcher did not recognise. Zero are real content loss.
 
 ---
 
-## X-13 — Post-S3 comments describe superseded behaviour `[inspection]`
+## X-13 — Post-S3 comments describe superseded behaviour `[inspection]` **[FIXED — S4]**
+
+S4 corrected all six audited comments while deleting the obsolete pipeline and
+updating the 1,650-file corpus/h3 guidance. Original finding follows.
 
 No runtime behaviour is affected, but six comments now misdirect maintainers:
 

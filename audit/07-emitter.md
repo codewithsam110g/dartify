@@ -14,7 +14,13 @@ The verified output samples below come from a synthetic probe run
 
 ---
 
-## E-01 — `.split("_")[0]` truncates JS names at the first underscore `[verified]`
+## E-01 — `.split("_")[0]` truncates JS names at the first underscore `[verified]` **[FIXED — S4]**
+
+S4 added separate source `name`, output `dartName`, and runtime `jsName`
+contracts. The semantic pass numbers overloads; every emitter reads the
+explicit names, and all split-based recovery paths are deleted. Rendered tests
+prove `under_score_1` and `_2` both bind `@JS("under_score")`. Original finding
+follows.
 
 **`emitter/old/function.ts:11`**
 ```ts
@@ -229,7 +235,12 @@ Also missing: `dart:html` / `dart:typed_data` substitution imports
 
 ---
 
-## E-09 — Dart keyword escaping is absent `[verified]`
+## E-09 — Dart keyword escaping is absent `[verified]` **[FIXED — S4]**
+
+`semantic/keywords.ts` contains the checked Dart identifier classes and
+`semantic/names.ts` applies them by declaration/member/parameter/type context.
+Renamed members retain exact `@JS` spellings; the keyword fixture falls from 9
+analyzer issues to 0 errors/warnings. Original finding follows.
 
 No identifier is checked against Dart's reserved words. Observed in three.js
 output:
@@ -262,7 +273,12 @@ correction under that finding.
 
 ---
 
-## E-10 — Namespace flattening collides `[verified]`
+## E-10 — Namespace flattening collides `[verified]` **[FIXED — S4]**
+
+S4 allocates per-library names with top-level priority, then the shortest
+innermost namespace suffix, then a numeric fallback, and publishes the selected
+name through `resolvedDartName`. Complete Leaflet now has zero
+`duplicate_definition` diagnostics (245 before S4). Original finding follows.
 
 All symbols from one source file are emitted into one Dart library with their
 bare names (`emitterPhase.ts:198-211`), so `namespace A { interface Opts }` and
@@ -272,6 +288,21 @@ Verified: `leaflet.dart` contains two `abstract class ZoomOptions`.
 
 `js_facade_gen` §8.4/§8.5 renames the second occurrence (`m2_A`, `m2_x`, `x2`)
 and annotates with the full JS path.
+
+---
+
+## E-22 — Computed member spellings are not Dart identifiers `[verified]` **[FIXED — S4]**
+
+The first S4 three.js analyzer run exposed methods named
+`[Symbol.iterator]` emitted literally, causing four `MISSING_IDENTIFIER`
+syntax errors plus parser cascades in `Color.dart` and `Euler.dart`. Keyword
+tables alone do not cover this defect class: a source property can be legal
+TypeScript without being an identifier at all.
+
+`legalDartName` now sanitizes non-identifier spellings deterministically;
+`[Symbol.iterator]` becomes `JS$Symbol_iterator` while the emitter writes
+`@JS("[Symbol.iterator]")`. The focused rendered test and repeated three.js
+analysis both pass; three.js now has zero syntax/identifier diagnostics.
 
 ---
 
@@ -625,7 +656,12 @@ that is unconstructible *and* unrelated to its base.
 
 ---
 
-## E-21 — Dead code and unused parameters in the emitter layer `[verified]`
+## E-21 — Dead code and unused parameters in the emitter layer `[verified]` **[PARTIAL — S4]**
+
+S4 deleted the commented overload branch and `getOverloadFuncs`, and
+`emitInterface` now consumes the explicit JS prefix. The passthrough
+`returnTypeAliasName` and compatibility `debug` parameters remain for the S5
+backend rewrite, so the finding stays open for that residue.
 
 Not bugs; recorded so the S5 rewrite starts from an accurate picture.
 

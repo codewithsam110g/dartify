@@ -18,6 +18,8 @@ Use the pinned pnpm 10 toolchain.
 - `pnpm test` runs Vitest; `pnpm test:watch` watches changes.
 - `pnpm exec tsc --noEmit` must report zero errors.
 - `pnpm test:s2`, `pnpm test:s3`, `pnpm test:s4`, and `pnpm test:stress` run stage and corpus gates.
+- `pnpm test:s5:fixture` locks the pre-S5 multi-file Dart and verbose CLI baseline.
+- `pnpm fixture:s5` emits that fixture to `output/s5_emitter/` and prints the real verbose CLI report.
 - `pnpm graph -d "<glob>" -o graph.svg` renders the dependency graph.
 - `pnpm test:update` updates snapshots; inspect Dart diffs first.
 

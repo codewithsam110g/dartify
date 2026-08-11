@@ -9,6 +9,7 @@ historical releases or old architecture names.
 
 - [x] Implement and audit the Stage 4 semantic layer from `STAGE4_PLAN.md`.
 - [x] Add `test:s4` and re-measure all TypeScript, corpus, build, and Dart gates.
+- [x] Add the multi-file pre-S5 Dart and verbose CLI acceptance fixture.
 - [ ] Begin the Stage 5 `package:js` emitter rebuild from `PLAN.md`.
 
 ## Later v1 Work

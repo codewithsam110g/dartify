@@ -168,6 +168,17 @@ no hover documentation in the IDE.
 
 ## P-07 — `this` return types resolve to `dynamic` `[verified]`
 
+> **Resolved — S1.4, hardened by the pre-S5 fixture.** `this` becomes a
+> `TypeReference` to the enclosing class/interface found through AST ancestors.
+> The fixture later exposed that carrying only the written owner name was not
+> enough after an interface-plus-variable constructor merge: `WidgetType`
+> redirected to `Widget`, but fluent returns still emitted `WidgetType`.
+> Parsed `this` nodes now also carry the enclosing declaration FQN, allowing
+> the semantic redirect and linker to publish `resolvedDartName: "Widget"`.
+> The complete fixture golden and Dart analyzer verify the correction.
+
+Original finding follows.
+
 `parseType` has no `ThisType` case (`parser/type/type.ts:66-190`), so
 `bar(): this` falls to `default:` → `TypeKind.Any` → `dynamic`.
 

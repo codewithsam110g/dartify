@@ -19,6 +19,12 @@ All notable changes to this project will be documented in this file.
 
 ### Validation and maintenance
 
+- Added a four-file pre-S5 acceptance fixture and `pnpm test:s5:fixture`,
+  snapshotting complete Dart output and normalized verbose CLI diagnostics.
+- Revalidated the expanded 1,654-file declaration corpus with no thrown errors;
+  the known empty-output count remains 719.
+- Made parsed `this` types link to their enclosing declaration so constructor-
+  companion redirects update fluent return names after semantic merging.
 - Added the 26-test `pnpm test:s4` gate and retained the exact 2,530
   pre-semantic S3 declaration census.
 - Removed the orphaned 1,684-line five-pass pipeline and its TypeScript aliases.

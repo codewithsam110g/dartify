@@ -7,6 +7,11 @@ Guidance for Claude Code sessions working in this repository.
 `dartify` (npm: `dart_bindgen`) — a TypeScript `.d.ts` → Dart JS-interop binding
 generator. Built on `ts-morph`. Solo-developer project.
 
+The input contract is declaration files, not arbitrary executable `.ts`.
+Support ambient/exported declarations, declaration merging, module/global
+augmentation, and type syntax; do not expand S5 into function-body, statement,
+implementation-inference, or general expression lowering.
+
 **v1 goal: a drop-in replacement for the archived `dart-lang/js_facade_gen`,
 targeting `package:js`.** This target is deliberate — do not suggest migrating
 the primary backend to `dart:js_interop`. Existing users have codebases whose
@@ -29,6 +34,7 @@ propose intermediate point releases.
 | [`PLAN.md`](PLAN.md) | Staged implementation plan S0–S6 to v1; every task cites a finding ID |
 | [`STAGE4_PLAN.md`](STAGE4_PLAN.md) | Decision-complete S4 semantic design, tests, audit workflow, and delivery sequence |
 | [`ROADMAP.md`](ROADMAP.md) | The public short version of the same thing |
+| [`def_files/synthetic/s5_emitter/README.md`](def_files/synthetic/s5_emitter/README.md) | Pre-S5 multi-file emitter fixture matrix and measured baseline |
 | `def_files/js_facade_gen_test_cases.md` | ~120 input/output pairs from the reference tool — the de facto spec |
 
 Do not re-derive findings from scratch. If you discover something new, add it to
@@ -46,10 +52,12 @@ pnpm test                           # one-shot suite (test:run is the same)
 pnpm test:watch                     # watch mode
 pnpm test:ui                        # browser UI at localhost:51204/__vitest__/
 pnpm test:update                    # accept snapshot changes (vitest run -u)
-pnpm test:stress                    # opt-in full 1,650-file corpus, ~3 min currently
+pnpm test:stress                    # opt-in full 1,654-file corpus, ~3 min currently
 pnpm test:s2                        # opt-in linker corpus gate
 pnpm test:s3                        # opt-in declaration-fidelity census
 pnpm test:s4                        # focused semantic + emitter-adapter gate
+pnpm test:s5:fixture                # pre-S5 Dart + verbose CLI golden
+pnpm fixture:s5                     # emit it to output/s5_emitter/ with -lv
 pnpm exec tsc --noEmit              # typecheck — must stay at 0 errors
 pnpm dev -d "<glob>" -o <outdir>    # run the CLI from source
 pnpm dev -d "<file>" -o <out> -l    # phase + module-resolution logs
@@ -80,11 +88,12 @@ variable set separately.
 
 Test tiers: `simple` (sanity) · `smoke` (3 files, byte-exact snapshots) ·
 `test:s2` (link corpus) · `test:s3` (declaration-fidelity census) · `test:s4`
-(semantic contract) · `stress` (1,650-file corpus, opt-in). S4's independent
+(semantic contract) · `test:s5:fixture` (multi-file pre-emitter golden) ·
+`stress` (1,654-file corpus, opt-in). S4's independent
 census found 0 returned errors and 0 emission-error comments; 719 empty outputs
 are the 710 known barrels/comment files plus 9 Lodash augmentation-only files.
 
-Useful corpora in `def_files/` (1,650 `.d.ts` files, not shipped to npm):
+Useful corpora in `def_files/` (1,654 `.d.ts` files, not shipped to npm):
 
 | Path | Why |
 |---|---|
@@ -94,6 +103,7 @@ Useful corpora in `def_files/` (1,650 `.d.ts` files, not shipped to npm):
 | `legacy_tests/*.d.ts` | the `js_facade_gen` conformance fixtures |
 | `synthetic/probe.d.ts` | **hand-written.** One run reproduces ~16 findings |
 | `synthetic/s3-complete.d.ts` | executable declaration-IR fidelity contract |
+| `synthetic/s5_emitter/*.d.ts` | multi-file S5 Dart/CLI before-and-after baseline |
 
 ## Architecture
 

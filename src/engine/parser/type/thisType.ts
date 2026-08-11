@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { IRType, TypeKind, UnsupportedReason } from "@ir/type";
 import { makeUnsupported } from "./unsupported";
+import { declarationFQN } from "@/symbol/fqn";
 
 /**
  * `this` as a type — the polymorphic receiver type.
@@ -30,14 +31,24 @@ export function handleThisType(node: ts.TypeNode): IRType {
   );
 
   const name = owner?.getName();
-  if (!name) {
+  if (!owner || !name) {
     return makeUnsupported(node, UnsupportedReason.ThisType);
   }
+
+  const ownerFQN = declarationFQN(owner, name);
 
   return {
     kind: TypeKind.TypeReference,
     name,
     isNullable: false,
     genericArgs: [],
+    ...(ownerFQN
+      ? {
+        reference: {
+          writtenName: name,
+          lookup: { kind: "checker" as const, candidates: [ownerFQN] },
+        },
+      }
+      : {}),
   };
 }

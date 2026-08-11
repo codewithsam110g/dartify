@@ -304,6 +304,14 @@ issues. The remaining import/generic/heritage/backend categories belong to S5.
 *Now safe to do, and safe to do only once. Built as backend #1 with the v2 seam
 already in place.*
 
+The before-state is executable: `pnpm test:s5:fixture` first validates four
+inputs as real `.d.ts` declaration files, then snapshots all Dart and normalized
+verbose CLI output under `def_files/synthetic/s5_emitter/`. Executable `.ts`
+programs and implementation lowering are outside the project boundary. The
+fixture links 40/40 symbols and 36/36 edges; Dart analysis has 34 errors mapped
+to `E-08`, `E-03`, S5.3, and `E-13`. Update the golden only after reviewing the
+complete Dart diff and re-running the analyzer.
+
 | # | Task | Findings |
 |---|---|---|
 | 5.1 | Backend interface: a type-emitter + statement-emitter string-table pair. Rename the `@typeEmitter` alias off `emitter/old/` | `E-11b` |
@@ -388,7 +396,7 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 | S2 links | ☑ **done** | Leaflet 328/328 symbols and 1,050/1,050 edges resolved; three.js 0 ambiguity and 8,184 resolved edges, with 31 honest misses from two absent external type packages. Suite **214 passed**, focused S2 tests 15/15, corpus 2/2, `tsc` and build clean, h3 byte-identical; `-lv` exposes the structured report |
 | S3 decls | ☑ **done** | Complete metadata/signature IR; six semantic acceptance tests; census 2,530 declarations / 26,240 parsed types with 0 missing locations; suite **222 passed**, S2/S3 corpus gates and 1,650-file stress clean; h3 `dart analyze` clean |
 | S4 semantics | ☑ **done** | Canonical semantic bindings, supported merges, overload/identifier/namespace naming, explicit module scopes, CLI diagnostics, 26-test S4 gate; full acceptance recorded in `audit/S4-EVIDENCE.md` |
-| S5 emitter | ☐ not started | |
+| S5 emitter | ☐ not started | Pre-S5 fixture/golden ready: 40 symbols, 36 resolved edges, 34 analyzer errors mapped to planned tasks |
 | S6 ship | ☐ not started | |
 
 When a finding is resolved, mark it `[FIXED]` in `audit/FINDINGS.md` and keep

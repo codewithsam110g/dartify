@@ -1,0 +1,406 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`pre-S5 emitter acceptance fixture > renders the complete multi-file Dart and verbose CLI baseline 1`] = `
+{
+  "cli": {
+    "verbose": "
+🔎 Verbose linker report
+  Semantic bindings: 49 input declarations, 40 output symbols, 41 output facets
+  Semantic changes: merges=4, anonymous redirects=1, overloads=6, keywords=3, namespaces=2, dual facets=0, globals=2, augmentations suppressed=2
+  Symbols: 40 total, 40 valid, 0 broken
+  States: LinkedIndependent=24, LinkedResolved=16
+  Edges: 36 total, 36 resolved, 0 missing, 0 ambiguous
+  Resolution strategies: checker=36
+  Semantic redirects:
+  ↪ <fixture>/foundation.d.ts::Anon_Codec -> <fixture>/foundation.d.ts::Codec [constructorCompanion]
+  ↪ <fixture>/foundation.d.ts::Anon_Widget -> <fixture>/foundation.d.ts::Widget [constructorCompanion]
+  ↪ <fixture>/foundation.d.ts::Anon_withInline_overload_0_param_1_equivalent_property_1_nested -> <fixture>/foundation.d.ts::Anon_withInline_overload_0_param_0_options_property_1_nested [anonymousCanonicalization]
+  ↪ <fixture>/foundation.d.ts::WidgetType -> <fixture>/foundation.d.ts::Widget [constructorCompanion]
+  Suppressed external augmentations:
+  ⊘ <fixture>/augmentation.d.ts::"./foundation"|WidgetOptions: ./foundation -> ./foundation [interface]
+  ⊘ <fixture>/augmentation.d.ts::"./foundation"|WidgetType: ./foundation -> ./foundation [interface]
+  Semantic diagnostics:
+  ⚠ EXTERNAL_MODULE_AUGMENTATION_SUPPRESSED <fixture>/augmentation.d.ts::"./foundation"|WidgetOptions [suppressed]: External module augmentation './foundation' is modeled but not emitted in Stage 4
+  ⚠ EXTERNAL_MODULE_AUGMENTATION_SUPPRESSED <fixture>/augmentation.d.ts::"./foundation"|WidgetType [suppressed]: External module augmentation './foundation' is modeled but not emitted in Stage 4
+  Edges:
+  ✓ <fixture>/ambient.d.ts::"virtual-sdk"|connect --Remote--> <fixture>/ambient.d.ts::"virtual-sdk"|Remote [checker]
+  ✓ <fixture>/augmentation.d.ts::globalWidgetRegistry --GlobalWidgetRegistry--> <fixture>/augmentation.d.ts::GlobalWidgetRegistry [checker]
+  ✓ <fixture>/augmentation.d.ts::GlobalWidgetRegistry --WidgetType--> <fixture>/foundation.d.ts::Widget [checker]
+  ✓ <fixture>/consumer.d.ts::Consumer --Codec--> <fixture>/foundation.d.ts::Codec [checker]
+  ✓ <fixture>/consumer.d.ts::Consumer --Entity--> <fixture>/foundation.d.ts::Entity [checker]
+  ✓ <fixture>/consumer.d.ts::Consumer --Entity--> <fixture>/foundation.d.ts::Entity [checker]
+  ✓ <fixture>/consumer.d.ts::Consumer --Registry--> <fixture>/foundation.d.ts::Registry [checker]
+  ✓ <fixture>/consumer.d.ts::Consumer --Service--> <fixture>/foundation.d.ts::Service [checker]
+  ✓ <fixture>/consumer.d.ts::Consumer --Toolkit.Options--> <fixture>/foundation.d.ts::Toolkit|Options [checker]
+  ✓ <fixture>/consumer.d.ts::Consumer --WidgetType--> <fixture>/foundation.d.ts::Widget [checker]
+  ✓ <fixture>/consumer.d.ts::useOptions --Alpha.Options--> <fixture>/consumer.d.ts::Alpha|Options [checker]
+  ✓ <fixture>/consumer.d.ts::useOptions --Beta.Options--> <fixture>/consumer.d.ts::Beta|Options [checker]
+  ✓ <fixture>/foundation.d.ts::Anon_withInline_overload_0_param_0_options --Anon_withInline_overload_0_param_0_options_property_1_nested--> <fixture>/foundation.d.ts::Anon_withInline_overload_0_param_0_options_property_1_nested [checker]
+  ✓ <fixture>/foundation.d.ts::Anon_withInline_overload_0_param_1_equivalent --Anon_withInline_overload_0_param_1_equivalent_property_1_nested--> <fixture>/foundation.d.ts::Anon_withInline_overload_0_param_0_options_property_1_nested [checker]
+  ✓ <fixture>/foundation.d.ts::Anon_withInline_overload_0_return --WidgetType--> <fixture>/foundation.d.ts::Widget [checker]
+  ✓ <fixture>/foundation.d.ts::Codec --Codec--> <fixture>/foundation.d.ts::Codec [checker]
+  ✓ <fixture>/foundation.d.ts::Combined --Anon_Combined_intersection_1--> <fixture>/foundation.d.ts::Anon_Combined_intersection_1 [checker]
+  ✓ <fixture>/foundation.d.ts::Combined --Reopened--> <fixture>/foundation.d.ts::Reopened [checker]
+  ✓ <fixture>/foundation.d.ts::Registry --Entity--> <fixture>/foundation.d.ts::Entity [checker]
+  ✓ <fixture>/foundation.d.ts::Registry --Entity--> <fixture>/foundation.d.ts::Entity [checker]
+  ✓ <fixture>/foundation.d.ts::Registry --Registry--> <fixture>/foundation.d.ts::Registry [checker]
+  ✓ <fixture>/foundation.d.ts::replaceableWidget --WidgetType--> <fixture>/foundation.d.ts::Widget [checker]
+  ✓ <fixture>/foundation.d.ts::select --WidgetType--> <fixture>/foundation.d.ts::Widget [checker]
+  ✓ <fixture>/foundation.d.ts::select --WidgetType--> <fixture>/foundation.d.ts::Widget [checker]
+  ✓ <fixture>/foundation.d.ts::Toolkit|create --Options--> <fixture>/foundation.d.ts::Toolkit|Options [checker]
+  ✓ <fixture>/foundation.d.ts::Toolkit|create --WidgetType--> <fixture>/foundation.d.ts::Widget [checker]
+  ✓ <fixture>/foundation.d.ts::Widget --Entity--> <fixture>/foundation.d.ts::Entity [checker]
+  ✓ <fixture>/foundation.d.ts::Widget --WidgetOptions--> <fixture>/foundation.d.ts::WidgetOptions [checker]
+  ✓ <fixture>/foundation.d.ts::Widget --WidgetOptions--> <fixture>/foundation.d.ts::WidgetOptions [checker]
+  ✓ <fixture>/foundation.d.ts::Widget --WidgetOptions--> <fixture>/foundation.d.ts::WidgetOptions [checker]
+  ✓ <fixture>/foundation.d.ts::Widget --WidgetType--> <fixture>/foundation.d.ts::Widget [checker]
+  ✓ <fixture>/foundation.d.ts::Widget --WidgetType--> <fixture>/foundation.d.ts::Widget [checker]
+  ✓ <fixture>/foundation.d.ts::Widget --WidgetType--> <fixture>/foundation.d.ts::Widget [checker]
+  ✓ <fixture>/foundation.d.ts::withInline --Anon_withInline_overload_0_param_0_options--> <fixture>/foundation.d.ts::Anon_withInline_overload_0_param_0_options [checker]
+  ✓ <fixture>/foundation.d.ts::withInline --Anon_withInline_overload_0_param_1_equivalent--> <fixture>/foundation.d.ts::Anon_withInline_overload_0_param_1_equivalent [checker]
+  ✓ <fixture>/foundation.d.ts::withInline --Anon_withInline_overload_0_return--> <fixture>/foundation.d.ts::Anon_withInline_overload_0_return [checker]",
+    "warning": "⚠️  Semantic analysis: 2 diagnostic(s); rerun with -lv for complete records",
+  },
+  "renderedFiles": [
+    {
+      "dart": "// Generated by dart_bindgen from ambient.d.ts
+// Do not edit directly
+
+@JS()
+library ambient;
+
+import 'package:js/js.dart';
+
+@JS()
+@anonymous
+abstract class Remote{}
+extension RemoteExtension on Remote {
+  external bool get connected;
+}
+
+@JS("virtual-sdk.connect")
+external Future<Remote> connect(String url);
+",
+      "output": "ambient.dart",
+      "source": "ambient.d.ts",
+      "symbols": 2,
+    },
+    {
+      "dart": "// Generated by dart_bindgen from augmentation.d.ts
+// Do not edit directly
+
+@JS()
+library augmentation;
+
+import 'package:js/js.dart';
+
+@JS()
+@anonymous
+abstract class GlobalWidgetRegistry{}
+extension GlobalWidgetRegistryExtension on GlobalWidgetRegistry {
+  external Widget? get active;
+  external set active(Widget? value);
+}
+
+@JS("globalWidgetRegistry")
+external GlobalWidgetRegistry globalWidgetRegistry;
+",
+      "output": "augmentation.dart",
+      "source": "augmentation.d.ts",
+      "symbols": 2,
+    },
+    {
+      "dart": "// Generated by dart_bindgen from consumer.d.ts
+// Do not edit directly
+
+@JS()
+library consumer;
+
+import 'package:js/js.dart';
+
+@JS()
+@anonymous
+abstract class Consumer{}
+extension ConsumerExtension on Consumer {
+  external Service get service;
+  external set service(Service value);
+  external Codec get codec;
+  external set codec(Codec value);
+  external Registry<Entity<num>> get registry;
+  external set registry(Registry<Entity<num>> value);
+  external Widget get widget;
+  external set widget(Widget value);
+  external TypeOfWidgetConstructor get create;
+  external set create(TypeOfWidgetConstructor value);
+  external Options get options;
+  external set options(Options value);
+}
+
+@JS()
+@anonymous
+abstract class Options{}
+extension OptionsExtension on Options {
+  external String get alpha;
+  external set alpha(String value);
+}
+
+@JS()
+@anonymous
+abstract class Beta_Options{}
+extension Beta_OptionsExtension on Beta_Options {
+  external num get beta;
+  external set beta(num value);
+}
+
+@JS("useOptions")
+external Beta_Options useOptions(Options value);
+
+// ---------------------------------------------------------------------------
+// Type definitions
+//
+// TypeScript constructs with no Dart representation. Each one is \`dynamic\`
+// with its original spelling recorded, so the degradation is stated once and
+// every use site refers to it by name. Replacing a \`dynamic\` here upgrades
+// every use site at once.
+// ---------------------------------------------------------------------------
+
+/// Unrepresentable in Dart: \`typeof WidgetConstructor\`
+typedef TypeOfWidgetConstructor = dynamic;
+",
+      "output": "consumer.dart",
+      "source": "consumer.d.ts",
+      "symbols": 5,
+    },
+    {
+      "dart": "// Generated by dart_bindgen from foundation.d.ts
+// Do not edit directly
+
+@JS()
+library foundation;
+
+import 'package:js/js.dart';
+
+@JS()
+@anonymous
+abstract class Entity{}
+extension EntityExtension on Entity {
+  external TId get id;
+  external Record<String, dynamic> get metadata;
+  external set metadata(Record<String, dynamic> value);
+}
+
+@JS()
+@anonymous
+abstract class Reopened{}
+extension ReopenedExtension on Reopened {
+  external String get first;
+  external set first(String value);
+  @JS("second")
+  external bool second([num value]);
+}
+
+@JS("Service")
+class Service {
+  external factory Service(String url);
+  external String get url;
+  external bool get mergedFlag;
+  external set mergedFlag(bool value);
+  @JS("start")
+  external void start();
+}
+
+@JS()
+@anonymous
+abstract class WidgetOptions{}
+extension WidgetOptionsExtension on WidgetOptions {
+  external String get label;
+  external set label(String value);
+  external List<num> get size;
+  external set size(List<num> value);
+  external String get mode;
+  external set mode(String value);
+}
+
+@JS("Widget")
+class Widget {
+  external factory Widget(String name);
+  external String get name;
+  external set name(String value);
+  external static String get version;
+  @JS("configure")
+  external Widget configure_1(WidgetOptions options);
+  @JS("configure")
+  external Widget configure_2(String label, [num size]);
+  @JS("create")
+  external static Widget create([WidgetOptions options]);
+}
+
+@JS("Codec")
+class Codec{
+  external static String get defaultEncoding;
+  @JS("parse")
+  external static Codec parse(Uint8Array bytes);
+}
+extension CodecExtension on Codec {
+  @JS("encode")
+  external Uint8Array encode(String value);
+}
+
+@JS()
+@anonymous
+class Registry{
+  external factory Registry({required T value});
+}
+extension RegistryExtension on Registry {
+  @JS("lookup")
+  external T? lookup_1(String id);
+  @JS("lookup")
+  external T? lookup_2(num id);
+  external T? get current;
+  external set current(T? value);
+  external dynamic operator [](Object key);
+  external void operator []=(Object key, dynamic value);
+}
+
+@JS("select")
+external Widget select_1(String value);
+
+@JS("select")
+external Widget select_2(num value, [bool strict]);
+
+@JS()
+@anonymous
+abstract class Options{}
+extension OptionsExtension on Options {
+  external num get retries;
+  external set retries(num value);
+}
+
+@JS("Toolkit.create")
+external Widget create([Options options]);
+
+@JS("Toolkit.version")
+external String version;
+
+@JS()
+@anonymous
+abstract class Nested_Options{}
+extension Nested_OptionsExtension on Nested_Options {
+  external bool get trace;
+  external set trace(bool value);
+}
+
+@JS()
+@anonymous
+abstract class OddNames{}
+extension OddNamesExtension on OddNames {
+  @JS("class")
+  external String get JS$class;
+  @JS("class")
+  external set JS$class(String value);
+  @JS(""kebab-name"")
+  external num get JS$kebab_name;
+  @JS(""kebab-name"")
+  external set JS$kebab_name(num value);
+  @JS("static")
+  external bool static();
+  @JS("[Symbol.iterator]")
+  external Iterator<String> JS$Symbol_iterator();
+}
+
+@JS("State")
+class State{}
+@JS("State")
+extension StateEnum on State{
+  external static dynamic get Idle;
+  external static int get Ready;
+  external static String get Label;
+  external static int get Mask;
+}
+
+@JS("immutableCount")
+external num immutableCount;
+
+@JS("mutableLabel")
+external String mutableLabel;
+
+@JS("replaceableWidget")
+external Widget replaceableWidget;
+
+typedef PrimitiveUnion = dynamic /* String|num */;
+
+typedef Pair = List<dynamic>;
+
+@JS()
+@anonymous
+abstract class Anon_Combined_intersection_1{}
+extension Anon_Combined_intersection_1Extension on Anon_Combined_intersection_1 {
+  external bool get extra;
+  external set extra(bool value);
+}
+
+typedef Combined = Reopened /* Reopened&Anon_Combined_intersection_1 */;
+
+/// Unrepresentable in Dart: \`keyof WidgetOptions\`
+typedef Keys = dynamic;
+
+/// Unrepresentable in Dart: \`\` \`widget-\${string}\` \`\`
+typedef TemplateKey = dynamic;
+
+/// Unrepresentable in Dart: \`T[keyof T]\`
+typedef ValueOf = dynamic;
+
+/// Unrepresentable in Dart: \`T extends Entity ? T["id"] : never\`
+typedef Conditional = dynamic;
+
+/// Unrepresentable in Dart: \`{ readonly [K in keyof T]?: T[K] }\`
+typedef Mapped = dynamic;
+
+@JS()
+@anonymous
+abstract class Anon_withInline_overload_0_return{}
+extension Anon_withInline_overload_0_returnExtension on Anon_withInline_overload_0_return {
+  external bool get ok;
+  external set ok(bool value);
+  external Widget get value;
+  external set value(Widget value);
+}
+
+@JS()
+@anonymous
+abstract class Anon_withInline_overload_0_param_0_options_property_1_nested{}
+extension Anon_withInline_overload_0_param_0_options_property_1_nestedExtension on Anon_withInline_overload_0_param_0_options_property_1_nested {
+  external bool get enabled;
+  external set enabled(bool value);
+}
+
+@JS()
+@anonymous
+abstract class Anon_withInline_overload_0_param_0_options{}
+extension Anon_withInline_overload_0_param_0_optionsExtension on Anon_withInline_overload_0_param_0_options {
+  external num get width;
+  external set width(num value);
+  external Anon_withInline_overload_0_param_0_options_property_1_nested get nested;
+  external set nested(Anon_withInline_overload_0_param_0_options_property_1_nested value);
+}
+
+@JS()
+@anonymous
+abstract class Anon_withInline_overload_0_param_1_equivalent{}
+extension Anon_withInline_overload_0_param_1_equivalentExtension on Anon_withInline_overload_0_param_1_equivalent {
+  external num get width;
+  external set width(num value);
+  external Anon_withInline_overload_0_param_0_options_property_1_nested get nested;
+  external set nested(Anon_withInline_overload_0_param_0_options_property_1_nested value);
+}
+
+@JS("withInline")
+external Anon_withInline_overload_0_return withInline(Anon_withInline_overload_0_param_0_options options, Anon_withInline_overload_0_param_1_equivalent equivalent);
+",
+      "output": "foundation.dart",
+      "source": "foundation.d.ts",
+      "symbols": 32,
+    },
+  ],
+}
+`;

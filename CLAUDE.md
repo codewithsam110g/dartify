@@ -32,6 +32,7 @@ propose intermediate point releases.
 | [`audit/FINDINGS.md`](audit/FINDINGS.md) | Every known defect, severity-ranked, with stable IDs |
 | [`audit/README.md`](audit/README.md) | Index into the per-area audit files |
 | [`PLAN.md`](PLAN.md) | Staged implementation plan S0–S6 to v1; every task cites a finding ID |
+| [`PRE_STAGE5_PLAN.md`](PRE_STAGE5_PLAN.md) | Decision-complete task order, contracts, commits, and gates for the 4.11–4.17 correctness barrier |
 | [`STAGE4_PLAN.md`](STAGE4_PLAN.md) | Decision-complete S4 semantic design, tests, audit workflow, and delivery sequence |
 | [`ROADMAP.md`](ROADMAP.md) | The public short version of the same thing |
 | [`def_files/synthetic/s5_emitter/README.md`](def_files/synthetic/s5_emitter/README.md) | Pre-S5 multi-file emitter fixture matrix and measured baseline |
@@ -43,9 +44,32 @@ the audit with a new ID rather than reporting it only in chat.
 S0-S4 are complete. `STAGE4_PLAN.md` is the semantic contract and
 `audit/S4-EVIDENCE.md` is its measured record, including the post-S4 corrections
 `L-17`, `L-18`, `P-14`, and `E-24`–`E-28`. The full line-by-line post-S4 audit
-is complete in `audit/POST-S4-AUDIT.md`. Complete `PLAN.md` tasks 4.11–4.16
+is complete in `audit/POST-S4-AUDIT.md`. Complete `PLAN.md` tasks 4.11–4.17
 before beginning S5; in particular, do not build the backend on process-global
 run state or unresolved module-export semantics.
+
+S5 platform mappings use the original
+`lib/dart_libraries_for_browser_types.ts` as a compatibility baseline, covering
+HTML, IndexedDB, WebGL, Web SQL, SVG, Web Audio, and typed data plus Dart-side
+renames. Do not implement this as a global leaf-name replacement map. Complete
+`I-15` first, match checker-confirmed TypeScript host identity, validate the
+snapshot against the supported Dart SDK, and route platform plus sibling
+imports through one deterministic collision-safe prefix allocator.
+
+`I-15` also gates standard utility aliases. `Record<K, V>`, `Partial<T>`, and
+similar lib definitions currently remain unresolved Dart leaves (`E-36`), not
+Tier-B aliases. S5 must provide either a verified lowering or a named documented
+fallback. Precise checker expansion may remain post-v1; analyzer-invalid names
+may not.
+
+Task 4.11 is a locked deletion, not an abstraction rename: remove
+`src/context.ts` and `src/reset.ts`. A `Transpiler` run owns its project,
+resolution accumulators, symbol table, namespace aliases, and diagnostics.
+Pass narrow dependencies to phases; do not introduce a singleton, broad mutable
+`CompilationContext`, or serialization lock. The immutable parser
+`ParseContext` is unrelated and remains. Linking returns an owned program that
+S5 and later backends consume explicitly. Bring `R-13` into this work by
+returning generation diagnostics instead of passing global logging state.
 
 ## Commands
 

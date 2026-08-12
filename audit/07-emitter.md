@@ -230,8 +230,41 @@ Every multi-file output is uncompilable. This is the branch's whole purpose and
 the last unwired step: the linker computes the graph (`L-08`) and the emitter
 never reads it.
 
-Also missing: `dart:html` / `dart:typed_data` substitution imports
-(`js_facade_gen` §14.1-14.3), which v1 explicitly targets.
+Also missing are the reference tool's platform substitutions. Its 980-line
+`dart_libraries_for_browser_types.ts` is not merely a list of HTML names: one
+registry assigns TypeScript browser symbols to `dart:html`, `dart:indexed_db`,
+`dart:web_gl`, `dart:web_sql`, `dart:svg`, `dart:web_audio`, or
+`dart:typed_data`; another supplies Dart renames. The current extracted
+conformance document samples only `Node`, `XMLHttpRequest`, and `Uint8Array`.
+
+S5.2 must use one deterministic, collision-safe import planner for both sibling
+libraries and SDK libraries. S5.3 must port a reviewed, SDK-validated snapshot
+of the full registry and apply it only to host identities preserved by `I-15`.
+A leaf-text map would corrupt lexical or project declarations named
+`HTMLElement`, `Request`, `Database`, and similar common names.
+
+---
+
+## E-36 — Standard utility types emit as nonexistent Dart types `[verified]`
+
+The same discarded standard-library identity affects non-browser utilities.
+`Record<string, unknown>` is parsed as a normal type reference with two generic
+arguments and no reference target. The emitter consequently writes:
+
+```dart
+external Record<String, dynamic> get metadata;
+```
+
+The pre-S5 fixture proves this is an analyzer error. `Partial`, `Required`,
+`Readonly`, `Pick`, `Omit`, `Exclude`, `Extract`, and similar aliases follow the
+same unresolved-name path. This contradicts the old planning claim that Tier B
+already gave utility types safe named fallbacks: Tier B handles
+`TypeKind.Unsupported`, while these nodes remain `TypeKind.TypeReference`.
+
+S5 must never emit an unknown standard-library leaf. Use the `I-15` identity to
+select either a verified semantic lowering or a named, documented unsupported
+alias. Full checker expansion into precise structural shapes may remain later
+work, but analyzer-invalid identifiers may not.
 
 ---
 

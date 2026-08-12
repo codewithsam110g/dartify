@@ -706,3 +706,25 @@ Normalize primitive contradictions truthfully (using syntax plus checker where
 needed), retain the original intersection text, and add negative type/emitter
 tests. This is S1 because impossible inputs currently become callable/assignable
 Dart API values without a diagnostic.
+
+---
+
+## I-15 — Standard-library reference provenance is discarded `[verified]`
+
+`collectTypeDep` deliberately returns `undefined` when every declaration for a
+type reference belongs to a TypeScript standard-library file. That keeps
+`lib.dom.d.ts` out of the generated-file dependency graph, but it also removes
+the only trustworthy fact S5 can use to distinguish a host type from a
+same-spelled project declaration or lexical type parameter.
+
+A focused checker probe resolved one `HTMLElement` to the interface and value
+declarations in `lib.dom.d.ts`; a second `HTMLElement` resolved to a local type
+parameter. `collectTypeDep` returned `undefined` for both. The remaining
+`IRType.name` text is therefore not safe input to a global replacement map.
+
+Before S5.3, retain a non-linkable host identity such as the canonical
+TypeScript library family plus qualified symbol name. It must not become a
+normal `resolvedDep` or generated Dart import edge. The emitter can then select
+its backend-owned platform mapping only for checker-confirmed host symbols.
+Tests must cover a DOM reference, a typed array, a lexical shadow, and a
+project declaration with the same leaf name.

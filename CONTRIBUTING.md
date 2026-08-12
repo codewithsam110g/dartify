@@ -41,6 +41,8 @@ multi-file and namespace behavior.
 - Write strict TypeScript with two-space indentation and ESM imports.
 - Avoid `any`; narrow `unknown` or extend explicit IR types.
 - Keep transformations deterministic and preserve unsupported source syntax.
+- Keep compilation state run-owned. Do not add process-global phase state or a
+  broad mutable context/service locator; pass narrow dependencies explicitly.
 - Add focused semantic assertions and inspect generated Dart diffs.
 - Update the finding's area file and `audit/FINDINGS.md` in the same commit.
 - Never renumber finding IDs.

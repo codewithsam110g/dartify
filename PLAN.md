@@ -111,7 +111,7 @@ the tree.*
 |---|---|---|
 | 0.1 | Split `emitAllFiles` into `renderAllFiles(): Map<path,string>` + `writeAll(map)` | `E-11` |
 | 0.2 | Restore `Transpiler.transpileFromString` as a static wrapper over the 3 phases | `X-01` |
-| 0.3 | Reset the context singleton per run (`SymbolTable.clear()`, `TypeParser.clearCache()`) | `R-11`, `T-04` |
+| 0.3 | ✅ Reset the context singleton per run (`SymbolTable.clear()`, `TypeParser.clearCache()`); this sequential workaround is superseded by deletion in 4.11 | `R-11`, `T-04`, `R-14` |
 | 0.4 | **Decouple the graph.** `runLinker` returns `LinkState` and imports no visualiser; move `visualizeGraph.ts` → `tools/graph.ts` with a `pnpm graph` script; delete the two `console.log`s; write to the given path, never `cwd`; gitignore + untrack `dependency_graph.svg` | `L-07`, `D-07` |
 | 0.5 | Fix `test/decl/decl-parser.test.ts:65` signature; type the `(error, index)` params | `X-03` |
 | 0.6 | Retier the suite: conformance / smoke / opt-in stress. Delete the 27 obsolete snapshots | `X-02` |
@@ -199,13 +199,13 @@ comment, where `js_facade_gen` §5.3 emits `Foo /*Foo&Bar*/`. It now does the
 same — the first member is a real supertype and tells the reader more than a
 named `dynamic` would.
 
-**Deferred to post-v1 (Tier C):** evaluate `Partial<X>`→`X`, `Readonly<X>`→`X`,
-`Record<K,V>` through `ts.TypeChecker`. ~330 corpus occurrences; real payoff, no
-urgency — Tier B already gives them names. **But re-measure before deferring
-again**: `T-14` is exactly this bet, and asking the checker turned out to be
-both cheap and worth 393 sites. The Tier A/B split was drawn by reading syntax,
-and syntax is the wrong axis — the question is not "can this be represented"
-but "can dartify *find out* what it means".
+**Split responsibility for TypeScript utility aliases.** S5 must recognize
+checker-confirmed standard-library references such as `Record`, `Partial`, and
+`Pick` and give every one either a verified lowering or a named, documented
+unsupported fallback (`E-36`). They currently bypass Tier B and emit unresolved
+Dart identifiers. Exhaustively expanding those aliases to precise structural
+shapes may remain post-v1 Tier C work. Re-measure before deferring that
+precision: `T-14` showed that asking the checker can be both cheap and valuable.
 
 ---
 
@@ -309,14 +309,78 @@ in `audit/POST-S4-AUDIT.md`.
 
 These are prerequisite repairs, not optional scope growth:
 
+`PRE_STAGE5_PLAN.md` is the decision-complete implementation ledger, including
+the locked phase APIs, task order, commit boundaries, and acceptance commands.
+
 | # | Task | Findings |
 |---|---|---|
-| 4.11 | Replace process-global compiler state with per-run ownership; make public symbol-table reads structurally isolated at every nested level | `R-14`, `L-10` |
+| 4.11 | Delete the global context/reset seam; introduce run-owned pipeline state, explicit phase dependencies, returned generation diagnostics, and deeply isolated symbol reads | `R-14`, `L-10`, `R-13` |
 | 4.12 | Preserve anonymous default exports, export assignments, and const-enum identity in IR/module semantics | `P-15`–`P-17` |
 | 4.13 | Normalize impossible intersections without widening and prevent terminal-name fallback across unrelated external modules | `T-18`, `L-19` |
 | 4.14 | Make alias/collision allocation insertion-stable and revalidate every scope-derived Dart identifier | `E-29`, `E-30` |
 | 4.15 | Replace false unit expectations and add categorized Dart analyzer plus dart2js/runtime fixture probes | `X-14` |
 | 4.16 | Declare the dependency-compatible Node floor and make the coverage command executable or remove it | `X-15`, `X-16` |
+| 4.17 | Preserve checker-confirmed TypeScript standard-library/host identity on references without turning host declarations into generated-file dependency edges | `I-15` |
+
+#### 4.11 locked design — no replacement singleton
+
+`src/context.ts` and `src/reset.ts` are deleted, not renamed or wrapped in a
+mutex. `Transpiler` retains immutable options only. Every call to `analyze`,
+`render`, `transpile`, or `transpileFromString` creates an independent run that
+owns its `ts.Project`, resolved-file maps, module-fallback records,
+`SymbolTable`, namespace-export aliases, and diagnostics.
+
+Phase APIs receive only the state they use:
+
+```ts
+generateSymbols(file, sourceFile, symbolTable, namespaceExports)
+runLinker(symbolTable, namespaceExports)
+renderAllFiles(linkedProgram, outDir, inputRoot)
+```
+
+Do not pass a broad mutable `CompilationContext` into every phase; that would
+recreate the service locator under a new name. Logging is caller policy from
+the immutable `debug` option. Symbol generation returns diagnostics instead of
+consulting a global logging flag, bringing `R-13` forward from S6.
+
+The linker produces an owned `LinkedProgram` for emission. S5 imports and the
+future v2 backend consume that value, never ambient table state. `analyze()`
+continues to expose reports only; graph tooling already consumes `LinkReport`.
+Tests that currently import `transpilerContext` move to explicit phase fixtures
+or detached snapshots.
+
+`SymbolTable` gets separate transactional mutation and deeply detached read
+APIs. Semantic/linker mutation must occur on owned drafts and commit atomically;
+emission, reports, and tests cannot receive live nested symbols. Measure the
+clone/transaction cost on three.js rather than weakening ownership for assumed
+performance.
+
+Acceptance for 4.11 includes:
+
+- overlapping calls for every pair of `analyze`, `render`, `transpile`, and
+  `transpileFromString`, including two calls on the same `Transpiler` instance;
+- sequential isolation without any reset call;
+- nested snapshot mutation probes for facets, IR, dependencies, resolved
+  dependencies, and namespace aliases;
+- returned statement-generation diagnostics in programmatic and CLI paths;
+- unchanged deterministic reports/Dart for single runs, graph output from the
+  returned report, and no `context`/`reset` imports in live code.
+
+Dependent work must use these ownership boundaries:
+
+| Consumer or finding | 4.11 handoff |
+|---|---|
+| parser | Keep immutable declaration-local `ParseContext`; it never owns run state |
+| generation / `R-13` | Return symbols and diagnostics; orchestration decides logging and failure policy |
+| semantic pass / `L-10` | Transform a table-owned draft and commit atomically; no live nested snapshots |
+| resolver / `L-19` | Receive the run-owned table, namespace aliases, and later module-export graph explicitly |
+| module exports / `P-15`–`P-17` | Add export identity to the owned program in 4.12, never to ambient maps |
+| S5 imports / `E-08`, `E-23` | Read `resolvedDeps`, `resolvedFQN`, and target Dart names from `LinkedProgram` |
+| platform substitutions / `I-15` | Carry immutable host-library plus qualified-symbol identity into the owned program; never infer platform identity from a leaf name |
+| graph tool | Continue consuming `LinkReport`; do not expose the mutable program merely for visualization |
+| logging / `R-08`, `D-05` | Treat logs/IR dumps as observers of returned phase values, never owners of state |
+| tests / `X-14` | Use explicit fixtures/detached snapshots and add concurrency plus mutation gates |
+| v2 backend | Consume the same immutable linked-program contract as the S5 `package:js` backend |
 
 Run the normal, S2–S5 fixture, stress, typecheck, build, h3 analyzer, and focused
 runtime gates after this barrier. Do not begin the backend rewrite while any
@@ -336,7 +400,7 @@ programs and implementation lowering are outside the project boundary. The
 fixture links 40/40 symbols and 36/36 edges; semantic analysis has three
 explicit diagnostics (two suppressed augmentations and one unsupported
 computed member). Dart analysis has 34 errors mapped
-to `E-08`, `E-03`, S5.3, and `E-13`. It also locks the analyzer-invisible
+to `E-08`, `E-03`/`E-36`, S5.3, and `E-13`. It also locks the analyzer-invisible
 `E-23` baseline: a correctly linked foreign `Toolkit.Options` is emitted as a
 bare name and captured by the consumer's local `Options`. Update the golden
 only after reviewing the complete Dart diff and re-running the analyzer.
@@ -344,9 +408,9 @@ only after reviewing the complete Dart diff and re-running the analyzer.
 | # | Task | Findings |
 |---|---|---|
 | 5.1 | Backend interface: a type-emitter + statement-emitter string-table pair. Rename the `@typeEmitter` alias off `emitter/old/` | `E-11b` |
-| 5.2 | **Emit deterministic prefixed imports from `resolvedDeps`; qualify every foreign use site from `resolvedFQN` + `resolvedDartName` and prevent local-name capture** | `E-08`, `E-23` |
-| 5.3 | `dart:html` / `dart:typed_data` substitution imports (§14.1-14.3) | v1 goal |
-| 5.4 | Type params on all declarations, with constraints | `E-03` |
+| 5.2 | **Build one deterministic import planner for generated siblings and SDK libraries; allocate collision-safe prefixes, then qualify every foreign use site from linked identity** | `E-08`, `E-23` |
+| 5.3 | Port and validate the original browser-type library/name registries for `dart:html`, `dart:indexed_db`, `dart:web_gl`, `dart:web_sql`, `dart:svg`, `dart:web_audio`, and `dart:typed_data`; match only checker-confirmed host identities | `I-15`, v1 compatibility |
+| 5.4 | Type params on all declarations and signatures, with constraints; define an explicit documented policy for TypeScript default type arguments, which Dart cannot spell directly | `E-03` |
 | 5.5 | `extends` / `implements` incl. generic args (§14.5) | `E-04` |
 | 5.6 | Named constructors for overloaded constructors | `E-02` |
 | 5.7 | Factory constructors for hoisted anonymous types — `formatNamedParameters` already exists | `E-07` |
@@ -354,12 +418,39 @@ only after reviewing the complete Dart diff and re-running the analyzer.
 | 5.9 | Enums as plain classes with uniform `num` statics (§7) | `E-06` |
 | 5.10 | Callable interfaces → `typedef`, into the S1 type-definitions section (§3.6-3.8) | `I-05`, `E-16` |
 | 5.11 | Index signatures using real key/value types, including class signatures preserved by S3 | `E-14`, `E-34` |
-| 5.12 | Intersections, tuples, literal values (§5.3) | `T-09`, `E-12` |
+| 5.12 | Named multi-member union fallbacks, intersections, tuples, literal values, and explicit `object`/`undefined` lowering | `E-18`, `T-09`, `E-12`, `E-19` |
 | 5.13 | JSDoc → `///`, `{@link x}` → `[x]`, strip `@param`/`@return` (§11) | `I-06` |
 | 5.14 | Central Dart-string escaping for every JS annotation; scoped quote removal; legal keyword-safe library directives | `E-13`, `E-32`, `E-33` |
 | 5.15 | Lower rest parameters with true JavaScript argument dispatch rather than one list argument | `E-31` |
 | 5.16 | Prevent implicit construction of non-constructable runtime interfaces; emit only explicit construct signatures | `E-35` |
 | 5.17 | Drop the redundant readonly branch while rebuilding declaration emitters | `E-15` |
+| 5.18 | Recognize checker-confirmed standard utility aliases; lower verified cases and emit named documented fallbacks for the rest—never unresolved Dart leaves | `I-15`, `E-36` |
+
+### 5.2–5.3 platform mapping and import contract
+
+The reference implementation's 980-line
+`lib/dart_libraries_for_browser_types.ts` is the compatibility baseline. It has
+two coordinated registries: a TypeScript symbol-to-Dart-library table and a
+TypeScript symbol-to-Dart-name table. It includes both same-name mappings and
+renames such as `HTMLElement -> HtmlElement`, `XMLHttpRequest -> HttpRequest`,
+`IDBFactory -> IdbFactory`, and `Uint8Array -> Uint8List`. Do not reduce this to
+the three examples currently extracted in `def_files/js_facade_gen_test_cases.md`.
+
+Take a reviewed snapshot into the S5 backend and validate every retained entry
+against the supported Dart SDK. Matching order is: primitive/core `TypeKind`,
+checker-confirmed TypeScript host library plus qualified symbol, linked project
+or package FQN, then explicit unsupported handling. Never match a platform type
+by leaf spelling alone.
+
+One per-library import planner owns `package:js`, generated sibling imports,
+and required Dart SDK libraries. It deduplicates and sorts imports, allocates
+prefixes against source declarations, generated companions, reserved backend
+names, and other prefixes, and emits qualified platform/foreign types. The
+prefix—not the JavaScript-facing name—may be disambiguated deterministically;
+this prevents both Dart core capture (`E-26`) and cross-file/platform capture
+(`E-23`). Acceptance fixtures include local declarations and type parameters
+named `HtmlElement`, `HTMLElement`, `Request`, `Database`, `Uint8List`, and the
+preferred import prefixes.
 
 **Done when:** h3 and the complete Leaflet output (`leaflet.dart` plus
 `geojson.dart`) pass `dart analyze` with zero errors (`X-09`).
@@ -373,7 +464,7 @@ only after reviewing the complete Dart diff and re-running the analyzer.
 | 6.1 | Make `def_files/js_facade_gen_test_cases.md` executable — ~120 snippet→expected pairs on `test-helper.ts` primitives. **Plus the h3 golden file** — see "h3 is the real gate" below | `X-04` |
 | 6.2 | `dart analyze` in CI over generated h3 / leaflet / three.js output | `X-09` |
 | 6.3 | Publish **"N/M js_facade_gen cases passing"** as the headline metric | — |
-| 6.4 | Return symbol-generation errors as phase output; merge them into the programmatic result and CLI diagnostic policy so caught statement failures cannot silently shrink the generated API | `R-13` |
+| 6.4 | Reverify the 4.11 structured diagnostic/CLI-exit policy against the final conformance corpus | S6 release gate |
 | 6.5 | Reconnect `log.ts` as `--emit-ir` (one JSON per phase) as a `tools/` consumer, or delete it and fix the docs | `R-08`, `D-05` |
 | 6.6 | README: state the `package:js` target deliberately; document `pnpm graph` | — |
 | 6.7 | Reconfirm final bundle composition/size after deletion; post-S3 already proves dead code is tree-shaken | `D-06` |
@@ -428,8 +519,8 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 | S2 links | ☑ **done** | Leaflet 328/328 symbols and 1,050/1,050 edges resolved; three.js 0 ambiguity and 8,184 resolved edges, with 31 honest misses from two absent external type packages. Suite **214 passed**, focused S2 tests 15/15, corpus 2/2, `tsc` and build clean, h3 byte-identical; `-lv` exposes the structured report |
 | S3 decls | ☑ **done** | Complete metadata/signature IR; six semantic acceptance tests; census 2,530 declarations / 26,240 parsed types with 0 missing locations; suite **222 passed**, S2/S3 corpus gates and 1,650-file stress clean; h3 `dart analyze` clean |
 | S4 semantics | ☑ **done** | Canonical semantic bindings, supported merges, overload/identifier/namespace naming, explicit module scopes, CLI diagnostics, 34-test S4 gate; historical acceptance in `audit/S4-EVIDENCE.md` |
-| Post-S4 audit | ☑ **done** | 107 TypeScript files read; 16 new findings plus partial `L-10`; prerequisite work is tasks 4.11–4.16 |
-| S5 emitter | ☐ blocked on 4.11–4.16 | Pre-S5 fixture/golden ready: 40 symbols, 36 resolved edges, 34 analyzer errors mapped to planned tasks |
+| Post-S4 audit | ☑ **done** | 107 TypeScript files read; 16 new findings plus partial `L-10`, followed by platform-design finding `I-15`; prerequisite work is tasks 4.11–4.17 |
+| S5 emitter | ☐ blocked on 4.11–4.17 | Pre-S5 fixture/golden ready: 40 symbols, 36 resolved edges, 34 analyzer errors mapped to planned tasks |
 | S6 ship | ☐ not started | |
 
 When a finding is resolved, mark it `[FIXED]` in `audit/FINDINGS.md` and keep

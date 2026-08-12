@@ -320,10 +320,13 @@ append. The post-S4 audit found that the copied groups still contain the live
 immediately changes a subsequent `lookup()`. The `readonly` types are therefore
 compile-time guidance, not an invariant boundary.
 
-S4 closed the missing-API half but overstated snapshot isolation. Either return
-deeply detached read models, freeze table-owned symbols recursively, or make
-symbols immutable and replace them only through transactions. Add nested IR,
-facet, dependency, and resolved-dependency mutation probes before closure.
+S4 closed the missing-API half but overstated snapshot isolation. Pre-S5 task
+4.11 now locks the resolution: mutation happens only on run-owned transactional
+drafts, while emission, reports, tests, and other consumers receive deeply
+detached reads or the owned linked-program value. There will be no global table
+whose lifetime makes borrowed objects accidentally cross runs. Add nested IR,
+facet, dependency, resolved-dependency, and namespace-alias mutation probes;
+benchmark the three.js cost before considering any narrower optimization.
 Original finding follows.
 
 `symbol/table.ts` exposes `register`, `lookup`, `has`, `getAll`,

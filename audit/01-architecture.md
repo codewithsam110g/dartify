@@ -53,8 +53,8 @@ selection and writes both symbol-level `resolvedDeps` and use-site
 |---|---|
 | `src/cli.ts` | arg parsing, globbing |
 | `src/transpiler.ts` | orchestration, file resolution/categorisation |
-| `src/context.ts` | resettable process-global context: symbol table, namespace metadata, logging flag; concurrent isolation remains open as `R-14` |
-| `src/reset.ts` | per-run singleton reset |
+| `src/context.ts` | temporary process-global service locator; locked for deletion in pre-S5 task 4.11 (`R-14`) |
+| `src/reset.ts` | sequential-only workaround scheduled for deletion with the singleton in 4.11 |
 | `src/symbol/{index,table,resolve,fqn}.ts` | symbol model, table, FQN construction and structured resolution |
 | `src/resolution/*` | shared stdlib classification, module host and resolution reports |
 | `src/ir/visit.ts` | structural type-reference walker used by generation/linking |
@@ -70,6 +70,12 @@ selection and writes both symbol-level `resolvedDeps` and use-site
 
 `tools/graph.ts` is an explicit consumer of `LinkReport`; it is not on the
 shipped execution path (the S0.4 fix for `L-07`).
+
+Pre-S5 task 4.11 changes phase ownership without changing the three-phase
+architecture. A run-local project/table/alias/diagnostic set flows through
+explicit parameters and produces an owned linked program for emission. No
+phase may obtain compiler state through module imports; future backends consume
+the linked program, while graph tooling continues to consume only reports.
 
 ### Dead (zero inbound references from live code)
 

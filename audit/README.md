@@ -37,6 +37,20 @@ That ledger also records the targeted post-S4 deep-review corrections
 post-S4 pass is recorded in `POST-S4-AUDIT.md`; its open findings form the
 correctness barrier before S5.
 
+The subsequent Stage 5 platform-mapping design review added `I-15`: standard-
+library reference provenance is discarded before emission. Task 4.17 preserves
+that identity so the original browser/IndexedDB/typed-data mappings can be
+ported without unsafe leaf-name matching.
+That follow-up also added `E-36`: standard utility aliases currently emit as
+unresolved Dart names, so S5 owns a valid lowering-or-fallback policy.
+
+Task 4.11 is decision-complete: it deletes the temporary `context.ts`/`reset.ts`
+singleton, moves all mutable compiler state to each invocation, returns phase
+diagnostics and an owned linked program, and couples `R-14` remediation with
+`L-10`/`R-13` rather than introducing another global service locator.
+The complete 4.11–4.17 execution order, API contracts, commit boundaries, and
+acceptance gates are maintained in [`../PRE_STAGE5_PLAN.md`](../PRE_STAGE5_PLAN.md).
+
 ## Finding IDs
 
 Stable IDs, referenced from `PLAN.md` and `CLAUDE.md`:
@@ -131,9 +145,11 @@ line immediately before starting S2. Existing S2 findings were reproduced, the
 detailed audit was brought forward from its pre-S0 wording, and five missing
 findings were filed: `R-13`, `L-12`, `L-13`, `L-14`, `L-15`.
 
-Roadmap ownership is explicit in `PLAN.md`: `L-12`/`L-15` → S2.4,
-`L-13` → S2.5b, `L-14` → S2.6, and `R-13` → S6.4. The `S0`–`S4`
-headings in `FINDINGS.md` are severity ranks, not implementation stages.
+Roadmap ownership at that audit point was: `L-12`/`L-15` → S2.4,
+`L-13` → S2.5b, `L-14` → S2.6, and `R-13` → S6.4. Post-S4 task 4.11
+supersedes the last assignment because deleting global logging must return the
+diagnostics rather than defer them. The `S0`–`S4` headings in `FINDINGS.md` are
+severity ranks, not implementation stages.
 
 Fresh baselines:
 
@@ -175,8 +191,8 @@ data, and the graph renderer consumes those results without resolving again.
 
 Closed here: `R-01`–`R-04`, `R-06`, `R-10`, `P-01`, `I-04`, `L-01`–`L-04`,
 `L-08`, `L-12`–`L-15`, and `X-06`. At S2 closure, `R-09` remained in S3;
-it is now fixed. `R-13` remains in
-S6 because symbol-generation errors still need to join the public report model.
+it is now fixed. At S2 closure `R-13` remained in S6; post-S4 task 4.11 now
+owns it alongside removal of the global logging/context state.
 The S2 CLI follow-up also partially closes `R-08`: `-l` owns ordinary logs,
 `-lv` adds the structured linker report, and `--version` is long-only. IR-dump
 logging remains the independent `D-05` decision.
@@ -277,5 +293,5 @@ The later full post-S4 audit supersedes the `L-10` closure: table structure is
 isolated, but nested symbols remain mutable. That pass read 107 TypeScript files
 plus all 24 Markdown records, added 16 findings (`R-14`, `P-15`–`P-17`, `T-18`,
 `L-19`, `E-29`–`E-35`, `X-14`–`X-16`), and assigns the resulting work in
-`PLAN.md` tasks 4.11–4.16 and S5. See `POST-S4-AUDIT.md` for reproductions and
+`PLAN.md` tasks 4.11–4.17 and S5. See `POST-S4-AUDIT.md` for reproductions and
 the final gate.

@@ -332,6 +332,13 @@ make the fixture assert a categorized known-error baseline. Unit tests should
 state unsupported policy or correct behavior; they must not bless a convenient
 but semantically false lowering.
 
+Task 4.11 additionally makes concurrency an executable gate. Cover all public
+phase combinations, two calls on one `Transpiler` instance, and independent
+instances with different debug settings. Existing tests that inspect
+`transpilerContext.symbolTable` must use detached analysis results or explicit
+phase fixtures; replacing the singleton with a test-only global would preserve
+the defect.
+
 ---
 
 ## X-15 — Declared Node support is broader than the dependency floor `[verified]`

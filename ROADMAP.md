@@ -54,6 +54,13 @@ test/tool, and historical TypeScript files. It found 16 new issues and reopened
 normalization errors must be corrected before S5; emitter defects are assigned
 to S5 with executable Dart gates.
 
+The global-state correction is intentionally architectural. The temporary
+`context.ts` singleton and its reset helper will be deleted. Every compilation
+will own its TypeScript project, resolution records, symbol graph, namespace
+aliases, and diagnostics; phases receive explicit inputs and produce an owned
+linked program. This protects concurrent library/CLI use and gives S5 imports
+and future backends a stable value to consume instead of hidden ambient state.
+
 The current Dart backend is still the transitional `emitter/old/*`
 string-template implementation: some paths work, some deliberately preserve
 legacy degradation, and several declaration features are not emitted at all.
@@ -90,6 +97,14 @@ project. v1 therefore targets **`package:js`** — deliberately, not by inertia 
 including the `dart:html` and `dart:typed_data` substitution imports the
 original tool produced.
 
+The compatibility source is the original 980-line browser-type registry, not
+only the three examples in the extracted fixture. Stage 5 will review and
+SDK-validate its HTML, IndexedDB, WebGL, Web SQL, SVG, Web Audio, and typed-data
+mappings and renames. TypeScript host-library provenance must survive parsing
+first (`I-15`), so substitutions cannot accidentally capture a user or generic
+type with the same spelling. The same deterministic import planner will qualify
+generated-library and Dart SDK references with collision-safe prefixes.
+
 What lands:
 
 - **Every type is named.** No bare `dynamic`. Constructs Dart cannot represent —
@@ -104,6 +119,9 @@ What lands:
 - **Overload resolution and declaration augmentation** — including the
   `interface` + `var` merging that TypeScript definitions lean on constantly.
 - **Generics, inheritance and `implements`** carried through to the output.
+- **Standard utility types remain valid Dart.** Common TypeScript utilities get
+  either a verified lowering or a named documented fallback in v1; unresolved
+  identifiers such as `Record<K, V>` are not acceptable.
 - **Dart keyword escaping** and namespace collision renaming.
 - **Acceptance gate:** generated bindings for real libraries—including both
   generated Leaflet files—pass `dart analyze` with zero errors, and the ~120-case `js_facade_gen`
@@ -123,8 +141,8 @@ compiler. The same seam admits other target languages entirely.
 
 ## Later
 
-- `ts.TypeChecker` evaluation of utility types (`Partial`, `Readonly`,
-  `Record`, `Omit`, `Pick`) so they resolve to real shapes rather than named
-  aliases.
+- Exhaustive `ts.TypeChecker` evaluation of utility types (`Partial`,
+  `Readonly`, `Record`, `Omit`, `Pick`) so v1's safe named fallbacks can resolve
+  to precise shapes where the checker can prove them.
 - Pre-populating the symbol table from `package:web` so browser types are
   imported rather than regenerated.

@@ -31,6 +31,19 @@ All notable changes to this project will be documented in this file.
   snapshotting complete Dart output and normalized verbose CLI diagnostics.
 - Completed a 107-file post-S4 line-by-line audit. It records 16 new findings,
   reopens `L-10` as partial, and assigns a correctness barrier before S5.
+- Locked the first pre-S5 repair to delete the temporary context/reset
+  singleton, move all compiler state per run, return generation diagnostics,
+  and expose an owned linked program to emitters and future backends.
+- Audited the original full browser-type library/name registries and added
+  `I-15`: host-library provenance is currently discarded. S5 now requires
+  identity-safe, SDK-validated platform substitutions and one collision-safe
+  import planner instead of leaf-text replacements.
+- Corrected the utility-type plan after verifying that `Record<K, V>` bypasses
+  unsupported aliasing and emits an unresolved Dart name (`E-36`); S5 now owns
+  a valid lowering-or-documented-fallback policy.
+- Added a decision-complete root pre-S5 implementation ledger for tasks
+  4.11–4.17, including phase contracts, commit boundaries, failure policy, and
+  executable acceptance gates.
 - Revalidated the expanded 1,654-file declaration corpus with no thrown errors;
   the known empty-output count remains 719.
 - Made parsed `this` types link to their enclosing declaration so constructor-

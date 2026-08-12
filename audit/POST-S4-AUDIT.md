@@ -142,9 +142,44 @@ finding before moving on, then mark the batch complete with exact evidence.
 All 75 live TypeScript source files (8,130 lines), 29 test/tool TypeScript files
 (4,055 lines), 3 historical files (2,450 lines), and 24 Markdown records have
 been read at the audit baseline. The pass found 16 new findings and reopened
-`L-10` as partial. `PLAN.md` tasks 4.11–4.16 own the prerequisite repairs; S5
-owns the emitter-specific corrections.
+`L-10` as partial. `PLAN.md` tasks 4.11–4.17 own the prerequisite repairs,
+including the later `I-15` design finding; S5 owns the emitter-specific
+corrections.
+
+## R-14 Design Disposition
+
+The pre-S5 remediation is now decision-complete: delete `src/context.ts` and
+`src/reset.ts` rather than adding another reset or serialization lock. Each
+public invocation owns its project, file-resolution accumulators, symbol table,
+namespace aliases, and diagnostics. Phase functions receive narrow explicit
+dependencies and the linker returns an owned linked program for S5 and future
+backends.
+
+This disposition absorbs `R-13` because removing global `isLogging` requires
+symbol generation to return diagnostics, and closes the remaining design half
+of `L-10` through transactional drafts plus detached consumer reads. It also
+protects `L-19`, S5 imports/local-capture work (`E-08`/`E-23`), graph report
+purity, and v2 backend isolation. Same-instance and cross-instance concurrent
+calls, nested mutation attempts, diagnostics, and repository-wide removal of
+context/reset imports are explicit 4.11 acceptance gates.
 
 The preceding targeted review closed `L-17`, `L-18`, `P-14`, and
 `E-24`–`E-28`; this pass rechecks their surrounding code rather than assuming
 those fixes cover adjacent cases.
+
+## Post-audit design follow-up
+
+Planning the platform substitution layer against the original
+`js_facade_gen` registry exposed `I-15`. A focused checker probe confirmed that
+`collectTypeDep` discards a real `lib.dom.d.ts` `HTMLElement` reference, while
+a lexical type parameter with the same spelling also correctly has no normal
+dependency target. Leaf text cannot distinguish them. Task 4.17 now preserves
+host identity before S5.3; this is a follow-up finding and does not alter the
+historical 16-new-finding count for the completed line-by-line pass above.
+
+The same verification exposed `E-36`: standard utility aliases do not enter
+the unsupported-alias path. The S5 fixture emits the nonexistent Dart type
+`Record<String, dynamic>`, contradicting the earlier claim that utility types
+already received Tier-B names. S5.18 now guarantees a verified lowering or a
+named documented fallback; exact checker expansion can remain a later
+precision improvement.

@@ -39,7 +39,7 @@ symbols, 41 facets, and 36/36 resolved edges. Two external augmentations are
 suppressed with explicit diagnostics.
 
 Dart analysis currently reports 34 errors: 12 missing cross-file imports
-(`E-08`), eight generic/`Record` lowering errors (`E-03`), two typed-array
+(`E-08`), eight generic/`Record` lowering errors (`E-03`/`E-36`), two typed-array
 substitution errors (S5.3), and 12 malformed quoted-member annotation errors
 (`E-13`). These are expected S5 targets, not accepted final output. Building
 this fixture also exposed analyzer-invisible `E-23`: `Consumer.options` links

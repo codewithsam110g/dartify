@@ -291,9 +291,9 @@ Consequences:
 
 `R-12` fixed one place where the array itself was lost; this is the remaining
 ownership problem for the array after it has been populated. Return the errors
-as phase output and make the top-level diagnostic policy explicit. It belongs
-to S6, but S2 tests should avoid treating a quiet phase as proof that every
-edge was collected.
+as phase output and make the top-level diagnostic policy explicit. The locked
+`R-14` remediation now brings this into pre-S5 task 4.11: removing global
+`isLogging` must not replace silent loss with a passed-around logging boolean.
 
 ---
 
@@ -314,7 +314,48 @@ bad Beta results:  20/20
 ```
 
 This is deterministic cross-request semantic corruption in an exported API,
-not a theoretical race. S5 must not build more process-global emitter state on
-top of it. Give each run an owned context and pass it through the phases, or
-serialize the public API as a documented temporary boundary; add overlapping
-`analyze`, `render`, and string-transpile regression tests before closing it.
+not a theoretical race. Construction also writes the global logging flag, so
+merely creating a second `Transpiler` can change whether the first reports
+symbol-generation failures.
+
+### Locked remediation
+
+Delete `src/context.ts` and `src/reset.ts`; do not serialize the API and do not
+replace them with another process-global context. Each invocation owns all
+mutable compilation state, including the `ts.Project`, resolved-file maps,
+module fallback arrays, symbol table, namespace aliases, and diagnostics.
+`Transpiler` retains immutable options only, which also defines same-instance
+concurrency rather than leaving its current mutable project/maps as the next
+race after the singleton is gone.
+
+The complete current dependency inventory is bounded: `transpiler.ts` sets
+logging and resets runs; `symbolGeneration.ts` writes symbols/namespace aliases
+and reads logging; `linkerPhase.ts` reads and mutates linked symbol data;
+`emitterPhase.ts` reads it; and `reset.ts` clears it. Five test/helper files
+import the singleton only to inspect results. `tools/graph.ts`, parsers, the
+semantic pass, resolver, and alias registry already accept explicit inputs or
+own local state, so they must stay that way.
+
+Thread narrow dependencies through phase boundaries. Symbol generation receives
+the table and namespace-alias map and returns diagnostics (`R-13`); linking
+receives those owned values and returns an owned linked program; emission reads
+that program. The existing immutable parser `ParseContext` remains—it is
+declaration-local scope, not ambient run state.
+
+Required dependent migrations:
+
+- `generateSymbols`: remove table, namespace, and logging singleton reads;
+- `runLinker`: retain explicit resolver inputs and stop publishing mutations
+  through live snapshots (`L-10`/`L-19`);
+- `renderAllFiles`: consume the linked program explicitly so S5 imports
+  (`E-08`/`E-23`) and future backends cannot reach ambient state;
+- tests/corpus helpers: stop importing `transpilerContext`; inspect detached
+  results or explicit phase fixtures;
+- graph tooling: remain a `LinkReport` consumer and gain no compiler-state
+  dependency;
+- `R-11`: retain its no-cross-run regression, now passing by construction with
+  no reset seam.
+
+Close only after overlapping `analyze`, `render`, `transpile`, and string runs
+(including same-instance calls) are independent, diagnostics reach callers,
+and a repository scan finds no live context/reset imports.

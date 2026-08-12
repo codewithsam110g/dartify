@@ -306,3 +306,72 @@ Parser-hoisted facets now carry `synthetic: "anonymousType"`. Canonicalization
 and value-shape merging consult that marker exclusively; public spelling has no
 semantic meaning. The regression fixture proves two author-authored `Anon_`
 interfaces survive with distinct references and no redirect.
+
+---
+
+## P-15 — Anonymous default declarations acquire fake source names `[verified]`
+
+Both forms below are valid declaration-file syntax and produce zero TypeScript
+diagnostics:
+
+```ts
+export default class { value: string }
+export default function(value: string): number;
+```
+
+`parseClass` uses `Error_Class` only for its context but stores `name: ""`;
+semantic naming turns that into `JS$binding`, and emission writes `@JS("")`.
+`parseFunction` stores the invented name `anonFunc`, so emission targets a
+nonexistent JavaScript export with `@JS("anonFunc")`. The absence of a source
+name is lost as a semantic fact in the function case and inconsistently handled
+in the class case.
+
+Represent declaration anonymity explicitly while allocating a deterministic
+Dart-only name. The S5 module backend must then bind `exportKind: "default"` to
+the module's default export rather than treating either placeholder as a
+JavaScript property name. Add named/anonymous default class and function cases
+to the declaration-IR and emitter fixture before closing this finding.
+
+---
+
+## P-16 — `const enum` loses its compile-time-only semantics `[verified]`
+
+`declarationModifiersOf` does not retain `ConstKeyword`, and `IREnum` has no
+equivalent field. Consequently this valid declaration:
+
+```ts
+export declare const enum Mode { A = 1, B = 2 }
+```
+
+produces zero TypeScript diagnostics but becomes the same IR as a runtime enum.
+The transitional emitter then generates `@JS("Mode")` and external static
+getters. TypeScript const enums are consumed by inlining their values and do not
+require a runtime enum object; an ambient declaration can therefore yield
+bindings to properties that are absent in JavaScript.
+
+Retain const-enum identity in the declaration IR. The backend must emit Dart
+compile-time constants from the captured initializer values or explicitly
+diagnose values it cannot evaluate, never assume a JavaScript enum object.
+Cover ambient/exported const enums and computed members before closure.
+
+---
+
+## P-17 — Export assignments are absent from symbol and declaration IR `[verified]`
+
+`processStatementDeclaration` deliberately ignores export statements, including
+the `ExportAssignment` syntax kind used by both `export = value` and
+`export default value`. The referenced declaration may still be registered,
+but nothing records that it is the module object/default export rather than a
+same-named JavaScript property.
+
+This is not a rare syntax edge: the checked fixture corpus contains **690**
+declaration files with `export =` and **222** with identifier-form default
+exports. Lodash's per-function declarations and TypeScript's own
+`export = ts` are representative. Without an export graph, S5 cannot choose the
+correct module binding even when declaration parsing itself succeeds.
+
+Add an explicit module-export IR/report model that distinguishes `export =`,
+default assignment, named exports, and re-exports, retaining the target symbol
+identity where the checker provides it. Validate callable CommonJS exports,
+namespace/class exports, default identifier exports, and re-export chains before
+the import/emitter design is locked.

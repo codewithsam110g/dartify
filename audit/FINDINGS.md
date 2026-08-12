@@ -24,6 +24,10 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `L-17` **[FIXED — post-S4 review]** | Constructor-companion synthesis converted callable/constructable interfaces to `IRClass`, deleted the target, and silently lost signatures. Unsupported shapes now remain unmerged with diagnostics | `semantic/merge.ts`, `semantic.test.ts` | ✅ |
 | `L-18` **[FIXED — post-S4 review]** | Interface/value folding deleted anonymous value-side index signatures. Indexed shapes now remain intact as a separate facet with a merge diagnostic | `semantic/merge.ts`, `semantic.test.ts` | ✅ |
 | `P-14` **[FIXED — post-S4 review]** | The public `Anon_` prefix was mistaken for parser provenance, allowing author declarations with equal shapes to be deleted. Hoisted facets now carry explicit `synthetic: "anonymousType"` provenance | `symbol/index.ts`, `symbolGeneration.ts`, `semantic/run.ts` | ✅ |
+| `P-15` | Valid anonymous default class/function declarations lose their absent source name. The parser invents `Error_Class`/`anonFunc`; current output becomes `@JS("") class JS$binding` or `@JS("anonFunc")`, neither of which addresses the module default export | `parser/{class,function}.ts`, `symbolGeneration.ts` | ✅ |
+| `P-16` | `const enum` is not represented in declaration modifiers or `IREnum`. A valid ambient const enum is indistinguishable from a runtime enum and emits `@JS("Mode")` getters against an object TypeScript normally inlines/erases | `parser/{metadata,enum}.ts`, `ir/{node,enum}.ts` | ✅ |
+| `E-31` | Rest parameters emit as one optional `List<T>` argument instead of variadic JavaScript arguments. dart2js/Node received one array (`1:true:a,b`) for `join(...values)`; 36 corpus files contain rest declarations | `emitter/shared/shared.ts`, `emitter/old/type/emit.ts` | ✅ |
+| `E-35` | A non-constructable interface/value merge emits a concrete `@JS` class with an implicit Dart constructor. `Config()` compiled as `new A.Config()` despite the TypeScript value having no construct signature | `emitter/old/interface.ts` | ✅ |
 | `E-24` **[FIXED — post-S4 review]** | Renamed legacy class members compiled to JavaScript property calls such as `receiver.f_1`, despite `@JS("f")`. Instance overloads now emit as external extension members; renamed statics become qualified top-level bindings. dart2js runtime probes call `f` and `Factory.make` | `emitter/old/class.ts`, `emitter/shared/names.ts` | ✅ |
 | `E-25` **[FIXED — post-S4 review]** | `@JS("[Symbol.iterator]")` addressed a string/path, not the ECMAScript symbol key. Computed members remain in IR and now produce an explicit unsupported diagnostic/comment instead of a corrupt binding | `semantic/names.ts`, `emitter/old/{class,interface}.ts` | ✅ |
 | `E-26` **[FIXED — post-S4 review]** | Source declarations such as three.js `class String` captured unqualified backend types and produced analyzer-clean semantic corruption. Backend-owned names are now reserved and references follow the allocated `JS$` name | `semantic/{keywords,names}.ts`, `semantic.test.ts` | ✅ |
@@ -31,6 +35,10 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `E-03` | Type parameters never emitted — every generic declaration is uncompilable | `emitter/old/class.ts:17` | ✅ |
 | `E-04` | `extends`/`implements` never emitted — whole inheritance graph dropped | all emitters | ✅ |
 | `R-01` **[FIXED — S2]** | ~~Extensionless relative imports silently fail~~ — default Bundler resolution plus a unique explicit-declaration fallback; tsconfig remains authoritative | `resolution/moduleHost.ts`, `transpiler.ts` | ✅ |
+| `R-14` | Concurrent `analyze`/`render`/`transpileFromString` calls reset and mutate one process-global symbol table. A 20-pair probe returned the first `Alpha` output for every independent `Beta` request: deterministic cross-request corruption | `context.ts`, `reset.ts`, `transpiler.ts` | ✅ |
+| `L-19` | Syntax fallback drops external-module visibility: an unresolved `Missing` in `a.d.ts` silently resolves by terminal name to an exported `Missing` in unrelated `b.d.ts`; the link report remains fully green | `symbol/resolve.ts`, `phase/linkerPhase.ts` | ✅ |
+| `P-17` | Symbol generation ignores `ExportAssignment`, so `export = value` and `export default value` relationships never enter IR. The checked corpus contains 690 files with `export =` and 222 with identifier default exports, leaving S5 unable to bind the module export correctly | `phase/symbolGeneration.ts` | ✅ |
+| `X-14` | The pre-S5 fixture snapshots Dart and checks TypeScript declaration validity, but never analyzes or executes generated Dart. Existing unit tests positively lock `T-18`'s impossible intersections and `E-31`'s list-as-rest lowering, so green Vitest results can certify wrong bindings | `test/{type/normalisation,type/type-emitter,decl/s5-emitter-fixture}.test.ts` | ✅ |
 | `X-01` **[FIXED]** | ~~Test suite calls removed `Transpiler.transpileFromString`~~ — restored in S0.2 as a static wrapper over the three phases | `transpiler.ts` | ✅ |
 | `E-16` **[FIXED]** | ~~No type-definitions section; degradation to `dynamic` is anonymous and unnamed~~ — minted, documented typedefs with named use sites, S1.5–S1.7. 68 typedefs over three.js + leaflet, 0 dangling, 0 duplicates; no `dart analyze` issue names one | `engine/alias/*`, `phase/emitterPhase.ts` | ✅ |
 | `E-18` | Multi-member unions emit `js_facade_gen`'s inline `dynamic /* A\|B */` at every use site — pre-existing, conformant, but the pattern principle 2 replaces. Dedup is computed then discarded (`"a"\|"b"\|number` → `String\|String\|num`). Needs a Dart-side name derivation, not `E-16`'s text-side one | `emitter/old/type/emit.ts:70-92` | ✅ |
@@ -57,6 +65,10 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `E-22` **[FIXED — S4 identifier legality]** | Computed/non-identifier source spellings receive legal Dart identifiers, eliminating parser cascades. S4 did not prove runtime key semantics; that distinct defect is `E-25` | `semantic/keywords.ts`, `semantic.test.ts` | ✅ |
 | `E-27` **[FIXED — post-S4 review]** | Generated `${name}Extension`, `${name}Enum`, and class static-binding names were absent from allocation, causing duplicate top-level declarations in three.js. Allocation now reserves every emitted companion | `semantic/names.ts`, `semantic.test.ts` | ✅ |
 | `E-28` **[FIXED — post-S4 review]** | Digit-leading declaration filenames emitted invalid libraries such as `library 3MFLoader;`. Sanitization now prefixes names that cannot start a Dart identifier | `phase/emitterPhase.ts`, `semantic.test.ts` | ✅ |
+| `E-30` | Collision prefixes derived from ambient-module specifiers are not revalidated as Dart identifiers. A top-level `Item` plus `declare module "3d-kit" { interface Item {} }` emits invalid `class 3d_kit_Item` | `semantic/names.ts` | ✅ |
+| `E-32` | JavaScript names are inserted into Dart annotation strings without literal escaping. `$foo` becomes string interpolation, while a TS member `"foo-bar"` emits malformed `@JS(""foo-bar"")` | `emitter/shared/names.ts`, `emitter/old/*` | ✅ |
+| `E-33` | Library-name sanitization handles punctuation/digits but not Dart keywords; `class.d.ts` emits invalid `library class;` | `phase/emitterPhase.ts` | ✅ |
+| `E-34` | S3 preserves class index signatures in IR, but `emitClass` never reads `indexSignatures`, so their complete contract is silently dropped | `emitter/old/class.ts` | ✅ |
 | `P-12` **[FIXED — S3]** | Classes now retain index signatures in the same shape as interfaces/type literals | `parser/class.ts`, `ir/class.ts` | ✅ |
 | `P-10` **[FIXED — S4]** | Variable-side object members are promoted to static properties/methods/accessors during supported interface/value and constructor-companion merges | `semantic/merge.ts`, `emitter/old/{class,interface}.ts` | ✅ |
 | `E-20` | `IRClass.isAbstract` parsed and never emitted — abstract classes emit as concrete | `emitter/old/class.ts:16` | ✅ |
@@ -83,17 +95,20 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `T-15` **[FIXED]** | ~~`null \| undefined` left an empty `unionTypes` and `emitType` reached for `[0]`~~ — threw, and the emitter's per-symbol try/catch turned the declaration into a comment. Returns a nullable `Any` (S1.9) | `type/unions.ts` | ✅ |
 | `T-16` **[FIXED]** | ~~`{}` synthesised a cyclic `typedef anon_dynamic = anon_dynamic;` registered under a non-FQN key~~ — emitted into 1 file while **117** use sites across **34** files referenced it. **Live in three.js.** `{}` is now `dynamic` (S1.9) | `type/typeLiterals.ts` | ✅ |
 | `T-17` **[FIXED]** | ~~`ParenthesizedType` and the `readonly` operator forwarded `depth` unchanged~~ — **`T-05` was closed prematurely**; `(((…)))` was unbounded at any nesting. Verified: 40 nested parens never tripped the guard. Fixed in the audit pass | `type/type.ts`, `type/typeOperator.ts` | ✅ |
+| `T-18` | Intersection normalization treats `null`/`undefined` as nullable union members and drops `void`: `string & null`/`undefined` emit `String?`, and `string & void` emits `String`, although the checker resolves all three to `never` | `parser/type/intersection.ts` | ✅ |
 | `I-13` **[FIXED — S3]** | One shared `IRParameter` now serves declaration and function-type parsing with one `isRest` contract | `ir/signature.ts`, parsers | ✅ |
 | `I-14` **[FIXED — S3/S4]** | Deleted live vestigial literal IR in S3; S4 then deleted the quarantined transformer consumers | `ir/type.ts`, `engine/semantic/shape.ts` | ✅ |
 | `D-02` **[FIXED — S4]** | Overload and structural-canonicalization requirements were reimplemented against current facets/IR; obsolete transformer implementations were not ported | `engine/semantic/*`, `ir/visit.ts` | ✅ |
 | `P-11` **[FIXED — S3]** | Parameters retain exact object/array binding-pattern text and initializer text, with semantic rest/optional flags | `parser/signature.ts`, `ir/signature.ts` | ✅ |
 | `X-12` | The stress tier asserts only that nothing *escaped* `transpileFromString`; `result.errors` and `// ERROR emitting` comments are never inspected. Post-S3 census: 0 throws / 0 returned errors / 0 markers over 1,650 files, so nothing is hidden today | `test/stress.test.ts` | ✅ |
+| `X-15` | The package documents/targets generic Node 20 but declares no `engines`; pinned `yargs@18.0.0` requires Node `^20.19.0 || ^22.12.0 || >=23`, so supported-looking Node 20.0–20.18 installs can fail at runtime | `package.json`, `pnpm-lock.yaml` | ✅ |
+| `X-16` | `pnpm test:coverage` is advertised but `@vitest/coverage-v8` is absent. Direct execution stops with `MISSING DEPENDENCY` before running a test | `package.json` | ✅ |
 | `R-09` **[FIXED — S3]** | Immutable `ParseContext` replaces every mutable `currentFQN` assignment and registers hoists through an explicit callback | `parser/context.ts`, parsers | ✅ |
 | `I-11` **[FIXED — S3]** | `deepCloneIRDeclaration` uses `structuredClone`; the S3 fixture proves bigint literals clone independently | `ir/declaration.ts`, `test/decl/s3-ir.test.ts` | ✅ |
 | `R-11` **[FIXED]** | ~~Context singleton never reset between runs~~ — `resetTranspilerState()` (`src/reset.ts`) called at the start of every run, S0.3. Verified: two `transpileFromString` calls no longer contaminate each other | `src/reset.ts` | ✅ |
 | `T-06` **[FIXED]** | ~~`IRType.name` has three incompatible meanings; Dart names leak into the IR~~ — TS-side names only, guarded by an invariant test (S1.8). Surfaced a live defect: `name: "BigInt"` was the only thing separating a bigint literal from a number literal, so `10n` emitted `num` | `type/literals.ts` | ✅ |
 | `L-03` **[FIXED — S2]** | Resolution returns an explicit ambiguous outcome and never selects `matches[0]` arbitrarily | `symbol/resolve.ts` | ✅ |
-| `L-10` **[FIXED — S4]** | Readonly structural snapshots plus validated `replace`, `unregister`, and atomic rollback-safe `apply` protect table invariants | `symbol/table.ts`, `symbol-table.test.ts` | ✅ |
+| `L-10` **[PARTIAL — S4]** | Validated `replace`, `unregister`, and rollback-safe `apply` protect table structure, but snapshot/lookup results retain live `Symbol`, facet, IR, and dependency objects. A consumer can mutate table state without an API call | `symbol/table.ts`, `symbol-table.test.ts` | ✅ |
 | `L-11` **[FIXED — S4]** | Explicit namespace/external-module/global scope records drive FQNs, JS paths, augmentation suppression, and global hoisting | `symbol/index.ts`, `symbolGeneration.ts` | ✅ |
 | `R-13` | Symbol-generation errors are collected, optionally printed, then discarded; neither `LinkReport` nor `transpileFromString().errors` can surface per-statement failures | `phase/symbolGeneration.ts:11-44` | 🔍 |
 | `L-12` **[FIXED — S2]** | Direct and transitive missing states are now distinct and fixture-tested | `phase/linkerPhase.ts` | ✅ |
@@ -145,6 +160,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `D-06` **[FIXED — S4 reverified]** | Built bundle is 154.11 KB with semantic/reporting code; no deleted pass/transformer, legacy, logger, graphology, or Viz code ships | `dist/cli.js`, `package.json` |
 | `E-11b` | `@typeEmitter/*` alias hardcodes `emitter/old/` | `tsconfig.json:29` |
 | `X-13` **[FIXED — S4]** | Corrected all six audited source/test/config comments alongside deletion of the obsolete pipeline | `transpiler.ts`, `tsconfig.json`, `test/{smoke,stress}.test.ts`, `emitter/old/type/emit.ts` |
+| `E-29` | Colliding derived alias names are source-order-dependent: reversing two distinct `keyof` expressions swaps which gets the unhashed base name, contrary to the stability claim | `engine/alias/registry.ts` |
 
 ---
 
@@ -254,3 +270,19 @@ The re-audit also corrects `T-07`, `T-10` and `D-06` to fixed. `R-05`,
 `R-13`, `L-10`, `L-11`, `X-12` and the transitional-emitter findings remain
 open. The former S4 walker-port task is obsolete because `src/ir/visit.ts` is
 already live; the quarantined walker is incompatible with current IR.
+
+### Post-S4 full-audit baseline (`920c3fc`)
+
+| Measure | Result |
+|---|---|
+| scope read | 75 live source / 29 test-tool / 3 historical TypeScript files; all 24 Markdown records |
+| findings | 16 new; `L-10` reopened as partial |
+| normal / S2 / S3 / S4 / S5 fixture | 252 passed, 4 skipped / 2/2 / 1/1 / 34/34 / 3/3 |
+| current S3 view | 2,530 input declarations; 2,342 facets; 25,268 parsed types; 0 missing locations |
+| stress | 1,654/1,654 in 180 s; 719 known empty outputs |
+| compiler/build/h3 | TypeScript clean; 162.47 KB; Dart analyzer has only the expected deprecation info |
+| Leaflet / three.js analyzer | 223 errors + 14 warnings / 8,342 errors + 267 warnings; no duplicate, syntax, or identifier categories |
+
+The original S3 and S4 tables above are historical stage-close measurements.
+The current ownership and reproductions are in `POST-S4-AUDIT.md`; prerequisite
+work is sequenced as `PLAN.md` tasks 4.11–4.16.

@@ -53,7 +53,7 @@ selection and writes both symbol-level `resolvedDeps` and use-site
 |---|---|
 | `src/cli.ts` | arg parsing, globbing |
 | `src/transpiler.ts` | orchestration, file resolution/categorisation |
-| `src/context.ts` | resettable module-owned context: symbol table, namespace metadata, `currentFQN`, logging flag |
+| `src/context.ts` | resettable process-global context: symbol table, namespace metadata, logging flag; concurrent isolation remains open as `R-14` |
 | `src/reset.ts` | per-run singleton reset |
 | `src/symbol/{index,table,resolve,fqn}.ts` | symbol model, table, FQN construction and structured resolution |
 | `src/resolution/*` | shared stdlib classification, module host and resolution reports |

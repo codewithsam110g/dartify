@@ -308,3 +308,52 @@ No runtime behaviour is affected, but six comments now misdirect maintainers:
 
 These comments should be corrected alongside the S4 code they describe. They
 are recorded here now because this audit was documentation-only.
+
+---
+
+## X-14 — Green pre-S5 tests can certify invalid or corrupt Dart `[verified]`
+
+The synthetic S5 fixture is valuable as a complete `.d.ts`/Dart/verbose-report
+golden, but its executable assertions stop at TypeScript diagnostics and string
+snapshots. It neither invokes `dart analyze` nor compiles/runs the generated
+bindings. That is why invalid annotation strings and analyzer-invisible
+dispatch defects remain green.
+
+Two unit tests actively encode wrong behavior as expected output:
+
+- `normalisation.test.ts` expects `Foo & null`/`undefined` to become `Foo?` and
+  `Foo & void` to become `Foo`, although the TypeScript checker says `never`
+  (`T-18`).
+- `type-emitter.test.ts` calls `List<dynamic>` a common rest-parameter pattern,
+  but dart2js passes it as one array argument rather than spreading it (`E-31`).
+
+Before S5 changes snapshots, add an opt-in analyzer/compiler/runtime tier and
+make the fixture assert a categorized known-error baseline. Unit tests should
+state unsupported policy or correct behavior; they must not bless a convenient
+but semantically false lowering.
+
+---
+
+## X-15 — Declared Node support is broader than the dependency floor `[verified]`
+
+`package.json` bundles for `node20`, the contributor docs ask only for Node 20,
+and the package publishes no `engines` field. The pinned `yargs@18.0.0`, however,
+declares `^20.19.0 || ^22.12.0 || >=23`. Node 20.0–20.18 therefore appears
+supported by dartify while falling below a direct runtime dependency's floor.
+
+Add the exact runtime range to `engines.node` and use the same range in the
+README/CI matrix. This is a packaging contract correction, not an S5 backend
+task.
+
+---
+
+## X-16 — The coverage script has no installed provider `[verified]`
+
+`package.json` exposes `test:coverage` as `vitest --coverage`, but no Vitest
+coverage provider is present in the lockfile or development dependencies.
+Running `./node_modules/.bin/vitest run --coverage test/smoke.test.ts` stops
+immediately with `MISSING DEPENDENCY Cannot find dependency
+'@vitest/coverage-v8'`.
+
+Install the Vitest-3-compatible `@vitest/coverage-v8` provider and run the
+command in CI, or remove the script until coverage is an actual supported gate.

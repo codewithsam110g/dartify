@@ -18,8 +18,27 @@ historical releases or old architecture names.
   - [x] Move renamed class instance overloads to valid extension interop members and lower renamed statics to qualified top-level bindings.
   - [x] Diagnose and suppress unsupported symbol-keyed members instead of stringifying their keys.
   - [x] Re-run three.js analyzer/compiler probes and all repository gates.
-- [ ] Perform the line-by-line post-S4 audit and reconcile every finding/evidence claim before starting S5.
-- [ ] Begin the Stage 5 `package:js` emitter rebuild from `PLAN.md`.
+- [x] Perform the line-by-line post-S4 audit from `audit/POST-S4-AUDIT.md` and reconcile every finding/evidence claim before starting S5.
+  - [x] Audit entry, resolution, parsers, IR, symbol table, FQN, and linker.
+  - [x] Audit semantic merging, naming, and aliases.
+  - [x] Audit every emitter path and output report adapter.
+  - [x] Audit tests, tools, configuration, historical code, and all records.
+  - [x] Assign every new/reopened finding to the pre-S5 barrier, S5, or S6 in
+    `PLAN.md`; do not treat green snapshots as closure evidence.
+
+## Before Stage 5
+
+- [ ] Remove process-global run state and complete snapshot isolation (`R-14`,
+  `L-10`).
+- [ ] Preserve module-export/anonymity/const-enum facts and correct impossible
+  intersections (`P-15`–`P-17`, `T-18`).
+- [ ] Enforce external-module visibility and deterministic/legal semantic names
+  (`L-19`, `E-29`, `E-30`).
+- [ ] Replace the false expectations identified by `X-14` and establish a
+  categorized Dart analyzer/compiler/runtime fixture gate.
+- [ ] Declare the dependency-compatible Node range and repair or remove the
+  nonfunctional coverage command (`X-15`, `X-16`).
+- [ ] Begin the Stage 5 `package:js` emitter rebuild only after this barrier.
 
 ## Later v1 Work
 

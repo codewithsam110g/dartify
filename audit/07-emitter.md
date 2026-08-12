@@ -421,6 +421,116 @@ such names with `dartify_`; both real outputs parse as valid Dart libraries.
 
 ---
 
+## E-29 — Alias collision allocation depends on traversal order `[verified]`
+
+`AliasRegistry` gives the first expression its unhashed derived base and hashes
+only later collisions. For `keyof Box<string>` and
+`keyof Box<"string">`, reversing mint order changes the first expression from
+`KeyOfBoxString` to `KeyOfBoxString_65b1ff` and gives the base to the second.
+Both outputs are valid, so this is diff instability rather than a miscompile,
+but it contradicts the stated guarantee that adding an unrelated declaration
+does not rename an existing alias.
+
+Choose names from a deterministic collision group, or always include the
+source hash when a derived base is non-injective, before final S5 snapshots are
+locked.
+
+---
+
+## E-30 — Module-derived collision prefixes may be illegal Dart names `[verified]`
+
+Top-level name allocation validates the declaration spelling, but
+`dartScopeSegments` later prepends sanitized external-module segments without
+validating the composite. This valid declaration input:
+
+```ts
+interface Item { root: string }
+declare module "3d-kit" { interface Item { nested: string } }
+```
+
+emits `abstract class 3d_kit_Item`, which cannot be parsed by Dart. Specifiers
+that sanitize to a leading underscore can similarly turn public bindings
+library-private. Pass every scope-derived candidate through one public Dart
+identifier sanitizer and cover numeric, punctuation-only, scoped-package, and
+nested namespace prefixes.
+
+---
+
+## E-31 — Rest parameters are passed as one JavaScript array `[verified]`
+
+`formatParameterList` emits a rest parameter as an ordinary optional Dart
+parameter with only a comment marking the loss:
+
+```dart
+external String join([/* rest */ List<String> values]);
+```
+
+Calling `join(['a', 'b'])` through dart2js delivered one argument whose first
+value was an array (`1:true:a,b`), not the two arguments required by
+`join(...values)`. This is analyzer-clean dispatch corruption. A raw census
+finds rest declarations in 36 fixture files, including three.js constructors,
+methods, and callable signatures.
+
+The S5 backend needs a finite-overload or JavaScript-wrapper policy; a `List`
+external parameter is not a valid lowering. Cover zero, one, several, tuple
+rest, and fixed-prefix-plus-rest calls with runtime tests.
+
+---
+
+## E-32 — `@JS` annotation names are not Dart-string escaped `[verified]`
+
+All annotation helpers interpolate raw TypeScript/JavaScript spellings into
+quoted Dart source. `declare const $foo` emits `@JS("$foo")`, which Dart treats
+as interpolation and reports a non-constant annotation plus an undefined
+identifier. A string-named member `"foo-bar"` retains its syntax delimiters and
+emits `@JS(""foo-bar"")`, producing six analyzer errors.
+
+Introduce one Dart string-literal encoder and one member-name normalization
+step. Test dollar signs, quote/backslash/control escapes, quoted property names,
+numeric names, and qualified paths; then use the helper for every annotation.
+
+---
+
+## E-33 — Dart-keyword filenames produce invalid library directives `[verified]`
+
+The post-review filename fix validates only characters and the leading
+character. `class.d.ts` and `extension.d.ts` therefore emit `library class;`
+and `library extension;`; Dart analysis rejects the former as a keyword. Reuse
+the Dart keyword policy for library identifiers and cover reserved, built-in,
+empty-after-sanitization, punctuation, and digit-leading filenames together.
+
+---
+
+## E-34 — Class index signatures never reach emission `[inspection]`
+
+S3 added `IRClass.indexSignatures` and `parseClass` populates it, closing the
+parser-side `P-12`. `emitClass` has no read of that field. Unlike the interface
+placeholder tracked by `E-14`, a declaration such as
+`declare class Bag { [key: string]: number }` emits no operator or diagnostic at
+all. S5.11 must cover both class and interface owners and use the retained key
+and value types.
+
+---
+
+## E-35 — Runtime interface facets expose a fake local constructor `[verified]`
+
+An interface/value merge without a construct signature is emitted as a
+concrete class solely because `hasRuntimeBinding` is true:
+
+```ts
+interface Config { own: string }
+declare const Config: { readonly version: string }
+```
+
+The generated `@JS("Config") class Config` has no external factory, so Dart
+supplies an implicit generative constructor. dart2js accepted `Config()` and
+compiled it as `new A.Config()`—a local Dart allocation unrelated to the
+non-constructable JavaScript value. Emit an abstract runtime type whenever the
+IR has no construct signature; static bindings remain usable on an abstract
+class. Add analyzer, compiled-output, and Node runtime coverage.
+
+---
+
 ## E-11 — Emission is coupled to the filesystem `[inspection]`
 
 **`emitterPhase.ts:44-55`** interleaves rendering and writing:

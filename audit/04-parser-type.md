@@ -681,3 +681,28 @@ propagated through function types" and was fixed exactly as literally worded.
 The defect class is "a handler that recurses without charging depth", and the
 right close-out was to enumerate every `parseType` call site — which takes one
 grep and would have caught both.
+
+---
+
+## T-18 — Intersection normalization widens impossible types `[verified]`
+
+`handleIntersectionType` treats `null` and `undefined` as if they were nullable
+union constituents and silently drops `void`. That reverses intersection
+semantics: an intersection must satisfy every member, so incompatible primitive
+members collapse to `never`; they do not make another member nullable.
+
+Post-S4 checker comparison:
+
+| TypeScript | Current IR/emission | Checker |
+|---|---|---|
+| `string & null` | nullable string / `String?` | `never` |
+| `string & undefined` | nullable string / `String?` | `never` |
+| `string & void` | string / `String` | `never` |
+| `null & undefined` | nullable any / `dynamic` | `never` |
+
+The existing explicit `never` branch works only when the source writes
+`never`; it does not detect intersections the checker reduces to `never`.
+Normalize primitive contradictions truthfully (using syntax plus checker where
+needed), retain the original intersection text, and add negative type/emitter
+tests. This is S1 because impossible inputs currently become callable/assignable
+Dart API values without a diagnostic.

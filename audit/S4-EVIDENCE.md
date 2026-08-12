@@ -8,6 +8,9 @@ stage gates remain clean.
 > found eight gaps in the original acceptance claims. They are recorded as
 > `L-17`, `L-18`, `P-14`, and `E-24`–`E-28` below. The original gate numbers
 > remain as historical S4-close evidence; the post-review gate supersedes them.
+> The later full audit (`POST-S4-AUDIT.md`) showed that `L-10` isolates table
+> structure but not nested symbols/IR/dependencies. Its original closure below
+> is therefore superseded by the partial status in `FINDINGS.md`.
 
 ## Starting State
 
@@ -43,7 +46,7 @@ files survived; `tsc` and build clean; bundle 112.24 KB; generated h3 passed
 
 | Finding | Pre-change evidence | Focused verification | Status |
 |---|---|---|---|
-| `L-10` | Focused test initially failed 3/3: snapshot insertion changed the live table; `replace` and `apply` did not exist | snapshots isolate structure; replacement/removal and failed-apply rollback pass 3/3 | **closed** |
+| `L-10` | Focused test initially failed 3/3: snapshot insertion changed the live table; `replace` and `apply` did not exist | outer structure, replacement/removal, and rollback pass; the full audit proved nested objects remain live | **partial after full audit** |
 | `P-13` | Focused test initially found one `Anon_f_overload_0_param_0_x` for two different union members | exact union/array/generic/tuple/intersection paths plus same-file/cross-file canonicalization | **closed** |
 | `L-11` | All module declarations previously shared one string stack and `global` polluted the FQN | explicit namespace/ambient/augmentation/global records; globals hoist; suppressions carry canonical targets | **closed** |
 | `L-05` | linker preserved but did not transform overload/augmentation groups | overload, interface/class/value, constructor-companion, dual-facet, conflict, redirect, and report cases pass | **closed** |

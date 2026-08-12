@@ -5,6 +5,9 @@
 > [`audit/S4-EVIDENCE.md`](audit/S4-EVIDENCE.md).
 > A 2026-08-12 post-S4 deep review found and corrected eight acceptance gaps;
 > the evidence ledger is authoritative for those errata.
+> The subsequent full line-by-line audit in `audit/POST-S4-AUDIT.md` reopened
+> `L-10` as partial and found adjacent pre-S5/S5 work. This document remains the
+> historical S4 implementation contract, not the current defect ledger.
 
 ## Summary
 

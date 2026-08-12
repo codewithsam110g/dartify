@@ -25,6 +25,7 @@ planning, so `PLAN.md` is sequenced by real dependency rather than by guess.
 | [`08-dead-legacy.md`](08-dead-legacy.md) | `engine/passes/*`, `engine/transformers/*`, `legacy/*` |
 | [`09-tests-tooling.md`](09-tests-tooling.md) | `test/*`, configs, `log.ts`, `utils/*` |
 | [`FINDINGS.md`](FINDINGS.md) | **Consolidated, severity-ranked index of every finding** |
+| [`POST-S4-AUDIT.md`](POST-S4-AUDIT.md) | File/line ledger for the mandatory audit before S5 |
 
 Start at `FINDINGS.md` if you want the summary; go to the area file for the
 per-line reasoning behind any given ID.
@@ -32,8 +33,9 @@ per-line reasoning behind any given ID.
 The implemented semantic contract is [`../STAGE4_PLAN.md`](../STAGE4_PLAN.md),
 with command results and closure evidence in [`S4-EVIDENCE.md`](S4-EVIDENCE.md).
 That ledger also records the targeted post-S4 deep-review corrections
-`L-17`, `L-18`, `P-14`, and `E-24`–`E-28`. A new complete line-by-line post-S4
-pass is tracked in `../Tasks.md` and must reconcile this folder before S5.
+`L-17`, `L-18`, `P-14`, and `E-24`–`E-28`. The completed full line-by-line
+post-S4 pass is recorded in `POST-S4-AUDIT.md`; its open findings form the
+correctness barrier before S5.
 
 ## Finding IDs
 
@@ -270,3 +272,10 @@ Closed here: `L-05`, `L-10`, `L-11`, `P-10`, `P-13`, `E-01`, `E-09`,
 `E-10`, `D-01`, `D-02`, and `X-13`. S4 also found and fixed `E-22`, computed
 member spellings that were not valid Dart identifiers. S5 still owns imports,
 generics, heritage, callable interfaces, and constructor-overload emission.
+
+The later full post-S4 audit supersedes the `L-10` closure: table structure is
+isolated, but nested symbols remain mutable. That pass read 107 TypeScript files
+plus all 24 Markdown records, added 16 findings (`R-14`, `P-15`–`P-17`, `T-18`,
+`L-19`, `E-29`–`E-35`, `X-14`–`X-16`), and assigns the resulting work in
+`PLAN.md` tasks 4.11–4.16 and S5. See `POST-S4-AUDIT.md` for reproductions and
+the final gate.

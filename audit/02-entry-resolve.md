@@ -171,11 +171,11 @@ per-edge linker report (`-v`, conventionally combined as `-lv`). `-v` implies
 log mode and is no longer the version alias; version is long-only. The public
 README no longer claims that `-l` writes an IR dump.
 
-`debug` drives: verbose console logging, resolution summary, unresolved-dep
-detection, and per-symbol emission logging. `--enable-logs` is documented in the
-README as enabling "IR dump" (a v0.5 feature) — that IR-dump path went through
-`src/log.ts`, which is now unreferenced (`D-05`). So `-l` no longer does what
-the README says it does.
+The live `debug` flag still drives phase/module summaries, linker/emitter logs,
+and library use of the same public option. Unresolved-dependency detection is no
+longer gated by it (`R-02`), and the README no longer promises an IR dump. The
+remaining decision is whether a future `--emit-ir` reconnects the unreachable
+logger or deletes it (`D-05`).
 
 What remains is the separate `--emit-ir` decision: reconnect the dead logger to
 the three-phase pipeline or delete it. That is `D-05`, not linker-report work.
@@ -184,7 +184,11 @@ the three-phase pipeline or delete it. That is `D-05`, not linker-report work.
 
 ## Context (`src/context.ts`)
 
-## R-09 — Parser state is threaded through a mutable global `[inspection]`
+## R-09 — Parser state is threaded through a mutable global `[inspection]` **[FIXED — S3]**
+
+Immutable `ParseContext` now carries owner and structural position explicitly;
+`TranspilerContext` contains no `currentFQN`. The historical failure below is
+retained because it motivated the parser rewrite.
 
 `transpilerContext.currentFQN` is set/restored by parsers via manual
 save/restore pairs:
@@ -228,8 +232,8 @@ imports once `E-08` (import emission) lands.
 
 ## R-11 — The singleton was never reset between runs `[verified]` **[FIXED — S0.3]**
 
-`resetTranspilerState()` now clears the symbol table, current FQN and namespace
-metadata at the start of both `analyze()` and `transpileFromString()`. The sanity
+`resetTranspilerState()` now clears the symbol table and namespace metadata at
+the start of both `analyze()` and `transpileFromString()`. The sanity
 suite verifies that two string transpilations in one process do not leak
 symbols into each other. The logging flag deliberately survives reset and is
 owned by the entry point.
@@ -290,3 +294,27 @@ ownership problem for the array after it has been populated. Return the errors
 as phase output and make the top-level diagnostic policy explicit. It belongs
 to S6, but S2 tests should avoid treating a quiet phase as proof that every
 edge was collected.
+
+---
+
+## R-14 — Concurrent runs corrupt the process-global context `[verified]`
+
+`analyze()` and `transpileFromString()` each call `resetTranspilerState()`, then
+await multiple phase boundaries while all phases read and mutate
+`transpilerContext.symbolTable`. Resetting makes sequential calls independent;
+it provides no isolation when calls overlap.
+
+Verified at post-S4 baseline `920c3fc` with 20 concurrent pairs. Each pair
+transpiled an `Alpha` and a `Beta` declaration under distinct virtual filenames.
+All 20 `Beta` results contained the first `a0.dart`/`Alpha` output and no `Beta`:
+
+```text
+bad Alpha results: 0/20
+bad Beta results:  20/20
+```
+
+This is deterministic cross-request semantic corruption in an exported API,
+not a theoretical race. S5 must not build more process-global emitter state on
+top of it. Give each run an owned context and pass it through the phases, or
+serialize the public API as a documented temporary boundary; add overlapping
+`analyze`, `render`, and string-transpile regression tests before closing it.

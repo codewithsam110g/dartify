@@ -311,11 +311,19 @@ performance nit rather than a correctness bug.
 
 ---
 
-## L-10 — `SymbolTable` has no removal or replacement API `[inspection]` **[FIXED — S4]**
+## L-10 — `SymbolTable` has no removal or replacement API `[verified]` **[PARTIAL — S4]**
 
-The table returns copied readonly map/array structure and exposes validated
-`replace`, `unregister`, and atomic `apply` operations. Focused tests prove
-snapshot isolation, replacement/removal, invariant rejection, and rollback.
+The table now exposes validated `replace`, `unregister`, and atomic `apply`
+operations, and copied map/array structure prevents direct insertion or group
+append. The post-S4 audit found that the copied groups still contain the live
+`Symbol` objects. Mutating `snapshot.get(fqn)[0].facets[0].ir` or `.deps`
+immediately changes a subsequent `lookup()`. The `readonly` types are therefore
+compile-time guidance, not an invariant boundary.
+
+S4 closed the missing-API half but overstated snapshot isolation. Either return
+deeply detached read models, freeze table-owned symbols recursively, or make
+symbols immutable and replace them only through transactions. Add nested IR,
+facet, dependency, and resolved-dependency mutation probes before closure.
 Original finding follows.
 
 `symbol/table.ts` exposes `register`, `lookup`, `has`, `getAll`,
@@ -465,3 +473,30 @@ pass preserves the interface, variable facet, and explicitly marked anonymous
 shape, and emits a merge diagnostic. This leaves the index contract available
 for the S5 index-signature backend instead of converting unsupported structure
 into silent data loss.
+
+---
+
+## L-19 — Global terminal-name fallback crosses external-module boundaries `[verified]`
+
+Two independent external modules were generated in one in-memory project:
+
+```ts
+// a.d.ts
+export interface Uses { value: Missing }
+// b.d.ts
+export interface Missing { marker: string }
+```
+
+The reference in `a.d.ts` has no checker target and enters the syntax fallback.
+After exact and same-file resolution fail, `resolveReference` searches every
+table key by terminal name. It selects `/b.d.ts::Missing` as `uniqueGlobal`,
+sets that identity on the IR use site, and reports 2 valid / 0 broken symbols.
+An exported declaration in another external module is not lexically visible
+without an import, so this is a silently wrong link and would drive a wrong S5
+import.
+
+Carry source-file module/script visibility into fallback resolution. A syntax
+fallback from an external module may use declarations in its own module and
+explicitly imported/ambient-global targets, never an arbitrary unique export.
+Retain terminal fallback only for declarations proven to share global scope,
+and fixture external-module, script-global, import, and ambiguity cases.

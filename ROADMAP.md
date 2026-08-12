@@ -31,8 +31,9 @@ external type packages. The declaration layer now retains generics and their
 constraints/defaults, shared parameter/signature shapes, call and construct
 overloads, documentation, source locations, modifiers, enum initializer
 semantics, variable declaration kinds, and class index signatures. An opt-in
-census over h3, Leaflet, three.js and the S3 fixture found **2,530 declarations**
-and **26,240 parsed type nodes** with zero missing source locations. S4 adds an
+census over h3, Leaflet, three.js and the S3 fixture found **2,530 input
+declarations** with zero missing source locations. The current post-semantic
+view contains 2,342 facets and 25,268 parsed type nodes. S4 adds an
 atomic facet-based semantic table, positional anonymous identities and
 same-file canonicalization, explicit module/global scopes, supported
 declaration merges, stable overload names, Dart identifier legality, namespace
@@ -44,10 +45,14 @@ obsolete 1,684-line five-pass implementation is deleted.
 
 S4 closes its Dart-owned analyzer categories: h3 remains unchanged and has zero
 errors, the four semantic fixtures have no duplicate/keyword/syntax failures,
-complete Leaflet improves from 522 to 239 issues with zero duplicates, and
-three.js has zero duplicate, syntax, or identifier errors. Its remaining
-diagnostics are missing imports/types and generic backend work. A complete
-line-by-line post-S4 audit is the final gate before S5 begins.
+complete Leaflet currently reports 237 issues (223 errors, 14 warnings) with
+zero duplicates, and
+three.js has zero duplicate, syntax, or identifier errors in the original S4
+acceptance categories. The complete post-S4 audit has now read all 107 source,
+test/tool, and historical TypeScript files. It found 16 new issues and reopened
+`L-10`: process-global state, module export/visibility loss, and parser
+normalization errors must be corrected before S5; emitter defects are assigned
+to S5 with executable Dart gates.
 
 The current Dart backend is still the transitional `emitter/old/*`
 string-template implementation: some paths work, some deliberately preserve

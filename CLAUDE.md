@@ -42,8 +42,10 @@ the audit with a new ID rather than reporting it only in chat.
 
 S0-S4 are complete. `STAGE4_PLAN.md` is the semantic contract and
 `audit/S4-EVIDENCE.md` is its measured record, including the post-S4 corrections
-`L-17`, `L-18`, `P-14`, and `E-24`–`E-28`. Complete the tracked line-by-line
-post-S4 audit before beginning S5.
+`L-17`, `L-18`, `P-14`, and `E-24`–`E-28`. The full line-by-line post-S4 audit
+is complete in `audit/POST-S4-AUDIT.md`. Complete `PLAN.md` tasks 4.11–4.16
+before beginning S5; in particular, do not build the backend on process-global
+run state or unresolved module-export semantics.
 
 ## Commands
 
@@ -94,12 +96,22 @@ scoped to the type tests. `test:stress` sets `DARTIFY_STRESS=1` inline, which is
 POSIX-shell syntax; on Windows use `pnpm test:run test/stress.test.ts` with the
 variable set separately.
 
+`test:coverage` is currently nonfunctional because the Vitest coverage provider
+is not installed (`X-16`). Do not report coverage until that command is repaired.
+The S5 fixture is a golden, not an executable Dart correctness gate: `X-14`
+requires analyzer and dart2js/runtime probes before S5 output can be accepted.
+
 Test tiers: `simple` (sanity) · `smoke` (3 files, byte-exact snapshots) ·
 `test:s2` (link corpus) · `test:s3` (declaration-fidelity census) · `test:s4`
 (semantic contract) · `test:s5:fixture` (multi-file pre-emitter golden) ·
 `stress` (1,654-file corpus, opt-in). S4's independent
 census found 0 returned errors and 0 emission-error comments; 719 empty outputs
 are the 710 known barrels/comment files plus 9 Lodash augmentation-only files.
+
+The final post-S4 audit gate is 252 passed / 4 skipped; S2 2/2, S3 1/1,
+S4 34/34, S5 fixture 3/3, and stress 1,654/1,654 with 719 known empty outputs.
+The protected S3 input floor remains 2,530 declarations; the current
+post-semantic census is 2,342 facets and 25,268 parsed types.
 
 Useful corpora in `def_files/` (1,654 `.d.ts` files, not shipped to npm):
 

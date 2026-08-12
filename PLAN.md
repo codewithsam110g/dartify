@@ -300,15 +300,34 @@ the four semantic fixtures, Leaflet, and three.js have zero S4-owned duplicate,
 keyword, or syntax errors. Complete Leaflet improves from 522 to 239 analyzer
 issues. The remaining import/generic/heritage/backend categories belong to S5.
 
-Before S5 begins, perform the separately tracked line-by-line post-S4 audit and
-reconcile every finding, source claim, test gap, and living-document status.
+The separately tracked line-by-line post-S4 audit is complete. It read all 75
+live source files, 29 test/tool files, and 3 historical files; found 16 new
+issues; and reopened `L-10` as partial. Its evidence and final gate results are
+in `audit/POST-S4-AUDIT.md`.
+
+### Pre-S5 correctness barrier
+
+These are prerequisite repairs, not optional scope growth:
+
+| # | Task | Findings |
+|---|---|---|
+| 4.11 | Replace process-global compiler state with per-run ownership; make public symbol-table reads structurally isolated at every nested level | `R-14`, `L-10` |
+| 4.12 | Preserve anonymous default exports, export assignments, and const-enum identity in IR/module semantics | `P-15`–`P-17` |
+| 4.13 | Normalize impossible intersections without widening and prevent terminal-name fallback across unrelated external modules | `T-18`, `L-19` |
+| 4.14 | Make alias/collision allocation insertion-stable and revalidate every scope-derived Dart identifier | `E-29`, `E-30` |
+| 4.15 | Replace false unit expectations and add categorized Dart analyzer plus dart2js/runtime fixture probes | `X-14` |
+| 4.16 | Declare the dependency-compatible Node floor and make the coverage command executable or remove it | `X-15`, `X-16` |
+
+Run the normal, S2–S5 fixture, stress, typecheck, build, h3 analyzer, and focused
+runtime gates after this barrier. Do not begin the backend rewrite while any
+S1 item above is open.
 
 ---
 
 ## S5 — The emitter, rebuilt once
 
-*Now safe to do, and safe to do only once. Built as backend #1 with the v2 seam
-already in place.*
+*Begin after the pre-S5 correctness barrier. Build backend #1 once with the v2
+seam already in place.*
 
 The before-state is executable: `pnpm test:s5:fixture` first validates four
 inputs as real `.d.ts` declaration files, then snapshots all Dart and normalized
@@ -334,10 +353,13 @@ only after reviewing the complete Dart diff and re-running the analyzer.
 | 5.8 | Variables as getter/setter pairs; getter-only for `const` (§1.1, §1.9) | `E-05`, `P-05` |
 | 5.9 | Enums as plain classes with uniform `num` statics (§7) | `E-06` |
 | 5.10 | Callable interfaces → `typedef`, into the S1 type-definitions section (§3.6-3.8) | `I-05`, `E-16` |
-| 5.11 | Index signatures using real key/value types | `E-14` |
+| 5.11 | Index signatures using real key/value types, including class signatures preserved by S3 | `E-14`, `E-34` |
 | 5.12 | Intersections, tuples, literal values (§5.3) | `T-09`, `E-12` |
 | 5.13 | JSDoc → `///`, `{@link x}` → `[x]`, strip `@param`/`@return` (§11) | `I-06` |
-| 5.14 | Scoped `stripQuotes`; drop the redundant readonly branch | `E-13`, `E-15` |
+| 5.14 | Central Dart-string escaping for every JS annotation; scoped quote removal; legal keyword-safe library directives | `E-13`, `E-32`, `E-33` |
+| 5.15 | Lower rest parameters with true JavaScript argument dispatch rather than one list argument | `E-31` |
+| 5.16 | Prevent implicit construction of non-constructable runtime interfaces; emit only explicit construct signatures | `E-35` |
+| 5.17 | Drop the redundant readonly branch while rebuilding declaration emitters | `E-15` |
 
 **Done when:** h3 and the complete Leaflet output (`leaflet.dart` plus
 `geojson.dart`) pass `dart analyze` with zero errors (`X-09`).
@@ -405,8 +427,9 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 | S1 types | ☑ **done** | unsupported nodes 1,410 → **112**; 68 minted typedefs (**64 three.js+leaflet + 4 probe**), 0 dangling / 0 duplicate; suite 57 → **199 passed**; `dist` 75 KB → **90.6 KB**. Fixed `T-01`–`T-16` bar `T-11`, plus `P-07`, `E-16`, `E-17`. No unrepresentable use site emits bare `dynamic`. Residual: 28 nodes across `object`/`undefined` (`E-19`), and `E-14`/`E-18` which bypass `emitType` — all S5. h3 `dart analyze` clean (was already); leaflet 510, probe 19, dominated by `E-03` and `L-05`/`E-10` |
 | S2 links | ☑ **done** | Leaflet 328/328 symbols and 1,050/1,050 edges resolved; three.js 0 ambiguity and 8,184 resolved edges, with 31 honest misses from two absent external type packages. Suite **214 passed**, focused S2 tests 15/15, corpus 2/2, `tsc` and build clean, h3 byte-identical; `-lv` exposes the structured report |
 | S3 decls | ☑ **done** | Complete metadata/signature IR; six semantic acceptance tests; census 2,530 declarations / 26,240 parsed types with 0 missing locations; suite **222 passed**, S2/S3 corpus gates and 1,650-file stress clean; h3 `dart analyze` clean |
-| S4 semantics | ☑ **done** | Canonical semantic bindings, supported merges, overload/identifier/namespace naming, explicit module scopes, CLI diagnostics, 26-test S4 gate; full acceptance recorded in `audit/S4-EVIDENCE.md` |
-| S5 emitter | ☐ not started | Pre-S5 fixture/golden ready: 40 symbols, 36 resolved edges, 34 analyzer errors mapped to planned tasks |
+| S4 semantics | ☑ **done** | Canonical semantic bindings, supported merges, overload/identifier/namespace naming, explicit module scopes, CLI diagnostics, 34-test S4 gate; historical acceptance in `audit/S4-EVIDENCE.md` |
+| Post-S4 audit | ☑ **done** | 107 TypeScript files read; 16 new findings plus partial `L-10`; prerequisite work is tasks 4.11–4.16 |
+| S5 emitter | ☐ blocked on 4.11–4.16 | Pre-S5 fixture/golden ready: 40 symbols, 36 resolved edges, 34 analyzer errors mapped to planned tasks |
 | S6 ship | ☐ not started | |
 
 When a finding is resolved, mark it `[FIXED]` in `audit/FINDINGS.md` and keep

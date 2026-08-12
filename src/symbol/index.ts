@@ -55,6 +55,8 @@ export interface SymbolFacet {
   origin: SymbolOrigin;
   /** False only when analysis retains a declaration that must not emit. */
   emit: boolean;
+  /** Explicit parser/linker provenance; never infer this from a public name. */
+  synthetic?: "anonymousType";
   provenance: readonly SymbolProvenance[];
 }
 

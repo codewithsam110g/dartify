@@ -98,6 +98,7 @@ describe("pre-S5 emitter acceptance fixture", () => {
     ).toEqual([
       "EXTERNAL_MODULE_AUGMENTATION_SUPPRESSED",
       "EXTERNAL_MODULE_AUGMENTATION_SUPPRESSED",
+      "UNSUPPORTED_COMPUTED_MEMBER",
     ]);
 
     const foundation = [...report.files.values()].find(

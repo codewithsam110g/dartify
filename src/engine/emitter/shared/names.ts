@@ -9,6 +9,29 @@ export function jsName(binding: IRBindingName): string {
   return binding.jsName ?? binding.name;
 }
 
+export function isComputedMember(binding: IRBindingName): boolean {
+  const name = jsName(binding);
+  return name.startsWith("[") && name.endsWith("]");
+}
+
+export function isRenamedBinding(binding: IRBindingName): boolean {
+  return dartName(binding) !== jsName(binding);
+}
+
+export function staticClassBindingName(
+  owner: IRBindingName,
+  member: IRBindingName,
+): string {
+  return `${dartName(owner)}_${dartName(member)}`;
+}
+
+export function unsupportedComputedMemberComment(
+  binding: IRBindingName,
+  indent = "  ",
+): string {
+  return `${indent}// Unsupported computed JavaScript member preserved in IR: ${jsName(binding)}`;
+}
+
 export function qualifiedJsName(
   binding: IRBindingName,
   prefix: string,

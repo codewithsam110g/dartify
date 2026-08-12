@@ -32,7 +32,13 @@ class SymbolGenerator {
 
   private parseContext(fqn: string, filePath: string): ParseContext {
     return new ParseContext(fqn, (hoistedFQN, declaration) => {
-      this.register(hoistedFQN, SymbolType.INTERFACE, declaration, filePath);
+      this.register(
+        hoistedFQN,
+        SymbolType.INTERFACE,
+        declaration,
+        filePath,
+        "anonymousType",
+      );
     });
   }
 
@@ -47,6 +53,7 @@ class SymbolGenerator {
     type: SymbolType,
     ir: IRDeclarationUnion,
     filePath: string,
+    synthetic?: SymbolFacet["synthetic"],
   ): void {
     const facet: SymbolFacet = {
       type,
@@ -58,6 +65,7 @@ class SymbolGenerator {
         sourceOrder: this.sourceOrder++,
       },
       emit: true,
+      ...(synthetic ? { synthetic } : {}),
       provenance: [{ fqn, type, loc: ir.loc }],
     };
     const symbol: Symbol = {
@@ -256,6 +264,7 @@ class SymbolGenerator {
           SymbolType.INTERFACE,
           declaration,
           filePath,
+          "anonymousType",
         );
       }),
     );

@@ -3,7 +3,7 @@ import { IRDeclKind } from "@ir/declaration";
 import { forEachIRType } from "@ir/visit";
 import { Symbol, SymbolFacet } from "@/symbol";
 import { dependenciesOfFacets } from "@/symbol/dependencies";
-import { sourceFileOfFQN, terminalNameOfFQN } from "@/symbol/fqn";
+import { sourceFileOfFQN } from "@/symbol/fqn";
 import { SymbolTable, SymbolTableChange } from "@/symbol/table";
 import { anonymousShapeKey } from "./shape";
 import { mergeDeclarationGroups } from "./merge";
@@ -167,7 +167,7 @@ function canonicalizeAnonymousSymbols(
       return (
         group[0].facets.length === 1 &&
         facet.ir.kind === IRDeclKind.Interface &&
-        terminalNameOfFQN(fqn).startsWith("Anon_")
+        facet.synthetic === "anonymousType"
       );
     })
     .sort(([, a], [, b]) =>

@@ -7,9 +7,11 @@ import {
 } from "../shared/shared";
 import {
   dartName,
+  isComputedMember,
   memberJsAnnotation,
   qualifiedJsName,
   renamedMemberAnnotation,
+  unsupportedComputedMemberComment,
 } from "../shared/names";
 
 export function emitInterface(
@@ -63,6 +65,10 @@ export function emitInterface(
   for (const getter of irInterface.getAccessors.filter(
     (value) => value.isStatic,
   )) {
+    if (isComputedMember(getter)) {
+      parts.push(unsupportedComputedMemberComment(getter));
+      continue;
+    }
     parts.push(...renamedMemberAnnotation(getter));
     parts.push(
       `  external static ${returnTypeAliasName(getter.type)} get ${dartName(getter)};`,
@@ -71,6 +77,10 @@ export function emitInterface(
   for (const setter of irInterface.setAccessors.filter(
     (value) => value.isStatic,
   )) {
+    if (isComputedMember(setter)) {
+      parts.push(unsupportedComputedMemberComment(setter));
+      continue;
+    }
     parts.push(...renamedMemberAnnotation(setter));
     parts.push(
       `  external static set ${dartName(setter)}(${formatParameterList([setter.parameter])});`,
@@ -92,6 +102,10 @@ export function emitInterface(
   for (const getter of irInterface.getAccessors.filter(
     (value) => !value.isStatic,
   )) {
+    if (isComputedMember(getter)) {
+      parts.push(unsupportedComputedMemberComment(getter));
+      continue;
+    }
     parts.push(...renamedMemberAnnotation(getter));
     parts.push(
       `  external ${returnTypeAliasName(getter.type)} get ${dartName(getter)};`,
@@ -100,6 +114,10 @@ export function emitInterface(
   for (const setter of irInterface.setAccessors.filter(
     (value) => !value.isStatic,
   )) {
+    if (isComputedMember(setter)) {
+      parts.push(unsupportedComputedMemberComment(setter));
+      continue;
+    }
     parts.push(...renamedMemberAnnotation(setter));
     parts.push(
       `  external set ${dartName(setter)}(${formatParameterList([setter.parameter])});`,
@@ -122,6 +140,10 @@ function emitProperties(
 ): void {
   const staticText = isStatic ? "static " : "";
   for (const property of properties) {
+    if (isComputedMember(property)) {
+      parts.push(unsupportedComputedMemberComment(property));
+      continue;
+    }
     parts.push(...renamedMemberAnnotation(property));
     parts.push(
       `  external ${staticText}${emitType(property.type)} get ${dartName(property)};`,
@@ -142,6 +164,10 @@ function emitMethods(
 ): void {
   const staticText = isStatic ? "static " : "";
   for (const method of methods) {
+    if (isComputedMember(method)) {
+      parts.push(unsupportedComputedMemberComment(method));
+      continue;
+    }
     parts.push(memberJsAnnotation(method));
     parts.push(
       `  external ${staticText}${returnTypeAliasName(method.returnType)} ${dartName(method)}(${formatParameterList(method.parameters)});`,

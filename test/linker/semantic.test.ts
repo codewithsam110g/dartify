@@ -269,6 +269,112 @@ describe("Stage 4 declaration semantics", () => {
       },
     );
   });
+
+  test("preserves callable and constructable constructor targets instead of losing signatures", async () => {
+    await withTestProject(
+      {
+        "callable-companion.d.ts": [
+          "interface CallableTarget { (value: string): number }",
+          "declare var Callable: {",
+          "  prototype: CallableTarget;",
+          "  new (): CallableTarget;",
+          "};",
+          "interface ConstructableTarget { new (value: string): CallableTarget }",
+          "declare var Constructable: {",
+          "  prototype: ConstructableTarget;",
+          "  new (): ConstructableTarget;",
+          "};",
+        ].join("\n"),
+      },
+      ({ analysis, files, symbols }) => {
+        const file = files.get("callable-companion.d.ts")!;
+        const callable = symbols.get(`${file}::CallableTarget`)?.[0]
+          .facets[0].ir as IRInterface;
+        const constructable = symbols.get(`${file}::ConstructableTarget`)?.[0]
+          .facets[0].ir as IRInterface;
+
+        expect(callable.callSignatures).toHaveLength(1);
+        expect(constructable.constructSignatures).toHaveLength(1);
+        expect(symbols.get(`${file}::Callable`)?.[0].facets[0].ir.kind).toBe(
+          "variable",
+        );
+        expect(
+          symbols.get(`${file}::Constructable`)?.[0].facets[0].ir.kind,
+        ).toBe("variable");
+        expect(
+          analysis.link.semantic.diagnostics.map((diagnostic) =>
+            diagnostic.message
+          ),
+        ).toEqual(
+          expect.arrayContaining([
+            "Callable constructor targets cannot be folded into IRClass",
+            "Constructable constructor targets cannot be folded into IRClass",
+          ]),
+        );
+      },
+    );
+  });
+
+  test("preserves value-side index signatures when static folding is unsupported", async () => {
+    await withTestProject(
+      {
+        "indexed-value.d.ts": [
+          "interface Catalog { own: string }",
+          "declare var Catalog: { [key: string]: number };",
+        ].join("\n"),
+      },
+      ({ analysis, files, symbols }) => {
+        const file = files.get("indexed-value.d.ts")!;
+        const catalog = symbols.get(`${file}::Catalog`)?.[0];
+        const anonymous = [...symbols.entries()].find(
+          ([fqn, group]) =>
+            fqn.includes("::Anon_Catalog") &&
+            group[0].facets[0].synthetic === "anonymousType",
+        )?.[1][0].facets[0].ir as IRInterface | undefined;
+
+        expect(catalog?.facets.map((facet) => facet.ir.kind).sort()).toEqual([
+          "interface",
+          "variable",
+        ]);
+        expect(anonymous?.indexSignatures).toHaveLength(1);
+        expect(analysis.link.semantic.diagnostics).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              code: "DECLARATION_MERGE_CONFLICT",
+              ownerFQN: `${file}::Catalog`,
+              action: "preservedUnmerged",
+            }),
+          ]),
+        );
+      },
+    );
+  });
+
+  test("never canonicalizes author declarations that merely start with Anon_", async () => {
+    await withTestProject(
+      {
+        "author-anon.d.ts": [
+          "interface Anon_A { value: string }",
+          "interface Anon_B { value: string }",
+          "declare let a: Anon_A;",
+          "declare let b: Anon_B;",
+        ].join("\n"),
+      },
+      ({ analysis, files, symbols }) => {
+        const file = files.get("author-anon.d.ts")!;
+        expect(symbols.has(`${file}::Anon_A`)).toBe(true);
+        expect(symbols.has(`${file}::Anon_B`)).toBe(true);
+        expect(symbols.get(`${file}::Anon_A`)?.[0].facets[0].synthetic).toBe(
+          undefined,
+        );
+        expect(symbols.get(`${file}::Anon_B`)?.[0].facets[0].synthetic).toBe(
+          undefined,
+        );
+        expect(analysis.link.semantic.anonymousSymbolsCanonicalized).toBe(0);
+        expect(analysis.link.semantic.redirects).toEqual([]);
+      },
+    );
+  });
 });
 
 describe("Stage 4 Dart name allocation", () => {
@@ -432,6 +538,70 @@ describe("Stage 4 Dart name allocation", () => {
       },
     );
   });
+
+  test("reserves unqualified Dart backend type and annotation names", async () => {
+    await withTestProject(
+      {
+        "backend-names.d.ts": [
+          "declare class String {",
+          "  constructor(value: string);",
+          "  value: string;",
+          "}",
+          "interface List { values: string[] }",
+          "declare const JS: string;",
+        ].join("\n"),
+      },
+      ({ files, symbols }) => {
+        const file = files.get("backend-names.d.ts")!;
+        expect(symbols.get(`${file}::String`)?.[0].facets[0].ir).toMatchObject({
+          dartName: "JS$String",
+          jsName: "String",
+        });
+        expect(symbols.get(`${file}::List`)?.[0].facets[0].ir).toMatchObject({
+          dartName: "JS$List",
+          jsName: "List",
+        });
+        expect(symbols.get(`${file}::JS`)?.[0].facets[0].ir).toMatchObject({
+          dartName: "JS$JS",
+          jsName: "JS",
+        });
+      },
+    );
+  });
+
+  test("reserves generated extension and enum companion names", async () => {
+    await withTestProject(
+      {
+        "helpers.d.ts": [
+          "interface Smoothstep { value: string }",
+          "interface SmoothstepExtension { other: string }",
+          "enum Mix { A }",
+          "interface MixEnum { value: string }",
+          "interface ExistingExtension { value: string }",
+          "interface Existing { other: string }",
+          "declare class Factory {",
+          "  static make(value: string): Factory;",
+          "  static make(value: number): Factory;",
+          "}",
+          "declare function Factory_make_1(): void;",
+        ].join("\n"),
+      },
+      ({ files, symbols }) => {
+        const file = files.get("helpers.d.ts")!;
+        const name = (sourceName: string) =>
+          symbols.get(`${file}::${sourceName}`)?.[0].facets[0].ir.dartName;
+
+        expect(name("Smoothstep")).toBe("Smoothstep");
+        expect(name("SmoothstepExtension")).toBe("SmoothstepExtension_2");
+        expect(name("Mix")).toBe("Mix");
+        expect(name("MixEnum")).toBe("MixEnum_2");
+        expect(name("ExistingExtension")).toBe("ExistingExtension");
+        expect(name("Existing")).toBe("Existing_2");
+        expect(name("Factory")).toBe("Factory");
+        expect(name("Factory_make_1")).toBe("Factory_make_1_2");
+      },
+    );
+  });
 });
 
 describe("Stage 4 transitional emission", () => {
@@ -457,7 +627,14 @@ describe("Stage 4 transitional emission", () => {
     expect(content).toContain("abstract class JS$abstract{}");
     expect(content).toContain('@JS("while")\n  external String get JS$while;');
     expect(content).toContain(
-      '@JS("[Symbol.iterator]")\n  external Iterator<num> JS$Symbol_iterator()',
+      "// Unsupported computed JavaScript member preserved in IR: [Symbol.iterator]",
+    );
+    expect(content).not.toContain('@JS("[Symbol.iterator]")');
+    expect(report.analysis.link.semantic.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "UNSUPPORTED_COMPUTED_MEMBER",
+        action: "preservedUnsupported",
+      }),
     );
     expect(content).toContain('@JS("run")\n  external JS$abstract run_1');
     expect(content).toContain('@JS("run")\n  external JS$abstract run_2');
@@ -485,6 +662,62 @@ describe("Stage 4 transitional emission", () => {
     expect(content).toContain("external static Config create(String value);");
     expect(content).toContain("extension ConfigExtension on Config");
     expect(content).toContain("external String get instance;");
+  });
+
+  test("emits renamed class instance overloads as extension interop members", async () => {
+    const report = await renderTestProject({
+      "class-overloads.d.ts": [
+        "declare class Widget {",
+        "  f(value: string): string;",
+        "  f(value: number): number;",
+        "  plain(): void;",
+        "}",
+      ].join("\n"),
+    });
+    const content = [...report.files.values()][0].content;
+    const classEnd = content.indexOf("}\nextension WidgetExtension");
+
+    expect(classEnd).toBeGreaterThan(0);
+    expect(content.slice(0, classEnd)).toContain("external void plain();");
+    expect(content.slice(0, classEnd)).not.toContain(" f_1(");
+    expect(content).toContain("extension WidgetExtension on Widget {");
+    expect(content).toContain('@JS("f")\n  external String f_1(String value);');
+    expect(content).toContain('@JS("f")\n  external num f_2(num value);');
+  });
+
+  test("lowers renamed static class members to qualified top-level bindings", async () => {
+    const report = await renderTestProject({
+      "static-overloads.d.ts": [
+        "declare class Factory {",
+        "  static make(value: string): Factory;",
+        "  static make(value: number): Factory;",
+        "}",
+        "declare function Factory_make_1(): void;",
+      ].join("\n"),
+    });
+    const content = [...report.files.values()][0].content;
+
+    expect(content).toContain(
+      '@JS("Factory.make")\nexternal Factory Factory_make_1(String value);',
+    );
+    expect(content).toContain(
+      '@JS("Factory.make")\nexternal Factory Factory_make_2(num value);',
+    );
+    expect(content).not.toContain("static Factory make_1(");
+    expect(content).not.toContain("static Factory make_2(");
+    expect(content).toContain(
+      '@JS("Factory_make_1")\nexternal void Factory_make_1_2();',
+    );
+  });
+
+  test("prefixes library names derived from digit-leading declaration files", async () => {
+    const report = await renderTestProject({
+      "3MFLoader.d.ts": "export interface Loader { value: string }",
+    });
+    const content = [...report.files.values()][0].content;
+
+    expect(content).toContain("library dartify_3MFLoader;");
+    expect(content).not.toContain("library 3MFLoader;");
   });
 
   test("does not emit external augmentation declarations", async () => {

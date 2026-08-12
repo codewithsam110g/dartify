@@ -72,6 +72,35 @@ export const DART_BUILT_IN_IDENTIFIERS = new Set([
   "typedef",
 ]);
 
+/**
+ * Unqualified names emitted by the package:js backend itself.
+ *
+ * A source declaration with one of these names would capture primitive,
+ * collection, async, or annotation references in the same Dart library. They
+ * are reserved only for top-level type/value allocation; members and
+ * parameters may legally use the same spelling.
+ */
+export const DART_BACKEND_RESERVED_NAMES = new Set([
+  "BigInt",
+  "DateTime",
+  "Future",
+  "JS",
+  "List",
+  "Map",
+  "Null",
+  "Object",
+  "Record",
+  "Set",
+  "String",
+  "anonymous",
+  "bool",
+  "double",
+  "dynamic",
+  "int",
+  "num",
+  "void",
+]);
+
 export type DartIdentifierContext = "type" | "value" | "member" | "parameter";
 
 export function legalDartName(
@@ -86,6 +115,8 @@ export function legalDartName(
   }
   const illegal =
     DART_RESERVED_WORDS.has(sourceName) ||
-    (context === "type" && DART_BUILT_IN_IDENTIFIERS.has(sourceName));
+    (context === "type" && DART_BUILT_IN_IDENTIFIERS.has(sourceName)) ||
+    ((context === "type" || context === "value") &&
+      DART_BACKEND_RESERVED_NAMES.has(sourceName));
   return illegal ? `JS$${sourceName}` : sourceName;
 }

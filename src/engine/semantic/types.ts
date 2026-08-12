@@ -2,13 +2,14 @@ export type SemanticDiagnosticCode =
   | "EXTERNAL_MODULE_AUGMENTATION_SUPPRESSED"
   | "DECLARATION_MERGE_CONFLICT"
   | "AMBIGUOUS_CONSTRUCTOR_COMPANION"
-  | "UNSUPPORTED_DECLARATION_GROUP";
+  | "UNSUPPORTED_DECLARATION_GROUP"
+  | "UNSUPPORTED_COMPUTED_MEMBER";
 
 export interface SemanticDiagnostic {
   code: SemanticDiagnosticCode;
   ownerFQN: string;
   message: string;
-  action: "suppressed" | "preservedUnmerged";
+  action: "suppressed" | "preservedUnmerged" | "preservedUnsupported";
 }
 
 export interface SemanticRedirect {

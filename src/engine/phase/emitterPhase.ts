@@ -216,7 +216,9 @@ function deriveDartLibraryName(sourceFile: string): string {
         fileName = fileName.replace(extname(fileName), "");
     }
 
-    return fileName.replace(/[^a-zA-Z0-9]/g, "_");
+    const sanitized = fileName.replace(/[^a-zA-Z0-9]/g, "_");
+    if (/^[a-zA-Z_]/.test(sanitized)) return sanitized;
+    return `dartify_${sanitized || "bindings"}`;
 }
 
 /**

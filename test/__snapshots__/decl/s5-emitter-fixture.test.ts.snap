@@ -22,6 +22,7 @@ exports[`pre-S5 emitter acceptance fixture > renders the complete multi-file Dar
   Semantic diagnostics:
   ⚠ EXTERNAL_MODULE_AUGMENTATION_SUPPRESSED <fixture>/augmentation.d.ts::"./foundation"|WidgetOptions [suppressed]: External module augmentation './foundation' is modeled but not emitted in Stage 4
   ⚠ EXTERNAL_MODULE_AUGMENTATION_SUPPRESSED <fixture>/augmentation.d.ts::"./foundation"|WidgetType [suppressed]: External module augmentation './foundation' is modeled but not emitted in Stage 4
+  ⚠ UNSUPPORTED_COMPUTED_MEMBER <fixture>/foundation.d.ts::OddNames [preservedUnsupported]: Computed member '[Symbol.iterator]' is preserved in IR but not emitted by the package:js backend
   Edges:
   ✓ <fixture>/ambient.d.ts::"virtual-sdk"|connect --Remote--> <fixture>/ambient.d.ts::"virtual-sdk"|Remote [checker]
   ✓ <fixture>/augmentation.d.ts::globalWidgetRegistry --GlobalWidgetRegistry--> <fixture>/augmentation.d.ts::GlobalWidgetRegistry [checker]
@@ -59,7 +60,7 @@ exports[`pre-S5 emitter acceptance fixture > renders the complete multi-file Dar
   ✓ <fixture>/foundation.d.ts::withInline --Anon_withInline_overload_0_param_0_options--> <fixture>/foundation.d.ts::Anon_withInline_overload_0_param_0_options [checker]
   ✓ <fixture>/foundation.d.ts::withInline --Anon_withInline_overload_0_param_1_equivalent--> <fixture>/foundation.d.ts::Anon_withInline_overload_0_param_1_equivalent [checker]
   ✓ <fixture>/foundation.d.ts::withInline --Anon_withInline_overload_0_return--> <fixture>/foundation.d.ts::Anon_withInline_overload_0_return [checker]",
-    "warning": "⚠️  Semantic analysis: 2 diagnostic(s); rerun with -lv for complete records",
+    "warning": "⚠️  Semantic analysis: 3 diagnostic(s); rerun with -lv for complete records",
   },
   "renderedFiles": [
     {
@@ -205,7 +206,6 @@ class Service {
   external String get url;
   external bool get mergedFlag;
   external set mergedFlag(bool value);
-  @JS("start")
   external void start();
 }
 
@@ -227,12 +227,13 @@ class Widget {
   external String get name;
   external set name(String value);
   external static String get version;
+  external static Widget create([WidgetOptions options]);
+}
+extension WidgetExtension on Widget {
   @JS("configure")
   external Widget configure_1(WidgetOptions options);
   @JS("configure")
   external Widget configure_2(String label, [num size]);
-  @JS("create")
-  external static Widget create([WidgetOptions options]);
 }
 
 @JS("Codec")
@@ -304,8 +305,7 @@ extension OddNamesExtension on OddNames {
   external set JS$kebab_name(num value);
   @JS("static")
   external bool static();
-  @JS("[Symbol.iterator]")
-  external Iterator<String> JS$Symbol_iterator();
+  // Unsupported computed JavaScript member preserved in IR: [Symbol.iterator]
 }
 
 @JS("State")

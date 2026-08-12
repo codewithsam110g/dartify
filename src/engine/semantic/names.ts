@@ -28,15 +28,15 @@ export function assignSemanticNames(
   report: SemanticReport,
 ): void {
   renameOverloads(draft, report);
-  allocateTopLevelNames(draft, report);
-  for (const group of draft.values()) {
+  for (const [fqn, group] of draft) {
     for (const symbol of group) {
       for (const facet of symbol.facets) {
-        assignMemberNames(facet.ir, report);
+        assignMemberNames(fqn, facet.ir, report);
         assignNestedNames(facet.ir, report);
       }
     }
   }
+  allocateTopLevelNames(draft, report);
 }
 
 function renameOverloads(
@@ -144,6 +144,10 @@ function allocateTopLevelNames(
         entry.preferred,
         entry.scopeSegments,
         used,
+        (candidate) =>
+          generatedCompanionNames(entry.facet, candidate).every(
+            (name) => !used.has(name),
+          ),
       );
       entry.facet.ir.dartName = allocated;
       entry.facet.ir.jsName = entry.facet.ir.name;
@@ -156,6 +160,9 @@ function allocateTopLevelNames(
         report.namespaceRenames++;
       }
       used.add(allocated);
+      for (const companion of generatedCompanionNames(entry.facet, allocated)) {
+        used.add(companion);
+      }
     }
   }
 }
@@ -164,16 +171,69 @@ function allocateName(
   preferred: string,
   scopeSegments: readonly string[],
   used: ReadonlySet<string>,
+  additionalAvailability: (candidate: string) => boolean = () => true,
 ): string {
-  if (!used.has(preferred)) return preferred;
+  const available = (candidate: string) =>
+    !used.has(candidate) && additionalAvailability(candidate);
+  if (available(preferred)) return preferred;
   for (let count = 1; count <= scopeSegments.length; count++) {
     const prefix = scopeSegments.slice(-count).join("_");
     const candidate = `${prefix}_${preferred}`;
-    if (!used.has(candidate)) return candidate;
+    if (available(candidate)) return candidate;
   }
   let suffix = 2;
-  while (used.has(`${preferred}_${suffix}`)) suffix++;
+  while (!available(`${preferred}_${suffix}`)) suffix++;
   return `${preferred}_${suffix}`;
+}
+
+function generatedCompanionNames(
+  facet: SymbolFacet,
+  declarationName: string,
+): string[] {
+  if (facet.ir.kind === IRDeclKind.Interface) {
+    return [`${declarationName}Extension`];
+  }
+  if (facet.ir.kind === IRDeclKind.Enum) {
+    return [`${declarationName}Enum`];
+  }
+  if (facet.ir.kind === IRDeclKind.Class) {
+    const declaration = facet.ir as IRClass;
+    const generated = classNeedsInteropExtension(declaration)
+      ? [`${declarationName}Extension`]
+      : [];
+    for (const member of [
+      ...declaration.properties,
+      ...declaration.methods,
+      ...declaration.getAccessors,
+      ...declaration.setAccessors,
+    ]) {
+      if (
+        member.isStatic &&
+        !isComputedMemberName(member.name) &&
+        (member.dartName ?? member.name) !== (member.jsName ?? member.name)
+      ) {
+        generated.push(
+          `${declarationName}_${member.dartName ?? member.name}`,
+        );
+      }
+    }
+    return [...new Set(generated)];
+  }
+  return [];
+}
+
+function classNeedsInteropExtension(declaration: IRClass): boolean {
+  return [
+    ...declaration.properties,
+    ...declaration.methods,
+    ...declaration.getAccessors,
+    ...declaration.setAccessors,
+  ].some(
+    (member) =>
+      !member.isStatic &&
+      !isComputedMemberName(member.name) &&
+      (member.dartName ?? member.name) !== (member.jsName ?? member.name),
+  );
 }
 
 function dartScopeSegments(facet: SymbolFacet): string[] {
@@ -193,11 +253,13 @@ function withJSPrefix(name: string): string {
 }
 
 function assignMemberNames(
+  ownerFQN: string,
   declaration: IRDeclarationUnion,
   report: SemanticReport,
 ): void {
   if (declaration.kind === IRDeclKind.Enum) {
     allocateMemberGroups(
+      ownerFQN,
       (declaration as IREnum).members.map((member) => [member]),
       report,
     );
@@ -223,10 +285,11 @@ function assignMemberNames(
     accessors.set(key, values);
   }
   groups.push(...accessors.values());
-  allocateMemberGroups(groups, report);
+  allocateMemberGroups(ownerFQN, groups, report);
 }
 
 function allocateMemberGroups(
+  ownerFQN: string,
   groups: readonly IRBindingName[][],
   report: SemanticReport,
 ): void {
@@ -242,7 +305,44 @@ function allocateMemberGroups(
       node.jsName = sourceName;
     }
     used.add(allocated);
+
+    if (isComputedMemberName(sourceName)) {
+      addMemberDiagnostic(
+        report,
+        "UNSUPPORTED_COMPUTED_MEMBER",
+        ownerFQN,
+        `Computed member '${sourceName}' is preserved in IR but not emitted by the package:js backend`,
+      );
+    }
   }
+}
+
+function isComputedMemberName(name: string): boolean {
+  return name.startsWith("[") && name.endsWith("]");
+}
+
+function addMemberDiagnostic(
+  report: SemanticReport,
+  code: "UNSUPPORTED_COMPUTED_MEMBER",
+  ownerFQN: string,
+  message: string,
+): void {
+  if (
+    report.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === code &&
+        diagnostic.ownerFQN === ownerFQN &&
+        diagnostic.message === message,
+    )
+  ) {
+    return;
+  }
+  report.diagnostics.push({
+    code,
+    ownerFQN,
+    action: "preservedUnsupported",
+    message,
+  });
 }
 
 function assignNestedNames(

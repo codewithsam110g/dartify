@@ -16,7 +16,6 @@ import {
   SymbolFacet,
   SymbolType,
 } from "@/symbol";
-import { terminalNameOfFQN } from "@/symbol/fqn";
 import { semanticKey } from "./shape";
 import { SemanticReport } from "./types";
 
@@ -260,6 +259,14 @@ function mergeConstructorCompanions(
       continue;
     }
 
+    const targetIR = targetFacet.ir as IRInterface;
+    const shapeIR = shape.facet.ir as IRInterface;
+    const unsupported = unsupportedConstructorCompanion(targetIR, shapeIR);
+    if (unsupported) {
+      diagnoseConflict(report, variableFQN, unsupported);
+      continue;
+    }
+
     const synthesized = synthesizeClass(
       variableFacet,
       targetFacet,
@@ -311,10 +318,29 @@ function mergeDefaultInterfaceValues(
     const shape = anonymousValueShape(variableFacet, draft);
     if (!shape) continue;
     const shapeIR = shape.facet.ir as IRInterface;
-    if (
-      constructorTarget(shapeIR).kind !== "none" ||
-      shapeIR.callSignatures.length > 0
-    ) {
+    const constructor = constructorTarget(shapeIR);
+    if (constructor.kind !== "none") {
+      diagnoseConflict(
+        report,
+        fqn,
+        "Constructable value shapes cannot be folded into an interface",
+      );
+      continue;
+    }
+    if (shapeIR.callSignatures.length > 0) {
+      diagnoseConflict(
+        report,
+        fqn,
+        "Callable value shapes cannot be folded into an interface",
+      );
+      continue;
+    }
+    if (shapeIR.indexSignatures.length > 0) {
+      diagnoseConflict(
+        report,
+        fqn,
+        "Value-side index signatures cannot be represented as static interface members",
+      );
       continue;
     }
 
@@ -374,11 +400,33 @@ function anonymousValueShape(
     return undefined;
   }
   const fqn = variable.type.reference.lookup.candidates[0];
-  if (!terminalNameOfFQN(fqn).startsWith("Anon_")) return undefined;
   const facet = draft
     .get(fqn)?.[0]
-    .facets.find((candidate) => candidate.ir.kind === IRDeclKind.Interface);
+    .facets.find(
+      (candidate) =>
+        candidate.ir.kind === IRDeclKind.Interface &&
+        candidate.synthetic === "anonymousType",
+    );
   return facet ? { fqn, facet } : undefined;
+}
+
+function unsupportedConstructorCompanion(
+  target: IRInterface,
+  shape: IRInterface,
+): string | undefined {
+  if (target.callSignatures.length > 0) {
+    return "Callable constructor targets cannot be folded into IRClass";
+  }
+  if (target.constructSignatures.length > 0) {
+    return "Constructable constructor targets cannot be folded into IRClass";
+  }
+  if (shape.callSignatures.length > 0) {
+    return "Callable constructor value shapes cannot be folded into IRClass";
+  }
+  if (shape.indexSignatures.length > 0) {
+    return "Constructor value-side index signatures cannot be folded into IRClass";
+  }
+  return undefined;
 }
 
 type ConstructorTarget =

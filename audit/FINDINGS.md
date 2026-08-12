@@ -20,6 +20,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `L-01` **[FIXED — S2]** | ~~Cross-file dep FQNs name the importing file, not the declaring file~~ — checker-backed targets now retain declaring file and target name; three.js has 0 checker-target fallbacks | `parser/type/typeRefernce.ts`, `symbol/fqn.ts` | ✅ |
 | `P-01` **[FIXED — S2]** | ~~Heritage clauses bypass `parseType`~~ — class/interface heritage is `IRType[]` and contributes reference edges | `parser/{interface,class}.ts` | ✅ |
 | `E-08` | No cross-file imports are ever emitted — 415/415 three.js files uncompilable | `phase/emitterPhase.ts:188-195` | ✅ |
+| `E-23` | Cross-file type uses emit only the target's library-local leaf name; if the consumer library declares that name, Dart silently binds to the wrong local type. The S5 fixture resolves `Consumer --Toolkit.Options--> foundation::Toolkit\|Options` but emits the consumer's own `Options` | `linkerPhase.ts:252-262`, `emitter/old/type/emit.ts:49-64`, `s5-emitter-fixture.test.ts.snap` | ✅ |
 | `T-02` **[FIXED]** | ~~`IRType.originalText` declared but never written — source text destroyed at parse~~ — written for every node at every depth from one place in `parseType` (S1.2), whitespace-normalised, no truncation | `type/sourceText.ts`, `type/type.ts` | ✅ |
 | `E-03` | Type parameters never emitted — every generic declaration is uncompilable | `emitter/old/class.ts:17` | ✅ |
 | `E-04` | `extends`/`implements` never emitted — whole inheritance graph dropped | all emitters | ✅ |

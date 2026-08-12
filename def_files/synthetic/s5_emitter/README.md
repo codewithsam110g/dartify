@@ -42,6 +42,11 @@ Dart analysis currently reports 34 errors: 12 missing cross-file imports
 (`E-08`), eight generic/`Record` lowering errors (`E-03`), two typed-array
 substitution errors (S5.3), and 12 malformed quoted-member annotation errors
 (`E-13`). These are expected S5 targets, not accepted final output. Building
-this fixture also exposed a `this`-type redirect gap; `P-07` now carries a
-linkable owner identity and the golden proves both fluent returns resolve from
-`WidgetType` to the merged `Widget` declaration.
+this fixture also exposed analyzer-invisible `E-23`: `Consumer.options` links
+to `foundation::Toolkit|Options` but currently emits as bare `Options`, which
+Dart silently resolves to the consumer's local `Alpha.Options`. S5.2 must emit
+a prefixed `foundation.Options` reference and lock that exact assertion.
+
+The fixture additionally exposed a `this`-type redirect gap; `P-07` now carries
+a linkable owner identity and the golden proves both fluent returns resolve
+from `WidgetType` to the merged `Widget` declaration.

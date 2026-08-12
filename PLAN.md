@@ -309,13 +309,15 @@ inputs as real `.d.ts` declaration files, then snapshots all Dart and normalized
 verbose CLI output under `def_files/synthetic/s5_emitter/`. Executable `.ts`
 programs and implementation lowering are outside the project boundary. The
 fixture links 40/40 symbols and 36/36 edges; Dart analysis has 34 errors mapped
-to `E-08`, `E-03`, S5.3, and `E-13`. Update the golden only after reviewing the
-complete Dart diff and re-running the analyzer.
+to `E-08`, `E-03`, S5.3, and `E-13`. It also locks the analyzer-invisible
+`E-23` baseline: a correctly linked foreign `Toolkit.Options` is emitted as a
+bare name and captured by the consumer's local `Options`. Update the golden
+only after reviewing the complete Dart diff and re-running the analyzer.
 
 | # | Task | Findings |
 |---|---|---|
 | 5.1 | Backend interface: a type-emitter + statement-emitter string-table pair. Rename the `@typeEmitter` alias off `emitter/old/` | `E-11b` |
-| 5.2 | **Emit imports from `resolvedDeps`** (2.6) | `E-08` |
+| 5.2 | **Emit deterministic prefixed imports from `resolvedDeps`; qualify every foreign use site from `resolvedFQN` + `resolvedDartName` and prevent local-name capture** | `E-08`, `E-23` |
 | 5.3 | `dart:html` / `dart:typed_data` substitution imports (§14.1-14.3) | v1 goal |
 | 5.4 | Type params on all declarations, with constraints | `E-03` |
 | 5.5 | `extends` / `implements` incl. generic args (§14.5) | `E-04` |

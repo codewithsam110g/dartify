@@ -235,6 +235,59 @@ Also missing: `dart:html` / `dart:typed_data` substitution imports
 
 ---
 
+## E-23 — Cross-file leaf names can silently bind to the wrong local type `[verified]`
+
+The pre-S5 declaration fixture contains this correctly linked edge:
+
+```text
+consumer.d.ts::Consumer
+  --Toolkit.Options-->
+foundation.d.ts::Toolkit|Options
+```
+
+The use site retains the full `resolvedFQN`, and S4 correctly assigns the
+target's library-local `resolvedDartName` as `Options`. The transitional type
+emitter reads only that leaf name:
+
+```ts
+const resolvedName = type.reference?.resolvedDartName;
+let typeName = resolvedName ?? type.name;
+```
+
+It has no current-library/import context and ignores `resolvedFQN`. Consequently
+`consumer.dart` emits:
+
+```dart
+external Options get options;
+```
+
+That file also contains its own `Options`, translated from `Alpha.Options`, so
+Dart accepts the output and binds `Consumer.options` to the **wrong type**. This
+is distinct from `E-08`: a missing foreign type produces an analyzer error;
+`E-23` is analyzer-clean semantic corruption caused by accidental local capture.
+
+S5.2 must allocate deterministic, collision-safe prefixes for foreign Dart
+libraries and make type emission use both pieces of linked identity:
+
+```dart
+import 'foundation.dart' as foundation;
+
+external foundation.Options get options;
+```
+
+Same-file references remain unqualified. Cross-file references must derive the
+target library from `resolvedFQN` and the declaration token from
+`resolvedDartName`; `resolvedDeps` supplies the file-level import set. Do not
+fix this by renaming whichever local declaration happened to collide—the same
+foreign reference must be stable regardless of consumer-local names.
+
+**S5 acceptance:** keep the exact linker-edge assertion, assert a prefixed
+`foundation.dart` import and `foundation.Options`, and assert that the property
+does not emit as bare `Options`. `dart analyze` alone is insufficient because
+the current incorrect output already passes name resolution.
+
+---
+
 ## E-09 — Dart keyword escaping is absent `[verified]` **[FIXED — S4]**
 
 `semantic/keywords.ts` contains the checked Dart identifier classes and

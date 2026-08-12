@@ -4,6 +4,11 @@ This ledger tracks the implementation of `STAGE4_PLAN.md`. A finding is closed
 only after its focused reproduction changes from failing to passing and the
 stage gates remain clean.
 
+> **Post-S4 review (2026-08-12):** a deeper semantic/emitter/runtime review
+> found eight gaps in the original acceptance claims. They are recorded as
+> `L-17`, `L-18`, `P-14`, and `E-24`–`E-28` below. The original gate numbers
+> remain as historical S4-close evidence; the post-review gate supersedes them.
+
 ## Starting State
 
 - Branch: `refactor/orchestration`
@@ -49,7 +54,7 @@ files survived; `tsc` and build clean; bundle 112.24 KB; generated h3 passed
 | `D-01` | quarantined five-pass directories remained on disk | 1,684 lines deleted; aliases/exclusions removed; no inbound imports | **closed** |
 | `D-02` | retained concepts were not protected by live semantic tests | live shape walker/canonicalizer and overload tests replace the obsolete concepts | **closed** |
 | `X-13` | six comments described superseded behavior | all audited source/test/config comments corrected | **closed** |
-| `E-22` | three.js analyzer found computed `[Symbol.iterator]` emitted as a literal Dart method name, causing 4 `MISSING_IDENTIFIER` errors plus parser cascades | computed method becomes `JS$Symbol_iterator` with exact `@JS` spelling; three.js syntax errors 0 | **closed** |
+| `E-22` | three.js analyzer found computed `[Symbol.iterator]` emitted as a literal Dart method name, causing 4 `MISSING_IDENTIFIER` errors plus parser cascades | sanitation removed Dart syntax errors; runtime key semantics were not proven and are corrected separately by `E-25` | **closed: identifier legality only** |
 
 ## Stage Gates
 
@@ -81,4 +86,37 @@ files survived; `tsc` and build clean; bundle 112.24 KB; generated h3 passed
 
 `E-22`: computed TypeScript member spellings can be invalid Dart identifiers.
 The focused reproduction and three.js analyzer exposed it; semantic sanitation
-now produces a legal `dartName` while preserving the exact `jsName` annotation.
+produced a legal `dartName`. Post-S4 review later proved that preserving the
+computed text in a legacy `@JS` annotation did not preserve runtime semantics.
+
+## Post-S4 Deep-Review Corrections
+
+| Finding | Review evidence | Correction and verification | Status |
+|---|---|---|---|
+| `L-17` | callable/constructable target signatures disappeared after class synthesis | reject unsupported folds; retain both declarations and diagnose; focused IR test | **closed** |
+| `L-18` | value-side index signatures were omitted and their anonymous shape deleted | preserve the indexed value facet and diagnose; focused IR test | **closed** |
+| `P-14` | author `Anon_` declarations were eligible for synthetic canonicalization | explicit `synthetic: "anonymousType"` provenance; author-name fixture | **closed** |
+| `E-24` | dart2js compiled renamed class overloads as `receiver.f_1/f_2` | external instance extensions plus qualified top-level static bindings; analyzer, dart2js, and Node runtime probe call `f`/`Factory.make` | **closed** |
+| `E-25` | compiled computed annotation addressed a string/path rather than `Symbol.iterator` | explicit semantic diagnostic and no corrupt external binding; IR preserved | **closed for transitional backend** |
+| `E-26` | three.js local `class String` captured primitive Dart `String` | reserve backend-owned names; real AST output is `class JS$String` with primitive `String` parameters | **closed** |
+| `E-27` | three.js helper names collided with emitted extensions/enums | reserve every generated companion/static binding; focused name tests and targeted analyzer run | **closed** |
+| `E-28` | `3MFLoader`/`3DMLoader` emitted digit-leading libraries | prefix invalid starts; both real files parse without library-name errors | **closed** |
+
+Targeted analysis of the five affected three.js files now reports only known
+missing-import/generic diagnostics plus `package:js` deprecation info: no
+invalid library, duplicate definition, or backend-name-capture diagnostic.
+
+### Post-review gate
+
+| Gate | Result |
+|---|---|
+| focused S4 gate | **34/34** |
+| normal suite | **252 passed**, 4 skipped |
+| S2 corpus | **2/2** |
+| S3 corpus | **1/1**; 0 missing declaration/type locations |
+| full stress | **1,654/1,654** in 188.7 s; unchanged 719 known empty outputs |
+| `tsc --noEmit` | 0 errors |
+| Node 20 ESM build | **162.47 KB** |
+| h3 `dart analyze` | 0 errors/warnings; one expected `package:js` deprecation info |
+| overload dispatch probe | analyzer clean apart from deprecation; dart2js compile succeeds; Node calls `f` and `Factory.make` with four expected results |
+| targeted three.js review files | 0 invalid-library or duplicate-definition diagnostics; remaining issues are existing S5 imports/generics |

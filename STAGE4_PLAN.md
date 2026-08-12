@@ -3,6 +3,8 @@
 > **Status: implemented and verified.** Final commands, semantic totals, Dart
 > analyzer categories, and finding closures are recorded in
 > [`audit/S4-EVIDENCE.md`](audit/S4-EVIDENCE.md).
+> A 2026-08-12 post-S4 deep review found and corrected eight acceptance gaps;
+> the evidence ledger is authoritative for those errata.
 
 ## Summary
 
@@ -12,8 +14,8 @@ supported declaration groups, preserves TypeScript type/value facets, renames
 overloads and Dart collisions, and adapts the transitional emitter only far
 enough to exercise those semantics.
 
-The starting branch is `refactor/orchestration`. S0-S3 are complete; S4 has not
-started. Stage 5 backend work--imports, full generics and heritage, callable
+The implementation started on `refactor/orchestration` after S0-S3 completed.
+Stage 5 backend work--imports, full generics and heritage, callable
 interfaces, and constructor-overload emission--remains out of scope.
 
 Locked decisions:
@@ -25,6 +27,9 @@ Locked decisions:
 - Represent same-name type/value declarations as one symbol with multiple
   facets. Keep the type as `Name`; rename the runtime facet to `JS$Name`.
 - Preserve unsafe merge groups, assign unique names, diagnose, and continue.
+- Identify parser-hoisted anonymous declarations with explicit provenance,
+  never a public-name prefix.
+- Reserve backend-owned and generated helper/binding names during allocation.
 - Use the transitional emitter as a thin adapter; do not begin the S5 rewrite.
 
 ## Semantic and Public Contracts

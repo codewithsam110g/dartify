@@ -285,17 +285,23 @@ sequence live in [`STAGE4_PLAN.md`](STAGE4_PLAN.md); measured evidence lives in
 | 4.3 | ✅ Explicit namespace, ambient-module, augmentation, and global scope records; globals hoist | `L-11` |
 | 4.4 | ✅ Stable free-function/method overload names with exact `jsName`; no `.split("_")` recovery | `L-05`, `E-01` |
 | 4.5 | ✅ Supported interface/class/value/constructor-companion merges with static variable-side members and preserved conflicts | `L-05`, `P-10` |
-| 4.6 | ✅ Context-aware Dart identifiers plus computed-name sanitation (`E-22`) | `E-09`, `E-22` |
+| 4.6 | ✅ Context-aware Dart identifiers plus computed-name sanitation; computed-key runtime semantics are handled explicitly by 4.10 | `E-09`, `E-22`, `E-25` |
 | 4.7 | ✅ Top-level priority, shortest namespace suffixes, numeric fallback, dual facets, and resolved Dart target names | `E-10`, `L-11` |
 | 4.8 | ✅ Deleted 1,684 quarantined lines, removed aliases/exclusions, and corrected six stale comments | `D-01`, `D-02`, `X-13` |
 | 4.9 | ✅ `test:s4` plus normal/S2/S3/stress/typecheck/build/Dart analyzer acceptance | S4 gate |
+| 4.10 | ✅ Post-S4 deep-review remediation: lossless unsupported merges, explicit anonymous provenance, backend/helper name reservation, valid library identifiers, runtime-safe class overload lowering, and computed-key diagnostics | `L-17`, `L-18`, `P-14`, `E-24`–`E-28` |
 
-**Done:** 26 focused S4 tests and 241 normal tests pass; S2 is 2/2, S3 retains
+**Done:** the original 26-test S4 gate is expanded to 34 focused tests. The
+post-S4 review corrections and runtime/compiler evidence are recorded in
+`audit/S4-EVIDENCE.md`. S2 is 2/2, S3 retains
 the exact 2,530 input declaration floor, and all 1,650 stress files complete
 with zero returned/emission errors. h3 is unchanged and analyzer-error-free;
 the four semantic fixtures, Leaflet, and three.js have zero S4-owned duplicate,
 keyword, or syntax errors. Complete Leaflet improves from 522 to 239 analyzer
 issues. The remaining import/generic/heritage/backend categories belong to S5.
+
+Before S5 begins, perform the separately tracked line-by-line post-S4 audit and
+reconcile every finding, source claim, test gap, and living-document status.
 
 ---
 
@@ -308,7 +314,9 @@ The before-state is executable: `pnpm test:s5:fixture` first validates four
 inputs as real `.d.ts` declaration files, then snapshots all Dart and normalized
 verbose CLI output under `def_files/synthetic/s5_emitter/`. Executable `.ts`
 programs and implementation lowering are outside the project boundary. The
-fixture links 40/40 symbols and 36/36 edges; Dart analysis has 34 errors mapped
+fixture links 40/40 symbols and 36/36 edges; semantic analysis has three
+explicit diagnostics (two suppressed augmentations and one unsupported
+computed member). Dart analysis has 34 errors mapped
 to `E-08`, `E-03`, S5.3, and `E-13`. It also locks the analyzer-invisible
 `E-23` baseline: a correctly linked foreign `Toolkit.Options` is emitted as a
 bare name and captured by the consumer's local `Options`. Update the golden

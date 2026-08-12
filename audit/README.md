@@ -31,6 +31,9 @@ per-line reasoning behind any given ID.
 
 The implemented semantic contract is [`../STAGE4_PLAN.md`](../STAGE4_PLAN.md),
 with command results and closure evidence in [`S4-EVIDENCE.md`](S4-EVIDENCE.md).
+That ledger also records the targeted post-S4 deep-review corrections
+`L-17`, `L-18`, `P-14`, and `E-24`–`E-28`. A new complete line-by-line post-S4
+pass is tracked in `../Tasks.md` and must reconcile this folder before S5.
 
 ## Finding IDs
 

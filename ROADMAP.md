@@ -37,14 +37,17 @@ atomic facet-based semantic table, positional anonymous identities and
 same-file canonicalization, explicit module/global scopes, supported
 declaration merges, stable overload names, Dart identifier legality, namespace
 collision allocation, target-name rewrites, and visible suppression/conflict
-diagnostics. The obsolete 1,684-line five-pass implementation is deleted.
+diagnostics. A post-S4 deep review additionally hardened unsupported merge
+preservation, synthetic provenance, backend/helper name allocation, library
+identifiers, and real JavaScript dispatch for renamed class overloads. The
+obsolete 1,684-line five-pass implementation is deleted.
 
 S4 closes its Dart-owned analyzer categories: h3 remains unchanged and has zero
 errors, the four semantic fixtures have no duplicate/keyword/syntax failures,
 complete Leaflet improves from 522 to 239 issues with zero duplicates, and
 three.js has zero duplicate, syntax, or identifier errors. Its remaining
-diagnostics are missing imports/types and generic backend work. S5—the emitter
-rewrite over these stable semantic identities—is next.
+diagnostics are missing imports/types and generic backend work. A complete
+line-by-line post-S4 audit is the final gate before S5 begins.
 
 The current Dart backend is still the transitional `emitter/old/*`
 string-template implementation: some paths work, some deliberately preserve

@@ -292,3 +292,17 @@ S4 must assign a deterministic identity to every structural position before it
 canonicalises equivalent shapes. The canonical key must exclude locations,
 JSDoc and linked target metadata; the quarantined transformer's
 `JSON.stringify` hash is therefore unsafe to port.
+
+---
+
+## P-14 — `Anon_` spelling is treated as synthetic provenance `[verified]` **[FIXED — post-S4 review]**
+
+S4 canonicalization selected any single-facet interface whose public name
+started with `Anon_`. Two legal author declarations such as `Anon_A` and
+`Anon_B` with the same shape could therefore collapse, deleting one declaration
+and rewriting its uses.
+
+Parser-hoisted facets now carry `synthetic: "anonymousType"`. Canonicalization
+and value-shape merging consult that marker exclusively; public spelling has no
+semantic meaning. The regression fixture proves two author-authored `Anon_`
+interfaces survive with distinct references and no redirect.

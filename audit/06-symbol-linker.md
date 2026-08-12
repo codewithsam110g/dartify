@@ -438,3 +438,30 @@ No swallowed exception was found in the measured corpus, but this is the same
 defect class as `R-12`: an error in graph construction is converted into absent
 data. Catch only expected checker failures, return a structured diagnostic, and
 cover the fallback path with a fixture.
+
+---
+
+## L-17 — Constructor-companion folding deletes callable facets `[verified]` **[FIXED — post-S4 review]**
+
+S4 synthesized an `IRClass` whenever a variable's `prototype` resolved to an
+interface. `IRClass` has no call- or construct-signature facet, so callable and
+constructable targets were then deleted without a diagnostic.
+
+The merge now rejects target call/construct signatures and value-side call
+signatures before synthesis. Both symbols remain available, and
+`DECLARATION_MERGE_CONFLICT` records the unsupported fold. Focused tests assert
+the signatures and variable declaration still exist after semantics.
+
+---
+
+## L-18 — Value-side index signatures disappear during interface folding `[verified]` **[FIXED — post-S4 review]**
+
+For `interface Catalog` plus `var Catalog: { [key: string]: number }`, S4 copied
+properties, methods, and accessors but not the anonymous shape's index
+signatures, then removed that shape.
+
+Indexed value shapes are now outside the supported merge matrix. The semantic
+pass preserves the interface, variable facet, and explicitly marked anonymous
+shape, and emits a merge diagnostic. This leaves the index contract available
+for the S5 index-signature backend instead of converting unsupported structure
+into silent data loss.

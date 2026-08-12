@@ -344,7 +344,7 @@ and annotates with the full JS path.
 
 ---
 
-## E-22 — Computed member spellings are not Dart identifiers `[verified]` **[FIXED — S4]**
+## E-22 — Computed member spellings are not Dart identifiers `[verified]` **[FIXED — S4 identifier legality]**
 
 The first S4 three.js analyzer run exposed methods named
 `[Symbol.iterator]` emitted literally, causing four `MISSING_IDENTIFIER`
@@ -352,10 +352,72 @@ syntax errors plus parser cascades in `Color.dart` and `Euler.dart`. Keyword
 tables alone do not cover this defect class: a source property can be legal
 TypeScript without being an identifier at all.
 
-`legalDartName` now sanitizes non-identifier spellings deterministically;
-`[Symbol.iterator]` becomes `JS$Symbol_iterator` while the emitter writes
-`@JS("[Symbol.iterator]")`. The focused rendered test and repeated three.js
-analysis both pass; three.js now has zero syntax/identifier diagnostics.
+`legalDartName` sanitizes non-identifier spellings deterministically, removing
+the Dart parser errors. The S4 close incorrectly treated preservation of the
+text in `@JS("[Symbol.iterator]")` as runtime correctness. Post-S4 review proved
+that annotation addresses a string/path, not the ECMAScript symbol key; `E-25`
+records and fixes that distinct dispatch defect.
+
+---
+
+## E-24 — Renamed legacy class overloads dispatch to nonexistent properties `[verified]` **[FIXED — post-S4 review]**
+
+`@JS("f")` on a legacy `package:js` class instance member is ignored by
+dart2js. S4 therefore generated analyzer-clean Dart methods `f_1`/`f_2` whose
+compiled JavaScript called `receiver.f_1` and `receiver.f_2`.
+
+Renamed instance members now emit in an external extension on the class.
+Renamed static members lower to collision-reserved top-level bindings annotated
+with the fully qualified path, such as `@JS("Factory.make")`. Analyzer,
+dart2js, and Node probes produce four expected values; compiled calls are
+`widget.f(...)` and `self.Factory.make(...)`, never the Dart overload names.
+
+---
+
+## E-25 — Symbol-keyed members are emitted as string-keyed members `[verified]` **[FIXED — post-S4 review]**
+
+Stringifying `[Symbol.iterator]` in `@JS` silently targets the wrong JavaScript
+member. The transitional backend has no safe symbol-key lowering, so semantic
+analysis now reports `UNSUPPORTED_COMPUTED_MEMBER`, retains the complete member
+in IR, and emission writes an explicit unsupported comment without an external
+binding. This is deliberate preservation for a later symbol-aware backend, not
+an invented string dispatch.
+
+---
+
+## E-26 — Source declarations capture backend-owned Dart names `[verified]` **[FIXED — post-S4 review]**
+
+Three.js declares `class String` in `examples/jsm/transpiler/AST.d.ts`. Before
+the fix, every primitive TypeScript `string` in that Dart library resolved to
+the local class, including its own constructor parameter, while analysis could
+remain clean.
+
+The allocator now reserves unqualified primitive, collection, async, and
+annotation names emitted by the backend. The source class becomes `JS$String`
+with `@JS("String")`; primitive positions remain Dart `String`, and linked uses
+of the declaration receive `JS$String`.
+
+---
+
+## E-27 — Generated helper names bypass collision allocation `[verified]` **[FIXED — post-S4 review]**
+
+Emission invented `${name}Extension` and `${name}Enum` after top-level names
+were allocated. Real three.js declarations named `SmoothstepExtension`, `Mix`,
+and `Select` then produced duplicate definitions.
+
+Top-level allocation now reserves interface/class extensions, enum helpers,
+and qualified static binding names together with their declarations. Tests
+cover collisions in both source orders; targeted three.js analysis reports no
+duplicate definitions in the affected files.
+
+---
+
+## E-28 — Digit-leading filenames produce invalid Dart library names `[verified]` **[FIXED — post-S4 review]**
+
+Punctuation was replaced, but leading digits were retained. The real
+`3MFLoader.d.ts` and `3DMLoader.d.ts` inputs emitted invalid `library` directives
+and parser cascades. Sanitization now checks the first character and prefixes
+such names with `dartify_`; both real outputs parse as valid Dart libraries.
 
 ---
 

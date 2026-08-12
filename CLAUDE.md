@@ -41,7 +41,9 @@ Do not re-derive findings from scratch. If you discover something new, add it to
 the audit with a new ID rather than reporting it only in chat.
 
 S0-S4 are complete. `STAGE4_PLAN.md` is the semantic contract and
-`audit/S4-EVIDENCE.md` is its measured record. S5 is the next stage.
+`audit/S4-EVIDENCE.md` is its measured record, including the post-S4 corrections
+`L-17`, `L-18`, `P-14`, and `E-24`–`E-28`. Complete the tracked line-by-line
+post-S4 audit before beginning S5.
 
 ## Commands
 
@@ -80,6 +82,12 @@ At S4 close, h3 has zero analyzer errors/warnings (plus the expected
 errors, and complete Leaflet has 239 issues with zero duplicates or syntax
 errors. three.js has zero duplicate, syntax, or identifier errors; its
 remaining diagnostics are S5 import/generic categories.
+
+Analyzer-clean output is not sufficient evidence for JS dispatch or local type
+capture. For renamed class members, compile with dart2js and inspect/run the
+JavaScript call target. For computed keys, never stringify a symbol expression;
+retain it in IR and emit an explicit unsupported diagnostic until a backend can
+lower the key correctly.
 
 `test:ui` accepts the same filters as the CLI — `pnpm test:ui type` opens the UI
 scoped to the type tests. `test:stress` sets `DARTIFY_STRESS=1` inline, which is

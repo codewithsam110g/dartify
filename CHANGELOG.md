@@ -13,6 +13,14 @@ All notable changes to this project will be documented in this file.
   type/value facets. Unsafe groups are preserved with structured diagnostics.
 - Added deterministic overload, Dart keyword, computed-member, dual-facet, and
   namespace collision naming while preserving exact JavaScript spellings.
+- Hardened post-S4 semantics so unsupported callable/constructable and indexed
+  value merges preserve their facets, and parser-hoisted anonymous declarations
+  carry explicit provenance.
+- Reserved backend-owned and generated Dart names, and made digit-leading
+  declaration filenames produce valid library identifiers.
+- Lowered renamed class overloads through runtime-valid extension or qualified
+  top-level interop bindings; computed symbol keys now produce an explicit
+  unsupported diagnostic rather than a false string-key binding.
 - Added semantic counts, suppression records, normal CLI warnings, and verbose
   diagnostics. External module augmentations are modeled and visibly
   suppressed until a later merge policy is implemented.

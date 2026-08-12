@@ -14,8 +14,10 @@ Read `AGENTS.md` for repository conventions, then use these project records:
 - `audit/FINDINGS.md` — stable finding IDs and current status.
 - `def_files/js_facade_gen_test_cases.md` — reference-tool behavior.
 
-S0-S4 are complete. S5 rebuilds the `package:js` backend over stable semantic
-identities; do not reintroduce output concerns into parsing or linking.
+S0-S4 and the targeted post-S4 deep-review corrections are complete. The
+line-by-line post-S4 audit is the next gate; S5 then rebuilds the `package:js`
+backend over stable semantic identities. Do not reintroduce output concerns
+into parsing or linking.
 
 ## Development
 

@@ -20,7 +20,6 @@
       "@emitter/*": ["src/engine/emitter/*"],
       "@parser/*": ["src/engine/parser/*"],
       "@utils/*": ["src/utils/*"],
-      "@legacy/*": ["src/legacy/*"],
 
       // Type system
       "@typeParser/*": ["src/engine/parser/type/*"],

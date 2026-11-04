@@ -179,6 +179,25 @@ async function processFiles(
   if (options.verbose) {
     console.log(formatVerboseLinkReport(report.analysis.link));
   }
+  // Backend facts (anonymous defaults not bound, dropped heritage, const-enum
+  // members without values) and unresolved re-export targets: counted
+  // always, itemized with -lv (S6.4).
+  const backendDiagnostics = [...report.files.values()].flatMap((file) => file.diagnostics);
+  const exportDiagnostics = report.analysis.link.moduleExportDiagnostics;
+  const emitted = backendDiagnostics.length + exportDiagnostics.length;
+  if (emitted > 0) {
+    console.warn(
+      `⚠️  Emission: ${emitted} diagnostic(s)${options.verbose ? "" : "; rerun with -lv for complete records"}`,
+    );
+    if (options.verbose) {
+      for (const diagnostic of backendDiagnostics) {
+        console.warn(`  [${diagnostic.code}] ${diagnostic.message}`);
+      }
+      for (const diagnostic of exportDiagnostics) {
+        console.warn(`  [${diagnostic.code}] ${diagnostic.file}:${diagnostic.line} ${diagnostic.message}`);
+      }
+    }
+  }
   const unresolved = report.analysis.resolution.unresolved.length;
   if (unresolved === 0) {
     console.log("Module resolution: 0 unresolved references");

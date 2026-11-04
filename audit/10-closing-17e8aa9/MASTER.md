@@ -82,6 +82,8 @@ Third-party `def_files` content (inputs only), `docs/history/legacy/**`, line-le
 
 ## 8. Process deviations (disclosed, not hidden)
 
+**Consequence:** the audit's substance (passes 1–5, the closing verification, 31 confirmed findings) is complete for the approved scope. Its **process** does not conform to the request as literally worded, because of the deviations below. They are irreversible and are stated, not resolved. Live-deployment evidence does not exist, because nothing was released.
+
 | Request rule | What happened | Authority |
 |---|---|---|
 | Verify the folder is ignored, else stop | Stopped and reported. The owner then chose to commit the audit instead of ignoring it | Owner (`00_REQUEST.md` item 3) |

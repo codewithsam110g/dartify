@@ -113,6 +113,12 @@ export function legalDartName(
       .replace(/^_+|_+$/g, "");
     return `JS$${sanitized || "binding"}`;
   }
+  // A leading underscore makes a Dart identifier library-private, so a public
+  // JavaScript `_x` must not become a private Dart `_x` (js_facade_gen 2.13
+  // spells it `JS$_x`). Parameters are positional and may keep it.
+  if (sourceName.startsWith("_") && context !== "parameter") {
+    return `JS$${sourceName}`;
+  }
   const illegal =
     DART_RESERVED_WORDS.has(sourceName) ||
     (context === "type" && DART_BUILT_IN_IDENTIFIERS.has(sourceName)) ||

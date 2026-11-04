@@ -66,7 +66,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `E-22` **[FIXED — S4 identifier legality]** | Computed/non-identifier source spellings receive legal Dart identifiers, eliminating parser cascades. S4 did not prove runtime key semantics; that distinct defect is `E-25` | `semantic/keywords.ts`, `semantic.test.ts` | ✅ |
 | `E-27` **[FIXED — post-S4 review]** | Generated `${name}Extension`, `${name}Enum`, and class static-binding names were absent from allocation, causing duplicate top-level declarations in three.js. Allocation now reserves every emitted companion | `semantic/names.ts`, `semantic.test.ts` | ✅ |
 | `E-28` **[FIXED — post-S4 review]** | Digit-leading declaration filenames emitted invalid libraries such as `library 3MFLoader;`. Sanitization now prefixes names that cannot start a Dart identifier | `phase/emitterPhase.ts`, `semantic.test.ts` | ✅ |
-| `E-30` | Collision prefixes derived from ambient-module specifiers are not revalidated as Dart identifiers. A top-level `Item` plus `declare module "3d-kit" { interface Item {} }` emits invalid `class 3d_kit_Item` | `semantic/names.ts` | ✅ |
+| `E-30` **[FIXED — 4.14]** | ~~Collision prefixes derived from ambient-module specifiers are not revalidated as Dart identifiers. A top-level `Item` plus `declare module "3d-kit" { interface Item {} }` emits invalid `class 3d_kit_Item`~~ — collision composites are revalidated through `legalDartName` (`3d-kit` → `JS$3d_kit_Item`), and underscore-leading public names become `JS$_x` with an exact `@JS` spelling instead of library-private Dart | `semantic/names.ts` | ✅ |
 | `E-32` | JavaScript names are inserted into Dart annotation strings without literal escaping. `$foo` becomes string interpolation, while a TS member `"foo-bar"` emits malformed `@JS(""foo-bar"")` | `emitter/shared/names.ts`, `emitter/old/*` | ✅ |
 | `E-33` | Library-name sanitization handles punctuation/digits but not Dart keywords; `class.d.ts` emits invalid `library class;` | `phase/emitterPhase.ts` | ✅ |
 | `E-34` | S3 preserves class index signatures in IR, but `emitClass` never reads `indexSignatures`, so their complete contract is silently dropped | `emitter/old/class.ts` | ✅ |
@@ -162,7 +162,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `D-06` **[FIXED — S4 reverified]** | Built bundle is 154.11 KB with semantic/reporting code; no deleted pass/transformer, legacy, logger, graphology, or Viz code ships | `dist/cli.js`, `package.json` |
 | `E-11b` | `@typeEmitter/*` alias hardcodes `emitter/old/` | `tsconfig.json:29` |
 | `X-13` **[FIXED — S4]** | Corrected all six audited source/test/config comments alongside deletion of the obsolete pipeline | `transpiler.ts`, `tsconfig.json`, `test/{smoke,stress}.test.ts`, `emitter/old/type/emit.ts` |
-| `E-29` | Colliding derived alias names are source-order-dependent: reversing two distinct `keyof` expressions swaps which gets the unhashed base name, contrary to the stability claim | `engine/alias/registry.ts` |
+| `E-29` **[FIXED — 4.14]** | ~~Colliding derived alias names are source-order-dependent: reversing two distinct `keyof` expressions swaps which gets the unhashed base name, contrary to the stability claim~~ — `AliasRegistry` allocates over the set of minted texts after a file is fully traversed: a base name is kept only when unique and untaken, every colliding member gets `base_<hash>` lengthened deterministically; reversed-order test in `aliasName.test.ts` | `engine/alias/registry.ts` |
 
 ---
 

@@ -736,3 +736,26 @@ describe("Stage 4 transitional emission", () => {
     );
   });
 });
+
+describe("4.14 legal scope-derived names", () => {
+  test("module-specifier collision prefixes are revalidated (E-30)", async () => {
+    const { content } = await Transpiler.transpileFromString(
+      [
+        "interface Item { a: string; }",
+        'declare module "3d-kit" { interface Item { b: number; } }',
+      ].join("\n"),
+      { fileName: "/kit.d.ts" },
+    );
+    expect(content).not.toMatch(/class 3d/);
+    expect(content).toMatch(/class JS\$3d_kit_Item/);
+  });
+
+  test("underscore-leading public names never become library-private", async () => {
+    const { content } = await Transpiler.transpileFromString(
+      "declare class X { _hidden: number; }",
+      { fileName: "/private.d.ts" },
+    );
+    expect(content).toContain('@JS("_hidden")');
+    expect(content).toContain("get JS$_hidden");
+  });
+});

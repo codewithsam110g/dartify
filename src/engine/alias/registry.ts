@@ -24,18 +24,20 @@ export interface MintedAlias {
  * - **Dedup.** `keyof Box<string>` written in ten places is one typedef with
  *   ten use sites, not ten typedefs (`L-05`). Keyed on source text, so the
  *   dedup is exact rather than name-collision-shaped.
- * - **Collision avoidance.** A derived name can land on a real declaration —
- *   `Attributes[K]` derives near `Attributes`, and an author is free to have
- *   declared `IndexedAttributesK` themselves. Shadowing a real type with a
- *   `dynamic` typedef would be a silent miscompile, which is exactly what
- *   design principle 1 forbids.
+ * - **Collision avoidance.** A derived name can land on a real declaration or
+ *   on another alias's derived name. Shadowing a real type with a `dynamic`
+ *   typedef would be a silent miscompile (design principle 1).
  *
- * Disambiguation appends a hash of the source text rather than a counter, so a
- * name does not change when an unrelated declaration is added to the file.
+ * Names are allocated over the *set* of minted texts, never in minting order
+ * (`E-29`). A text keeps its readable base name only when no other minted text
+ * derives the same base and no declaration holds it; every member of a
+ * colliding group gets `base_<hash>`, with the hash lengthened deterministically
+ * if two hashes coincide. Reversing traversal order, or inserting an unrelated
+ * declaration, therefore cannot change any alias name.
  */
 export class AliasRegistry {
   private readonly byText = new Map<string, MintedAlias>();
-  private readonly byName = new Map<string, MintedAlias>();
+  private allocated = true;
 
   /**
    * @param isTaken reports names already claimed outside this registry —
@@ -46,7 +48,9 @@ export class AliasRegistry {
   /**
    * Returns the alias for `originalText`, minting one on first sight.
    * Idempotent: calling it per use site is the intended usage, and is how
-   * `useCount` gets filled in.
+   * `useCount` gets filled in. The returned alias's `name` is final once every
+   * text has been minted; reading it earlier allocates over the texts seen so
+   * far and is recomputed after further mints.
    */
   mint(originalText: string, reason: UnsupportedReason): MintedAlias {
     const existing = this.byText.get(originalText);
@@ -55,14 +59,22 @@ export class AliasRegistry {
       return existing;
     }
 
+    let name = "";
+    const registry = this;
     const alias: MintedAlias = {
-      name: this.uniqueName(originalText, reason),
+      get name() {
+        registry.allocate();
+        return name;
+      },
+      set name(value: string) {
+        name = value;
+      },
       originalText,
       reason,
       useCount: 1,
     };
     this.byText.set(originalText, alias);
-    this.byName.set(alias.name, alias);
+    this.allocated = false;
     return alias;
   }
 
@@ -71,36 +83,55 @@ export class AliasRegistry {
     return this.byText.get(originalText);
   }
 
-  /**
-   * Every alias minted, in first-seen order. The emitter decides how to sort
-   * or group the type-definitions section (`E-16`); this only guarantees the
-   * order is deterministic.
-   */
+  /** Every alias minted, sorted by allocated name. */
   all(): MintedAlias[] {
-    return [...this.byText.values()];
+    this.allocate();
+    return [...this.byText.values()].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
   }
 
   get size(): number {
     return this.byText.size;
   }
 
-  private uniqueName(originalText: string, reason: UnsupportedReason): string {
-    const base = deriveAliasName(originalText, reason);
-    if (!this.claimed(base)) return base;
+  private allocate(): void {
+    if (this.allocated) return;
+    this.allocated = true;
 
-    const hashed = `${base}_${textHash(originalText)}`;
-    if (!this.claimed(hashed)) return hashed;
-
-    // Two distinct texts hashing identically *and* colliding on the base name.
-    // Not expected to happen; still cheaper than reasoning about whether it
-    // can't.
-    for (let n = 2; ; n++) {
-      const candidate = `${hashed}_${n}`;
-      if (!this.claimed(candidate)) return candidate;
+    const groups = new Map<string, MintedAlias[]>();
+    for (const alias of this.byText.values()) {
+      const base = deriveAliasName(alias.originalText, alias.reason);
+      let group = groups.get(base);
+      if (!group) groups.set(base, (group = []));
+      group.push(alias);
     }
-  }
 
-  private claimed(name: string): boolean {
-    return this.byName.has(name) || this.isTaken(name);
+    const used = new Set<string>();
+    for (const base of [...groups.keys()].sort()) {
+      const group = groups
+        .get(base)!
+        .sort((a, b) => a.originalText.localeCompare(b.originalText));
+      if (group.length === 1 && !this.isTaken(base) && !used.has(base)) {
+        group[0].name = base;
+        used.add(base);
+        continue;
+      }
+      for (const alias of group) {
+        let chosen: string | undefined;
+        for (let length = 6; length <= 8 && !chosen; length++) {
+          const candidate = `${base}_${textHash(alias.originalText, length)}`;
+          if (!used.has(candidate) && !this.isTaken(candidate)) chosen = candidate;
+        }
+        // Two distinct texts with identical 32-bit hashes. Texts are sorted,
+        // so the suffix is still deterministic.
+        for (let n = 2; !chosen; n++) {
+          const candidate = `${base}_${textHash(alias.originalText, 8)}_${n}`;
+          if (!used.has(candidate) && !this.isTaken(candidate)) chosen = candidate;
+        }
+        alias.name = chosen;
+        used.add(chosen);
+      }
+    }
   }
 }

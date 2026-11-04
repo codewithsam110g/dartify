@@ -92,6 +92,7 @@ export function registerAliasSymbols(
   for (const [file, symbols] of symbolsByFile) {
     const declared = namesByFile.get(file) ?? new Set<string>();
     const registry = new AliasRegistry((name) => declared.has(name));
+    const useSitesInFile: [IRType, MintedAlias][] = [];
 
     for (const symbol of symbols) {
       for (const facet of symbol.facets) {
@@ -110,11 +111,13 @@ export function registerAliasSymbols(
             type.originalText ?? "",
             type.unsupportedReason!,
           );
-          type.aliasName = alias.name;
+          useSitesInFile.push([type, alias]);
           useSites++;
         });
       }
     }
+    // Names are read only after every text in the file is minted (`E-29`).
+    for (const [type, alias] of useSitesInFile) type.aliasName = alias.name;
 
     const minted = registry.all();
     if (minted.length === 0) continue;

@@ -80,14 +80,14 @@ Commit: `fix(linker): preserve impossible types and module visibility`
 
 Commit: `fix(names): stabilize generated Dart identifiers`
 
-- [ ] Give every minted unsupported alias a readable base plus a stable hash of
+- [x] Give every minted unsupported alias a readable base plus a stable hash of
   its source text and reason. Never use an unhashed first claimant or a
   traversal-order counter; lengthen the hash deterministically on collision.
-- [ ] Centralize public Dart identifier sanitization for declarations,
+- [x] Centralize public Dart identifier sanitization for declarations,
   namespace/module prefixes, generated companions, aliases, and composites.
-- [ ] Prefix digit-leading, underscore-leading, keyword, empty, and
+- [x] Prefix digit-leading, underscore-leading, keyword, empty, and
   punctuation-only results without changing exact JavaScript names.
-- [ ] Prove reversed traversal and unrelated insertions produce identical
+- [x] Prove reversed traversal and unrelated insertions produce identical
   aliases and complete Dart output.
 
 ### 4.17 — TypeScript host provenance

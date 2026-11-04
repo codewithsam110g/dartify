@@ -14,6 +14,13 @@ All notable changes to this project will be documented in this file.
 - The bare-name linker fallback no longer binds declarations exported from an
   unrelated module (`L-19`).
 
+### Deterministic names (task 4.14)
+
+- Minted alias names no longer depend on traversal order; colliding derived
+  names are all hashed (`E-29`).
+- Scope-derived collision names are revalidated as Dart identifiers, and
+  underscore-leading JavaScript names emit as public `JS$_x` bindings (`E-30`).
+
 ### Run ownership (task 4.11)
 
 - Deleted the process-global `context.ts` singleton and `reset.ts` seam. Every

@@ -75,13 +75,13 @@ function capitalise(word: string): string {
  * FNV-1a over the *full* source text, so two long expressions sharing a
  * truncated prefix still get different names.
  */
-export function textHash(text: string): string {
+export function textHash(text: string, length = HASH_LENGTH): string {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
     h ^= text.charCodeAt(i);
     h = Math.imul(h, 0x01000193);
   }
-  return (h >>> 0).toString(16).padStart(8, "0").slice(0, HASH_LENGTH);
+  return (h >>> 0).toString(16).padStart(8, "0").slice(0, length);
 }
 
 function wordsOf(originalText: string, reason?: UnsupportedReason): string[] {

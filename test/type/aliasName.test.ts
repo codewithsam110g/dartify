@@ -124,16 +124,29 @@ describe("AliasRegistry", () => {
     expect(registry.size).toBe(1);
   });
 
-  test("distinct expressions that derive to one name are separated", () => {
+  test("distinct expressions that derive to one name are both hashed (E-29)", () => {
     const registry = new AliasRegistry();
 
     // Both derive to `KeyOfBoxString` — the literal's quotes are dropped.
     const plain = registry.mint("keyof Box<string>", UnsupportedReason.KeyOf);
     const literal = registry.mint('keyof Box<"string">', UnsupportedReason.KeyOf);
 
-    expect(plain.name).toBe("KeyOfBoxString");
+    expect(plain.name).toMatch(/^KeyOfBoxString_[0-9a-f]{6}$/);
+    expect(literal.name).toMatch(/^KeyOfBoxString_[0-9a-f]{6}$/);
     expect(literal.name).not.toBe(plain.name);
     expect(registry.size).toBe(2);
+  });
+
+  test("reversed minting order produces identical names (E-29)", () => {
+    const texts = ['keyof Box<"string">', "keyof Box<string>", "keyof Other"];
+    const forward = new AliasRegistry();
+    const reverse = new AliasRegistry();
+    texts.forEach((text) => forward.mint(text, UnsupportedReason.KeyOf));
+    [...texts].reverse().forEach((text) => reverse.mint(text, UnsupportedReason.KeyOf));
+    for (const text of texts) {
+      expect(forward.lookup(text)!.name).toBe(reverse.lookup(text)!.name);
+    }
+    expect(forward.lookup("keyof Other")!.name).toBe("KeyOfOther");
   });
 
   // Shadowing a real declaration with a `dynamic` typedef is a silent
@@ -163,15 +176,15 @@ describe("AliasRegistry", () => {
     );
   });
 
-  test("all() reports every alias in first-seen order", () => {
+  test("all() reports every alias sorted by name", () => {
     const registry = new AliasRegistry();
     registry.mint("typeof FloatType", UnsupportedReason.TypeQuery);
     registry.mint("keyof Attributes", UnsupportedReason.KeyOf);
     registry.mint("typeof FloatType", UnsupportedReason.TypeQuery);
 
     expect(registry.all().map((a) => a.name)).toEqual([
-      "TypeOfFloatType",
       "KeyOfAttributes",
+      "TypeOfFloatType",
     ]);
   });
 

@@ -1323,8 +1323,6 @@ extension Anon_Layer_method_24_getEvents_returnExtension on Anon_Layer_method_24
 @JS("Layer")
 class Layer {
   external factory Layer([LayerOptions options]);
-  external JS$Map get _map;
-  external set _map(JS$Map value);
   external LayerOptions get options;
   external set options(LayerOptions value);
   external Layer addTo(dynamic /* JS$Map|LayerGroup */ map);
@@ -1354,6 +1352,12 @@ class Layer {
   external Anon_Layer_method_24_getEvents_return getEvents();
   external String? getAttribution();
   external Layer beforeAdd(JS$Map map);
+}
+extension LayerExtension on Layer {
+  @JS("_map")
+  external JS$Map get JS$_map;
+  @JS("_map")
+  external set JS$_map(JS$Map value);
 }
 
 @JS()
@@ -1423,10 +1427,6 @@ extension InternalTilesExtension on InternalTiles {
 @JS("GridLayer")
 class GridLayer {
   external factory GridLayer([GridLayerOptions options]);
-  external InternalTiles get _tiles;
-  external set _tiles(InternalTiles value);
-  external num? get _tileZoom;
-  external set _tileZoom(num? value);
   external GridLayer bringToFront();
   external GridLayer bringToBack();
   external HTMLElement? getContainer();
@@ -1436,8 +1436,20 @@ class GridLayer {
   external GridLayer redraw();
   external Point getTileSize();
   external HTMLElement createTile(Coords coords, DoneCallback done);
-  external String _tileCoordsToKey(Coords coords);
-  external Coords _wrapCoords(Coords parameter);
+}
+extension GridLayerExtension on GridLayer {
+  @JS("_tiles")
+  external InternalTiles get JS$_tiles;
+  @JS("_tiles")
+  external set JS$_tiles(InternalTiles value);
+  @JS("_tileZoom")
+  external num? get JS$_tileZoom;
+  @JS("_tileZoom")
+  external set JS$_tileZoom(num? value);
+  @JS("_tileCoordsToKey")
+  external String JS$_tileCoordsToKey(Coords coords);
+  @JS("_wrapCoords")
+  external Coords JS$_wrapCoords(Coords parameter);
 }
 
 @JS("gridLayer")
@@ -1474,10 +1486,16 @@ class TileLayer {
   external set options(TileLayerOptions value);
   external TileLayer setUrl(String url, [bool noRedraw]);
   external String getTileUrl(Coords coords);
-  external void _tileOnLoad(DoneCallback done, HTMLElement tile);
-  external void _tileOnError(DoneCallback done, HTMLElement tile, Error e);
-  external void _abortLoading();
-  external num _getZoomForUrl();
+}
+extension TileLayerExtension on TileLayer {
+  @JS("_tileOnLoad")
+  external void JS$_tileOnLoad(DoneCallback done, HTMLElement tile);
+  @JS("_tileOnError")
+  external void JS$_tileOnError(DoneCallback done, HTMLElement tile, Error e);
+  @JS("_abortLoading")
+  external void JS$_abortLoading();
+  @JS("_getZoomForUrl")
+  external num JS$_getZoomForUrl();
 }
 
 @JS("tileLayer")
@@ -2843,8 +2861,6 @@ class Marker {
   external set dragging(Handler? value);
   external geojson.Feature<geojson.Point, P>? get feature;
   external set feature(geojson.Feature<geojson.Point, P>? value);
-  external HTMLElement? get _shadow;
-  external set _shadow(HTMLElement? value);
   external geojson.Feature<geojson.Point, P> toGeoJSON([dynamic /* num|bool */ precision]);
   external LatLng getLatLng();
   external Marker setLatLng(LatLngExpression latlng);
@@ -2853,6 +2869,12 @@ class Marker {
   external Marker setIcon(dynamic /* Icon|DivIcon */ icon);
   external Marker setOpacity(num opacity);
   external HTMLElement? getElement();
+}
+extension MarkerExtension on Marker {
+  @JS("_shadow")
+  external HTMLElement? get JS$_shadow;
+  @JS("_shadow")
+  external set JS$_shadow(HTMLElement? value);
 }
 
 @JS("marker")

@@ -178,7 +178,10 @@ function allocateName(
   if (available(preferred)) return preferred;
   for (let count = 1; count <= scopeSegments.length; count++) {
     const prefix = scopeSegments.slice(-count).join("_");
-    const candidate = `${prefix}_${preferred}`;
+    // Scope segments come from namespace names and module specifiers such as
+    // `"3d-kit"`; the composite must be revalidated as a public Dart
+    // identifier, never trusted (`E-30`).
+    const candidate = legalDartName(`${prefix}_${preferred}`, "type");
     if (available(candidate)) return candidate;
   }
   let suffix = 2;

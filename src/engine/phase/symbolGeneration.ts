@@ -7,28 +7,54 @@ import {
   SymbolType,
 } from "@/symbol";
 import * as parser from "@parser/index";
-import { transpilerContext } from "@/context";
 import { TranspileException } from "@/transpiler";
+import { SymbolTable } from "@/symbol/table";
 import { IRDeclarationUnion } from "@ir/declaration";
 import { createFQN, createFQNPrefix } from "@/symbol/fqn";
 import { ParseContext } from "@parser/context";
 import { dependenciesOf } from "@/symbol/dependencies";
 
+/** `export as namespace X` aliases, keyed by declaring file. Run-owned. */
+export type NamespaceExports = Map<string, Set<string>>;
+
+/**
+ * A statement symbol generation could not process. Returned to the caller
+ * rather than logged through process state (`R-13`): orchestration decides
+ * whether it is fatal, printed, or handed back to an embedding API.
+ */
+export interface GenerationDiagnostic {
+  code: string;
+  message: string;
+  file: string;
+  line?: number;
+  column?: number;
+}
+
 /**
  * Top-level entry point for symbol generation.
- * Parses the AST of the given file and populates the global SymbolTable.
+ *
+ * Parses the AST of one file into the run-owned `symbolTable` and records any
+ * `export as namespace` aliases in `namespaceExports`. Both are explicit
+ * dependencies; there is no ambient compiler state (task 4.11).
  */
 export async function generateSymbols(
   fp: string,
   sourceFile: ts.SourceFile,
-): Promise<void> {
-  const generator = new SymbolGenerator();
-  await generator.generateSymbols(fp, sourceFile);
+  symbolTable: SymbolTable,
+  namespaceExports: NamespaceExports,
+): Promise<GenerationDiagnostic[]> {
+  const generator = new SymbolGenerator(symbolTable, namespaceExports);
+  return generator.generateSymbols(fp, sourceFile);
 }
 
 class SymbolGenerator {
   private moduleScopes: ModuleScope[] = [];
   private sourceOrder = 0;
+
+  constructor(
+    private readonly symbolTable: SymbolTable,
+    private readonly namespaceExports: NamespaceExports,
+  ) {}
 
   private parseContext(fqn: string, filePath: string): ParseContext {
     return new ParseContext(fqn, (hoistedFQN, declaration) => {
@@ -74,10 +100,13 @@ class SymbolGenerator {
       deps: dependenciesOf(ir),
       resolvedDeps: [],
     };
-    transpilerContext.symbolTable.register(fqn, symbol);
+    this.symbolTable.register(fqn, symbol);
   }
 
-  public async generateSymbols(fp: string, sourceFile: ts.SourceFile) {
+  public async generateSymbols(
+    fp: string,
+    sourceFile: ts.SourceFile,
+  ): Promise<GenerationDiagnostic[]> {
     const errors: TranspileException[] = [];
     try {
       await this.walkStatements(sourceFile.getStatements(), errors, fp);
@@ -93,12 +122,13 @@ class SymbolGenerator {
       errors.push(transpileError);
     }
 
-    if (errors.length > 0 && transpilerContext.getIsLogging()) {
-      console.error(
-        `[SymbolGeneration] Encountered ${errors.length} errors in ${fp}:`,
-        errors,
-      );
-    }
+    return errors.map((error) => ({
+      code: error.code,
+      message: error.message,
+      file: error.file ?? fp,
+      ...(error.line !== undefined ? { line: error.line } : {}),
+      ...(error.column !== undefined ? { column: error.column } : {}),
+    }));
   }
 
   private async walkStatements(
@@ -118,7 +148,7 @@ class SymbolGenerator {
               "STATEMENT_DECLARATION_ERROR",
               filePath,
               statement.getStartLineNumber(),
-              statement.getStart(),
+              statement.getSourceFile().getLineAndColumnAtPos(statement.getStart()).column,
             );
         errors.push(transpileError);
       }
@@ -182,10 +212,10 @@ class SymbolGenerator {
         const alias = (
           statement.compilerNode as ts.ts.NamespaceExportDeclaration
         ).name.text;
-        let aliases = transpilerContext.namespaceExports.get(filePath);
+        let aliases = this.namespaceExports.get(filePath);
         if (!aliases) {
           aliases = new Set();
-          transpilerContext.namespaceExports.set(filePath, aliases);
+          this.namespaceExports.set(filePath, aliases);
         }
         aliases.add(alias);
         break;

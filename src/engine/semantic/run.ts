@@ -4,7 +4,7 @@ import { forEachIRType } from "@ir/visit";
 import { Symbol, SymbolFacet } from "@/symbol";
 import { dependenciesOfFacets } from "@/symbol/dependencies";
 import { sourceFileOfFQN } from "@/symbol/fqn";
-import { SymbolTable, SymbolTableChange } from "@/symbol/table";
+import { SymbolTable, SymbolTableDraft } from "@/symbol/table";
 import { anonymousShapeKey } from "./shape";
 import { mergeDeclarationGroups } from "./merge";
 import { assignSemanticNames } from "./names";
@@ -22,7 +22,19 @@ export interface SemanticPassResult {
 
 /** Runs every pre-link semantic rewrite against a detached table draft. */
 export function runSemanticPass(symbolTable: SymbolTable): SemanticPassResult {
-  const input = symbolTable.getSymbolTable();
+  return symbolTable.transaction((table) => {
+    const result = runSemanticPassOnDraft(table);
+    return result;
+  });
+}
+
+/**
+ * The semantic rewrite proper. `table` is a transaction draft owned by the
+ * caller's `SymbolTable`; it is replaced wholesale with the semantic output and
+ * committed only if this function returns.
+ */
+function runSemanticPassOnDraft(table: SymbolTableDraft): SemanticPassResult {
+  const input: ReadonlyMap<string, readonly Symbol[]> = new Map(table);
   const report = emptySemanticReport();
   report.inputSymbols = [...input.values()].reduce(
     (count, group) => count + group.length,
@@ -57,7 +69,8 @@ export function runSemanticPass(symbolTable: SymbolTable): SemanticPassResult {
   const aliases = registerAliasSymbols(draft);
   assignSemanticNames(draft, report);
   refreshDependencies(draft);
-  commitDraft(symbolTable, input, draft);
+  table.clear();
+  for (const [fqn, group] of draft) table.set(fqn, group);
 
   report.outputSymbols = draft.size;
   report.outputFacets = [...draft.values()].reduce(
@@ -88,7 +101,8 @@ function cloneAndConsolidate(
 ): Map<string, Symbol[]> {
   const result = new Map<string, Symbol[]>();
   for (const [fqn, group] of input) {
-    const clones = group.map((symbol) => structuredClone(symbol));
+    // The transaction draft is already deeply detached from the table.
+    const clones = [...group];
     const facets = clones
       .flatMap((symbol) => symbol.facets)
       .sort(
@@ -256,19 +270,4 @@ function refreshDependencies(draft: Map<string, Symbol[]>): void {
       }
     }
   }
-}
-
-function commitDraft(
-  symbolTable: SymbolTable,
-  input: ReadonlyMap<string, readonly Symbol[]>,
-  draft: ReadonlyMap<string, readonly Symbol[]>,
-): void {
-  const changes: SymbolTableChange[] = [];
-  for (const fqn of input.keys()) {
-    if (!draft.has(fqn)) changes.push({ kind: "unregister", fqn });
-  }
-  for (const [fqn, symbols] of draft) {
-    changes.push({ kind: "replace", fqn, symbols });
-  }
-  symbolTable.apply(changes);
 }

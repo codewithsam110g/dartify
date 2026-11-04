@@ -22,25 +22,25 @@ and `CHANGELOG.md` in the same commit that changes behavior.
 
 Commit: `refactor(context): make compiler runs independently owned`
 
-- [ ] Delete `src/context.ts` and `src/reset.ts`; retain immutable parser-local
+- [x] Delete `src/context.ts` and `src/reset.ts`; retain immutable parser-local
   `ParseContext`.
-- [ ] Construct the `ts.Project`, resolved-file maps, fallback records,
+- [x] Construct the `ts.Project`, resolved-file maps, fallback records,
   `SymbolTable`, namespace aliases, and diagnostics independently per public
   invocation, including calls on the same `Transpiler` instance.
-- [ ] Make phase dependencies explicit:
+- [x] Make phase dependencies explicit:
   `generateSymbols(file, sourceFile, symbolTable, namespaceExports)`,
   `runLinker(symbolTable, namespaceExports)`, and
   `renderAllFiles(linkedProgram, outDir, inputRoot)`.
-- [ ] Return a `GenerationReport` and an owned `LinkedProgram`; keep
+- [x] Return a `GenerationReport` and an owned `LinkedProgram`; keep
   `AnalysisReport` report-only and move symbol-inspecting tests to explicit
   phase fixtures.
-- [ ] Deep-clone table inputs and consumer reads. Provide callback-based,
+- [x] Deep-clone table inputs and consumer reads. Provide callback-based,
   validated transactional mutation that commits only after the complete draft
   passes validation.
-- [ ] Return partial analysis/render results with generation diagnostics.
+- [x] Return partial analysis/render results with generation diagnostics.
   `transpile()` must block all writes and throw `GENERATION_FAILED`; the CLI
   exits nonzero. `transpileFromString()` returns the diagnostics in `errors`.
-- [ ] Prove sequential, cross-instance, and same-instance overlap isolation;
+- [x] Prove sequential, cross-instance, and same-instance overlap isolation;
   independent debug settings; nested snapshot isolation; rollback; and zero
   live imports of the deleted modules.
 

@@ -26,9 +26,9 @@ describe.skipIf(!ENABLED)("S2 corpus gate", () => {
   }, 60_000);
 
   test("three.js has exact internal targets and exposes missing external types", async () => {
-    const analysis = await new Transpiler({
+    const { analysis, program } = await new Transpiler({
       files: ["def_files/three/src/Three.Core.d.ts"],
-    }).analyze();
+    }).analyzeProgram();
 
     expect(
       analysis.resolution.unresolved.map((issue) => issue.specifier).sort(),
@@ -51,8 +51,7 @@ describe.skipIf(!ENABLED)("S2 corpus gate", () => {
 
     // The decisive L-01/L-14 invariant: every checker-backed successful use
     // site resolves to one of the checker-derived declaration identities.
-    const { transpilerContext } = await import("../../src/context");
-    for (const group of transpilerContext.symbolTable.getSymbolTable().values()) {
+    for (const group of program.symbols.values()) {
       for (const symbol of group) {
         for (const dependency of symbol.deps) {
           if (dependency.lookup.kind !== "checker") continue;

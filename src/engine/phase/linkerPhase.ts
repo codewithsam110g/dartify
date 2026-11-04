@@ -1,4 +1,3 @@
-import { transpilerContext } from "@/context";
 import {
   ResolutionResult,
   resolveReference,
@@ -6,6 +5,8 @@ import {
 import { runSemanticPass } from "@engine/semantic/run";
 import { SemanticReport } from "@engine/semantic/types";
 import { Symbol } from "@/symbol";
+import { SymbolTable } from "@/symbol/table";
+import { NamespaceExports } from "./symbolGeneration";
 
 export enum LinkState {
   LinkedIndependent = "LinkedIndependent",
@@ -84,9 +85,41 @@ function edgeSortKey(edge: LinkEdge): string {
   return `${edge.from}\u0000${edge.writtenName}\u0000${target}`;
 }
 
-export async function runLinker(debug: boolean): Promise<LinkReport> {
-  const semantic = runSemanticPass(transpilerContext.symbolTable);
-  const table = transpilerContext.symbolTable.getSymbolTable();
+/**
+ * The linked, semantically normalized output of phases 1–2.
+ *
+ * Owned by the caller: `symbols` and `namespaceExports` are deeply detached
+ * from the run's `SymbolTable`, so emitters and later backends consume an
+ * immutable value rather than ambient table state (task 4.11). Both the S5
+ * `package:js` backend and the planned v2 `dart:js_interop` backend read this
+ * contract.
+ */
+export interface LinkedProgram {
+  readonly symbols: ReadonlyMap<string, readonly Symbol[]>;
+  readonly namespaceExports: ReadonlyMap<string, ReadonlySet<string>>;
+  readonly report: LinkReport;
+}
+
+export async function runLinker(
+  symbolTable: SymbolTable,
+  namespaceExports: NamespaceExports,
+): Promise<LinkedProgram> {
+  const semantic = runSemanticPass(symbolTable);
+  const report = symbolTable.transaction((table) =>
+    linkDraft(table, namespaceExports, semantic),
+  );
+  return {
+    symbols: symbolTable.getSymbolTable(),
+    namespaceExports: structuredClone(namespaceExports),
+    report,
+  };
+}
+
+function linkDraft(
+  table: Map<string, Symbol[]>,
+  namespaceExports: NamespaceExports,
+  semantic: ReturnType<typeof runSemanticPass>,
+): LinkReport {
   const edges: LinkEdge[] = [];
   const diagnostics: LinkDiagnostic[] = [];
   const edgesByFQN = new Map<string, LinkEdge[]>();
@@ -111,7 +144,7 @@ export async function runLinker(debug: boolean): Promise<LinkReport> {
         const resolution = resolveReference(
           dependency,
           table,
-          transpilerContext.namespaceExports,
+          namespaceExports,
         );
         if (resolution.kind === "resolved") {
           dependency.resolvedFQN = resolution.fqn;
@@ -222,15 +255,6 @@ export async function runLinker(debug: boolean): Promise<LinkReport> {
       broken++;
     } else {
       valid++;
-    }
-  }
-
-  if (debug) {
-    console.log(
-      `\n  ✅ Graph Verification Complete: ${valid} valid, ${broken} broken.`,
-    );
-    if (diagnostics.length > 0) {
-      console.log(`  ⚠️  ${diagnostics.length} checker fallback diagnostic(s).`);
     }
   }
 

@@ -62,14 +62,13 @@ Tier-B aliases. S5 must provide either a verified lowering or a named documented
 fallback. Precise checker expansion may remain post-v1; analyzer-invalid names
 may not.
 
-Task 4.11 is a locked deletion, not an abstraction rename: remove
-`src/context.ts` and `src/reset.ts`. A `Transpiler` run owns its project,
-resolution accumulators, symbol table, namespace aliases, and diagnostics.
-Pass narrow dependencies to phases; do not introduce a singleton, broad mutable
-`CompilationContext`, or serialization lock. The immutable parser
-`ParseContext` is unrelated and remains. Linking returns an owned program that
-S5 and later backends consume explicitly. Bring `R-13` into this work by
-returning generation diagnostics instead of passing global logging state.
+Task 4.11 is done: `src/context.ts` and `src/reset.ts` are deleted. Each
+`Transpiler` call owns its project, resolution accumulators, symbol table,
+namespace aliases, and diagnostics. Pass narrow dependencies to phases; never
+reintroduce a singleton, broad mutable `CompilationContext`, or serialization
+lock. The immutable parser `ParseContext` is unrelated and remains. Linking
+returns an owned `LinkedProgram` that backends consume explicitly; generation
+diagnostics are returned, never logged through global state.
 
 ## Commands
 
@@ -158,7 +157,8 @@ cli.ts → transpiler.ts
            │                                        mints aliases, links dep graph
            └ PHASE 3  phase/emitterPhase.ts      → emitter/old/* → .dart
 
-Transpiler seams:  analyze()   phases 1-2, returns LinkReport, no emission
+Transpiler seams:  analyze()   phases 1-2, returns AnalysisReport, no emission
+                   analyzeProgram()  + the owned LinkedProgram backends consume
                    render()    + phase 3, returns Map<path, RenderedFile>
                    transpile()  + writes to disk
                    static transpileFromString()  one virtual file → string

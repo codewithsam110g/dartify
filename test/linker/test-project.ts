@@ -2,7 +2,6 @@ import { mkdtemp, mkdir, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { dirname, join } from "path";
 import { Transpiler, AnalysisReport, RenderReport } from "../../src/transpiler";
-import { transpilerContext } from "../../src/context";
 import { Symbol } from "../../src/symbol";
 
 export interface TestProject {
@@ -37,15 +36,15 @@ export async function withTestProject<T>(
       );
     }
 
-    const analysis = await new Transpiler({
+    const { analysis, program } = await new Transpiler({
       files: [...files.values()],
       tsConfigFilePath,
-    }).analyze();
+    }).analyzeProgram();
     return await run({
       root,
       files,
       analysis,
-      symbols: transpilerContext.symbolTable.getSymbolTable(),
+      symbols: program.symbols,
     });
   } finally {
     await rm(root, { recursive: true, force: true });

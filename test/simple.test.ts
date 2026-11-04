@@ -64,9 +64,8 @@ declare var b: string;
   });
 
   /**
-   * Regression guard for R-11: the context and type parser are singletons, so
-   * without resetTranspilerState() the second call here inherits the first
-   * call's symbol table and emits `a` again.
+   * Regression guard for R-11/R-14: every call owns its symbol table, so the
+   * second call cannot inherit the first call's symbols.
    */
   test("does not leak symbols between calls", async () => {
     await Transpiler.transpileFromString("declare var leaked: number;");

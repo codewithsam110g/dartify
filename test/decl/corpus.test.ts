@@ -1,6 +1,5 @@
 import { resolve } from "path";
 import { describe, expect, test } from "vitest";
-import { transpilerContext } from "../../src/context";
 import { IRDeclKind } from "../../src/ir/declaration";
 import { IREnumInitializer } from "../../src/ir/enum";
 import { Transpiler } from "../../src/transpiler";
@@ -109,9 +108,11 @@ describe.skipIf(!ENABLED)("S3 declaration fidelity corpus census", () => {
     let inputDeclarations = 0;
 
     for (const files of inputSets) {
-      const analysis = await new Transpiler({ files }).analyze();
+      const { analysis, program } = await new Transpiler({
+        files,
+      }).analyzeProgram();
       inputDeclarations += analysis.link.semantic.inputDeclarations;
-      for (const group of transpilerContext.symbolTable.getSymbolTable().values()) {
+      for (const group of program.symbols.values()) {
         for (const symbol of group) {
           if (symbol.minted) continue;
           for (const facet of symbol.facets) {

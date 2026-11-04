@@ -11,27 +11,56 @@ export type SymbolTableChange =
       fqn: string;
     };
 
+/** A deeply detached, mutable copy of the table handed to a transaction. */
+export type SymbolTableDraft = Map<string, Symbol[]>;
+
 /**
- * Owns the mutable symbol groups used by generation and semantic linking.
- * Readers receive structural snapshots; mutations go through validated APIs.
+ * Owns the symbol groups of exactly one compiler run.
+ *
+ * Ownership is deep (`L-10`): symbols are cloned on the way in and every read
+ * returns a detached copy, so no consumer can reach live table state through a
+ * nested facet, IR node or dependency. Mutation happens either through the
+ * validated single-group APIs or through `transaction`, which hands the caller
+ * a complete draft and commits it only after the whole draft validates.
+ *
+ * There is no process-global table. Each `Transpiler` invocation constructs its
+ * own (`R-14`, task 4.11).
  */
 export class SymbolTable {
   private symbols = new Map<string, Symbol[]>();
 
   public register(fqn: string, symbol: Symbol): void {
     this.assertSymbolMatches(fqn, symbol);
-    this.symbols.set(fqn, [...(this.symbols.get(fqn) ?? []), symbol]);
+    this.symbols.set(fqn, [
+      ...(this.symbols.get(fqn) ?? []),
+      structuredClone(symbol),
+    ]);
   }
 
   public replace(fqn: string, symbols: readonly Symbol[]): void {
-    const replacements = this.validatedGroup(fqn, symbols);
-    this.symbols.set(fqn, replacements);
+    this.symbols.set(fqn, structuredClone(this.validatedGroup(fqn, symbols)));
   }
 
   public unregister(fqn: string): readonly Symbol[] {
-    const removed = [...(this.symbols.get(fqn) ?? [])];
+    const removed = this.symbols.get(fqn) ?? [];
     this.symbols.delete(fqn);
     return removed;
+  }
+
+  /**
+   * Runs a rewrite against a deep draft of the whole table and commits it
+   * atomically. If `mutate` throws or the draft fails validation, the table is
+   * unchanged.
+   */
+  public transaction<T>(mutate: (draft: SymbolTableDraft) => T): T {
+    const draft = this.deepCopy(this.symbols);
+    const result = mutate(draft);
+    const validated = new Map<string, Symbol[]>();
+    for (const [fqn, group] of draft) {
+      validated.set(fqn, this.validatedGroup(fqn, group));
+    }
+    this.symbols = validated;
+    return result;
   }
 
   /**
@@ -39,33 +68,31 @@ export class SymbolTable {
    * a detached draft, so an invalid later change cannot expose earlier ones.
    */
   public apply(changes: readonly SymbolTableChange[]): void {
-    const draft = this.copyTable(this.symbols);
     const changedFQNs = new Set<string>();
+    this.transaction((draft) => {
+      for (const change of changes) {
+        if (changedFQNs.has(change.fqn)) {
+          throw new Error(
+            `Symbol table mutation contains duplicate target '${change.fqn}'`,
+          );
+        }
+        changedFQNs.add(change.fqn);
 
-    for (const change of changes) {
-      if (changedFQNs.has(change.fqn)) {
-        throw new Error(
-          `Symbol table mutation contains duplicate target '${change.fqn}'`,
-        );
+        if (change.kind === "unregister") {
+          draft.delete(change.fqn);
+        } else {
+          draft.set(
+            change.fqn,
+            structuredClone(this.validatedGroup(change.fqn, change.symbols)),
+          );
+        }
       }
-      changedFQNs.add(change.fqn);
-
-      if (change.kind === "unregister") {
-        draft.delete(change.fqn);
-      } else {
-        draft.set(
-          change.fqn,
-          this.validatedGroup(change.fqn, change.symbols),
-        );
-      }
-    }
-
-    this.symbols = draft;
+    });
   }
 
   public lookup(fqn: string): readonly Symbol[] | undefined {
     const group = this.symbols.get(fqn);
-    return group ? [...group] : undefined;
+    return group ? structuredClone(group) : undefined;
   }
 
   public has(fqn: string): boolean {
@@ -73,16 +100,16 @@ export class SymbolTable {
   }
 
   public getAll(): readonly Symbol[] {
-    return [...this.symbols.values()].flat();
+    return structuredClone([...this.symbols.values()].flat());
   }
 
-  /** Returns a detached map/array snapshot, not the table's backing storage. */
+  /** Returns a deeply detached snapshot, not the table's backing storage. */
   public getSymbolTable(): ReadonlyMap<string, readonly Symbol[]> {
-    return this.copyTable(this.symbols);
+    return this.deepCopy(this.symbols);
   }
 
-  public clear(): void {
-    this.symbols.clear();
+  public get size(): number {
+    return this.symbols.size;
   }
 
   private validatedGroup(
@@ -106,11 +133,9 @@ export class SymbolTable {
     }
   }
 
-  private copyTable(
+  private deepCopy(
     table: ReadonlyMap<string, readonly Symbol[]>,
   ): Map<string, Symbol[]> {
-    return new Map(
-      [...table].map(([fqn, symbols]) => [fqn, [...symbols]]),
-    );
+    return structuredClone(new Map(table)) as Map<string, Symbol[]>;
   }
 }

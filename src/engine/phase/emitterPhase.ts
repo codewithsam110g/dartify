@@ -7,7 +7,7 @@
 
 import { writeFile, mkdir } from "fs/promises";
 import { basename, dirname, extname, join, relative } from "path";
-import { transpilerContext } from "@/context";
+import { LinkedProgram } from "./linkerPhase";
 import { Symbol, SymbolFacet } from "@/symbol";
 import {
     IRClass,
@@ -48,11 +48,12 @@ export interface RenderedFile {
  * @param debug      Whether to log emission details
  */
 export function renderAllFiles(
+    program: LinkedProgram,
     outDir: string,
     inputRoot: string,
-    debug: boolean,
+    debug = false,
 ): Map<string, RenderedFile> {
-    const table = transpilerContext.symbolTable.getSymbolTable();
+    const table = program.symbols;
 
     // 1. Group all symbols by their source .d.ts file
     const fileGroups = groupSymbolsByFile(table);
@@ -101,26 +102,6 @@ export async function writeAllFiles(
                 `  📝 ${file.sourceFile} → ${outputPath} (${file.symbolCount} symbols)`,
             );
         }
-    }
-}
-
-/**
- * Top-level entry point for the emission phase: render, then write.
- *
- * @param outDir     Root output directory
- * @param inputRoot  Common root of all input files (used to derive relative paths)
- * @param debug      Whether to log emission details
- */
-export async function emitAllFiles(
-    outDir: string,
-    inputRoot: string,
-    debug: boolean,
-): Promise<void> {
-    const rendered = renderAllFiles(outDir, inputRoot, debug);
-    await writeAllFiles(rendered, debug);
-
-    if (debug) {
-        console.log(`\n✅ Emitted ${rendered.size} Dart file(s) to ${outDir}`);
     }
 }
 

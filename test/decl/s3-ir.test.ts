@@ -2,7 +2,6 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 import { describe, expect, test } from "vitest";
 import * as ts from "ts-morph";
-import { transpilerContext } from "../../src/context";
 import { parseFunction } from "../../src/engine/parser/function";
 import { TypeKind } from "../../src/ir/type";
 import {
@@ -20,8 +19,10 @@ import { createStatementNode } from "../test-helper";
 const fixture = resolve("def_files/synthetic/s3-complete.d.ts");
 
 async function parseFixture() {
-  const analysis = await new Transpiler({ files: [fixture] }).analyze();
-  const symbols = transpilerContext.symbolTable.getSymbolTable();
+  const { analysis, program } = await new Transpiler({
+    files: [fixture],
+  }).analyzeProgram();
+  const symbols = program.symbols;
   const declarations = (name: string) =>
     symbols
       .get(`${fixture}::${name}`)

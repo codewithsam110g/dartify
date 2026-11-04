@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Run ownership (task 4.11)
+
+- Deleted the process-global `context.ts` singleton and `reset.ts` seam. Every
+  `analyze`, `analyzeProgram`, `render`, `transpile` and `transpileFromString`
+  call owns its project, resolution maps, symbol table, namespace aliases and
+  diagnostics; overlapping calls are independent (`R-14`).
+- `SymbolTable` now deep-clones on register and read and exposes validated
+  `transaction()` drafts (`L-10`).
+- Symbol-generation failures are returned as `AnalysisReport.generation` and in
+  `transpileFromString().errors`; `transpile()` refuses to write when any
+  statement failed (`R-13`).
+- The linker returns an owned `LinkedProgram`; `Transpiler.analyzeProgram()`
+  exposes it and emission consumes it explicitly.
+
 ### Semantic layer
 
 - Added atomic facet-based symbols, explicit module/global origins, positional

@@ -31,18 +31,18 @@ historical releases or old architecture names.
 Follow `PRE_STAGE5_PLAN.md` as the decision-complete execution ledger. Keep its
 checkboxes and evidence synchronized with this summary.
 
-- [ ] Remove process-global run state and complete snapshot isolation (`R-14`,
+- [x] Remove process-global run state and complete snapshot isolation (`R-14`,
   `L-10`, `R-13`):
-  - [ ] Make `Transpiler` options-only; create the project, resolved-file maps,
+  - [x] Make `Transpiler` options-only; create the project, resolved-file maps,
     fallback records, symbol table, namespace aliases, and diagnostics per call.
-  - [ ] Pass narrow dependencies into generation/linking/emission and return an
+  - [x] Pass narrow dependencies into generation/linking/emission and return an
     owned linked program; never introduce another global context/service locator.
-  - [ ] Return symbol-generation diagnostics to programmatic and CLI callers;
+  - [x] Return symbol-generation diagnostics to programmatic and CLI callers;
     remove global logging policy.
-  - [ ] Add transactional symbol mutation and deeply detached consumer reads.
-  - [ ] Migrate tests off `transpilerContext`, keep graph tooling report-only,
+  - [x] Add transactional symbol mutation and deeply detached consumer reads.
+  - [x] Migrate tests off `transpilerContext`, keep graph tooling report-only,
     then delete `src/context.ts` and `src/reset.ts`.
-  - [ ] Prove sequential, cross-instance, and same-instance overlapping calls;
+  - [x] Prove sequential, cross-instance, and same-instance overlapping calls;
     nested mutation isolation; and unchanged single-run output.
 - [ ] Preserve module-export/anonymity/const-enum facts and correct impossible
   intersections (`P-15`–`P-17`, `T-18`).

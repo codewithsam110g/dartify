@@ -1,6 +1,5 @@
 import { resolve } from "path";
 import { describe, expect, test } from "vitest";
-import { transpilerContext } from "../../src/context";
 import { IRFunction } from "../../src/ir/function";
 import { IRClass } from "../../src/ir/class";
 import { IRInterface } from "../../src/ir/interface";
@@ -10,12 +9,12 @@ import { renderTestProject, withTestProject } from "./test-project";
 
 describe("Stage 4 parser identities", () => {
   test("gives sibling structural positions distinct anonymous identities", async () => {
-    await Transpiler.transpileFromString(
+    const { program } = await Transpiler.transpileFromString(
       "declare function f(x: { a: string } | { b: number }): void;",
       { fileName: "/p13.d.ts" },
     );
 
-    const table = transpilerContext.symbolTable.getSymbolTable();
+    const table = program!.symbols;
     const anonymousFQNs = [...table.keys()]
       .filter((fqn) => fqn.includes("::Anon_f_overload_0_param_0_x"))
       .sort();
@@ -37,7 +36,7 @@ describe("Stage 4 parser identities", () => {
   });
 
   test("threads identity through arrays, generic arguments, tuples, and intersections", async () => {
-    await Transpiler.transpileFromString(
+    const { program } = await Transpiler.transpileFromString(
       [
         "interface Box<T> {}",
         "declare function nested(",
@@ -50,9 +49,7 @@ describe("Stage 4 parser identities", () => {
       { fileName: "/positions.d.ts" },
     );
 
-    const anonymousNames = [...transpilerContext.symbolTable
-      .getSymbolTable()
-      .keys()]
+    const anonymousNames = [...program!.symbols.keys()]
       .filter((fqn) => fqn.includes("::Anon_nested"))
       .sort();
 
@@ -67,12 +64,12 @@ describe("Stage 4 parser identities", () => {
   });
 
   test("canonicalizes equal anonymous shapes within one file and rewrites uses", async () => {
-    await Transpiler.transpileFromString(
+    const { program } = await Transpiler.transpileFromString(
       "declare function same(a: { value: string }, b: { value: string }): void;",
       { fileName: "/same-shape.d.ts" },
     );
 
-    const table = transpilerContext.symbolTable.getSymbolTable();
+    const table = program!.symbols;
     const anonymousFQNs = [...table.keys()].filter((fqn) =>
       fqn.includes("::Anon_same"),
     );
@@ -170,8 +167,10 @@ describe("Stage 4 declaration semantics", () => {
     const file = resolve(
       "def_files/legacy_tests/declaration_augmentation.d.ts",
     );
-    const analysis = await new Transpiler({ files: [file] }).analyze();
-    const symbols = transpilerContext.symbolTable.getSymbolTable();
+    const { analysis, program } = await new Transpiler({
+      files: [file],
+    }).analyzeProgram();
+    const symbols = program.symbols;
     const declaration = (name: string) =>
       symbols.get(`${file}::${name}`)?.[0].facets[0];
 

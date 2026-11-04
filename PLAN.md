@@ -314,7 +314,7 @@ the locked phase APIs, task order, commit boundaries, and acceptance commands.
 
 | # | Task | Findings |
 |---|---|---|
-| 4.11 | Delete the global context/reset seam; introduce run-owned pipeline state, explicit phase dependencies, returned generation diagnostics, and deeply isolated symbol reads | `R-14`, `L-10`, `R-13` |
+| 4.11 | ✅ Delete the global context/reset seam; introduce run-owned pipeline state, explicit phase dependencies, returned generation diagnostics, and deeply isolated symbol reads | `R-14`, `L-10`, `R-13` |
 | 4.12 | Preserve anonymous default exports, export assignments, and const-enum identity in IR/module semantics | `P-15`–`P-17` |
 | 4.13 | Normalize impossible intersections without widening and prevent terminal-name fallback across unrelated external modules | `T-18`, `L-19` |
 | 4.14 | Make alias/collision allocation insertion-stable and revalidate every scope-derived Dart identifier | `E-29`, `E-30` |

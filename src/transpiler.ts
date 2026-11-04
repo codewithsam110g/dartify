@@ -6,15 +6,22 @@
 
 import * as ts from "ts-morph";
 import { resolve, dirname, join, parse as parsePath } from "path";
-import { generateSymbols } from "./engine/phase/symbolGeneration";
-import { runLinker, LinkReport } from "./engine/phase/linkerPhase";
+import {
+  generateSymbols,
+  GenerationDiagnostic,
+  NamespaceExports,
+} from "./engine/phase/symbolGeneration";
+import {
+  runLinker,
+  LinkedProgram,
+  LinkReport,
+} from "./engine/phase/linkerPhase";
+import { SymbolTable } from "./symbol/table";
 import {
   renderAllFiles,
   writeAllFiles,
   RenderedFile,
 } from "./engine/phase/emitterPhase";
-import { transpilerContext } from "./context";
-import { resetTranspilerState } from "./reset";
 import { isStdlibFile } from "./resolution/stdlib";
 import {
   ModuleFallbackResolution,
@@ -82,13 +89,25 @@ export interface TranspileFromStringOptions {
 export interface TranspileFromStringResult {
   /** The generated Dart source */
   content: string;
-  /** Syntax errors in the input, plus anything thrown during emission */
+  /**
+   * Syntax errors in the input, statement-generation diagnostics, plus
+   * anything thrown during emission.
+   */
   errors: TranspileException[];
+  /** The owned linked program the content was rendered from, when linking ran. */
+  program?: LinkedProgram;
 }
 
 export interface AnalysisReport {
   resolution: ResolutionReport;
+  /** Statements symbol generation could not process (`R-13`). */
+  generation: GenerationDiagnostic[];
   link: LinkReport;
+}
+
+export interface ProgramReport {
+  analysis: AnalysisReport;
+  program: LinkedProgram;
 }
 
 export interface RenderReport {
@@ -100,121 +119,132 @@ export interface TranspileReport extends RenderReport {
   writtenFiles: string[];
 }
 
+/**
+ * Immutable options plus entry points. Holds no compiler state: every call to
+ * `analyze`, `analyzeProgram`, `render`, `transpile` or `transpileFromString`
+ * constructs an independent run that owns its `ts.Project`, resolution maps,
+ * fallback records, symbol table, namespace aliases and diagnostics (task
+ * 4.11, `R-14`). Overlapping calls — including two on one instance — cannot
+ * observe each other.
+ */
 export class Transpiler {
   private readonly files: string[];
   private readonly outDir: string | undefined;
   private readonly debug: boolean;
-  private project: ts.Project;
-
-  // Resolved source file maps — populated by transpile()
-  private inputFiles = new Map<string, ts.SourceFile>();
-  private packageDepFiles = new Map<string, ts.SourceFile>();
-  private stdlibFiles = new Map<string, ts.SourceFile>();
-  private moduleFallbacks: ModuleFallbackResolution[] = [];
-  private moduleFallbackAmbiguities: ModuleFallbackAmbiguity[] = [];
+  private readonly tsConfigFilePath: string | undefined;
 
   constructor(options: TranspilerOptions) {
-    this.files = [...new Set(options.files)].sort();
-    this.outDir = options.outDir;
-    this.debug = options.debug ?? false;
-
-    if (options.tsConfigFilePath) {
-      this.project = new ts.Project({
-        tsConfigFilePath: options.tsConfigFilePath,
-        skipAddingFilesFromTsConfig: true,
-        compilerOptions: {
-          types: [],
-        },
-      });
-    } else {
-      this.project = new ts.Project({
-        compilerOptions: {
-          target: ts.ts.ScriptTarget.ES2020,
-          module: ts.ts.ModuleKind.ESNext,
-          moduleResolution: ts.ts.ModuleResolutionKind.Bundler,
-          types: [],
-          skipLibCheck: true,
-          noEmit: true,
-        },
-        resolutionHost: createDeclarationResolutionHost(
-          options.files.map((file) => Transpiler.toForwardSlash(resolve(file))),
-          {
-            resolved: (fallback) => this.moduleFallbacks.push(fallback),
-            ambiguous: (ambiguity) =>
-              this.moduleFallbackAmbiguities.push(ambiguity),
-          },
-        ),
-      });
-    }
-
-    transpilerContext.setIsLogging(this.debug);
-
-    if (!Array.isArray(this.files) || this.files.length === 0) {
+    if (!Array.isArray(options.files) || options.files.length === 0) {
       throw new TranspileException(
         "Files array cannot be empty",
         "INVALID_FILES",
       );
     }
+    this.files = [...new Set(options.files)].sort();
+    this.outDir = options.outDir;
+    this.debug = options.debug ?? false;
+    this.tsConfigFilePath = options.tsConfigFilePath;
   }
 
   /**
    * Phases 1 and 2 only: resolve inputs, build the symbol table, run the
-   * linker. Returns explicit resolution and link phase reports without
-   * emitting anything.
+   * linker. Returns explicit resolution, generation and link phase reports
+   * without emitting anything.
    *
    * This is the seam consumers other than the emitter hang off — `tools/graph.ts`
    * uses it to render the dependency graph without producing Dart (`L-07`).
    */
   public async analyze(): Promise<AnalysisReport> {
-    return this.guard(async () => {
-      // The context is a singleton; clear it so repeated runs in one process
-      // stay independent (`R-11`).
-      resetTranspilerState();
-      this.moduleFallbacks = [];
-      this.moduleFallbackAmbiguities = [];
+    return (await this.analyzeProgram()).analysis;
+  }
 
-      await this.validateFiles();
-      this.resolveAndCategorize();
-      const resolution = this.buildResolutionReport();
+  /**
+   * Phases 1 and 2, also returning the owned `LinkedProgram` that backends
+   * consume. The program is deeply detached from the run that produced it.
+   */
+  public async analyzeProgram(): Promise<ProgramReport> {
+    return this.guard(async () => {
+      this.validateFiles();
+      const run = new ResolutionRun(this.files, this.tsConfigFilePath);
+      run.resolveAndCategorize();
+      const resolution = run.buildResolutionReport();
 
       if (this.debug) {
-        this.printResolutionSummary();
-        this.printResolutionDetails(resolution);
+        run.printResolutionSummary();
+        run.printResolutionDetails(resolution);
       }
 
-      // Phase 1: Symbol generation
-      for (const [filePath, sourceFile] of this.inputFiles) {
-        await this.transpileFile(filePath, sourceFile);
-      }
-      for (const [filePath, sourceFile] of this.packageDepFiles) {
-        await this.transpileFile(filePath, sourceFile);
+      // Phase 1: Symbol generation into run-owned state.
+      const symbolTable = new SymbolTable();
+      const namespaceExports: NamespaceExports = new Map();
+      const generation: GenerationDiagnostic[] = [];
+      for (const [filePath, sourceFile] of [
+        ...run.inputFiles,
+        ...run.packageDepFiles,
+      ]) {
+        generation.push(
+          ...(await generateSymbols(
+            filePath,
+            sourceFile,
+            symbolTable,
+            namespaceExports,
+          )),
+        );
       }
 
       // Phase 2: semantic normalization followed by reference linking.
-      const link = await runLinker(this.debug);
-      return { resolution, link };
+      const program = await runLinker(symbolTable, namespaceExports);
+      if (this.debug) {
+        printGenerationDiagnostics(generation);
+        printLinkSummary(program.report);
+      }
+      return {
+        analysis: {
+          resolution,
+          generation,
+          link: program.report,
+        },
+        program,
+      };
     });
   }
 
   /**
    * Phases 1-3, stopping short of the filesystem. Returns the analysis report
    * and rendered Dart source keyed by the path it would be written to (`E-11`).
+   *
+   * Generation diagnostics do not block rendering; callers that need partial
+   * output inspect `analysis.generation`.
    */
   public async render(): Promise<RenderReport> {
-    const analysis = await this.analyze();
-    const files = renderAllFiles(
-      this.resolvedOutDir(),
-      this.resolvedInputRoot(),
-      this.debug,
+    const { analysis, program } = await this.analyzeProgram();
+    const inputRoot = resolvedInputRoot(analysis.resolution.inputFiles);
+    const files = await this.guard(() =>
+      renderAllFiles(program, this.resolvedOutDir(), inputRoot, this.debug),
     );
     return { analysis, files };
   }
 
   /**
    * The full pipeline: render, then write to disk.
+   *
+   * A generation failure blocks every write: output that silently omits a
+   * declaration is worse than no output (design principle 1). Use `render()`
+   * for partial results.
    */
   public async transpile(): Promise<TranspileReport> {
     const rendered = await this.render();
+    const failures = rendered.analysis.generation;
+    if (failures.length > 0) {
+      const first = failures[0];
+      throw new TranspileException(
+        `Symbol generation failed for ${failures.length} statement(s); no files were written. First: ${first.message}`,
+        "GENERATION_FAILED",
+        first.file,
+        first.line,
+        first.column,
+      );
+    }
     await this.guard(() => writeAllFiles(rendered.files, this.debug));
 
     if (this.debug) {
@@ -227,42 +257,6 @@ export class Transpiler {
 
   private resolvedOutDir(): string {
     return this.outDir || "./dart_out";
-  }
-
-  /**
-   * Root that output paths are made relative to.
-   *
-   * Uses the longest common ancestor of all resolved input files so sibling
-   * source trees remain distinct under the output directory (`R-03`).
-   */
-  private resolvedInputRoot(): string {
-    const directories = [...this.inputFiles.keys()].map((file) =>
-      resolve(dirname(file)),
-    );
-    if (directories.length === 0) return ".";
-
-    const roots = new Set(directories.map((directory) => parsePath(directory).root));
-    if (roots.size !== 1) {
-      throw new TranspileException(
-        "Input files do not share a filesystem root",
-        "NO_COMMON_INPUT_ROOT",
-      );
-    }
-
-    const root = [...roots][0];
-    const parts = directories.map((directory) =>
-      directory
-        .substring(root.length)
-        .split(/[\\/]/)
-        .filter(Boolean),
-    );
-    const common: string[] = [];
-    for (let index = 0; index < Math.min(...parts.map((value) => value.length)); index++) {
-      const segment = parts[0][index];
-      if (parts.every((value) => value[index] === segment)) common.push(segment);
-      else break;
-    }
-    return join(root, ...common);
   }
 
   /**
@@ -283,10 +277,6 @@ export class Transpiler {
     }
   }
 
-  private async transpileFile(fp: string, sf: ts.SourceFile) {
-    await generateSymbols(fp, sf);
-  }
-
   /**
    * Transpiles a single in-memory `.d.ts` source to Dart, touching no
    * filesystem in either direction.
@@ -303,9 +293,6 @@ export class Transpiler {
     const fileName = options.fileName ?? "virtual.d.ts";
     const debug = options.debug ?? false;
     const errors: TranspileException[] = [];
-
-    resetTranspilerState();
-    transpilerContext.setIsLogging(debug);
 
     const project = new ts.Project({
       useInMemoryFileSystem: true,
@@ -345,11 +332,30 @@ export class Transpiler {
     }
 
     let content = "";
+    let program: LinkedProgram | undefined;
     try {
-      await generateSymbols(filePath, sourceFile);
-      await runLinker(debug);
+      const symbolTable = new SymbolTable();
+      const namespaceExports: NamespaceExports = new Map();
+      const generation = await generateSymbols(
+        filePath,
+        sourceFile,
+        symbolTable,
+        namespaceExports,
+      );
+      for (const diagnostic of generation) {
+        errors.push(
+          new TranspileException(
+            diagnostic.message,
+            diagnostic.code,
+            fileName,
+            diagnostic.line,
+            diagnostic.column,
+          ),
+        );
+      }
+      program = await runLinker(symbolTable, namespaceExports);
 
-      const rendered = renderAllFiles(".", dirname(filePath), debug);
+      const rendered = renderAllFiles(program, ".", dirname(filePath), debug);
       // Exactly one input file, so at most one rendered output.
       content = rendered.values().next().value?.content ?? "";
     } catch (error) {
@@ -364,14 +370,144 @@ export class Transpiler {
       );
     }
 
-    return { content, errors };
+    return { content, errors, ...(program ? { program } : {}) };
+  }
+
+  private validateFiles(): void {
+    for (const file of this.files) {
+      if (typeof file !== "string" || file.trim() === "") {
+        throw new TranspileException(
+          `Invalid file path: ${file}`,
+          "INVALID_FILE_PATH",
+          file,
+        );
+      }
+    }
+  }
+}
+
+function printGenerationDiagnostics(
+  diagnostics: readonly GenerationDiagnostic[],
+): void {
+  if (diagnostics.length === 0) return;
+  console.error(
+    `\n⚠️  Symbol generation: ${diagnostics.length} statement(s) failed`,
+  );
+  for (const diagnostic of diagnostics) {
+    const at =
+      diagnostic.line !== undefined ? `:${diagnostic.line}` : "";
+    console.error(
+      `  [${diagnostic.code}] ${diagnostic.file}${at} — ${diagnostic.message}`,
+    );
+  }
+}
+
+function printLinkSummary(report: LinkReport): void {
+  console.log(
+    `\n  ✅ Graph Verification Complete: ${report.valid} valid, ${report.broken} broken.`,
+  );
+  if (report.diagnostics.length > 0) {
+    console.log(
+      `  ⚠️  ${report.diagnostics.length} checker fallback diagnostic(s).`,
+    );
+  }
+}
+
+/**
+ * Root that output paths are made relative to.
+ *
+ * Uses the longest common ancestor of all resolved input files so sibling
+ * source trees remain distinct under the output directory (`R-03`).
+ */
+function resolvedInputRoot(inputFiles: readonly string[]): string {
+  const directories = inputFiles.map((file) => resolve(dirname(file)));
+  if (directories.length === 0) return ".";
+
+  const roots = new Set(directories.map((directory) => parsePath(directory).root));
+  if (roots.size !== 1) {
+    throw new TranspileException(
+      "Input files do not share a filesystem root",
+      "NO_COMMON_INPUT_ROOT",
+    );
+  }
+
+  const root = [...roots][0];
+  const parts = directories.map((directory) =>
+    directory
+      .substring(root.length)
+      .split(/[\\/]/)
+      .filter(Boolean),
+  );
+  const common: string[] = [];
+  for (let index = 0; index < Math.min(...parts.map((value) => value.length)); index++) {
+    const segment = parts[0][index];
+    if (parts.every((value) => value[index] === segment)) common.push(segment);
+    else break;
+  }
+  return join(root, ...common);
+}
+
+/**
+ * Normalize a file path to use forward slashes (POSIX style).
+ * ts-morph always uses forward slashes internally, but Windows
+ * path.resolve() returns backslashes.
+ */
+function toForwardSlash(p: string): string {
+  return p.split("\\").join("/");
+}
+
+/**
+ * Module resolution state for exactly one analysis run: the project, the
+ * categorized file maps and the fallback records the resolution host emits.
+ * Constructed per call and discarded with it.
+ */
+class ResolutionRun {
+  public readonly project: ts.Project;
+  public readonly inputFiles = new Map<string, ts.SourceFile>();
+  public readonly packageDepFiles = new Map<string, ts.SourceFile>();
+  public readonly stdlibFiles = new Map<string, ts.SourceFile>();
+  private readonly moduleFallbacks: ModuleFallbackResolution[] = [];
+  private readonly moduleFallbackAmbiguities: ModuleFallbackAmbiguity[] = [];
+
+  constructor(
+    private readonly files: readonly string[],
+    tsConfigFilePath: string | undefined,
+  ) {
+    if (tsConfigFilePath) {
+      this.project = new ts.Project({
+        tsConfigFilePath,
+        skipAddingFilesFromTsConfig: true,
+        compilerOptions: {
+          types: [],
+        },
+      });
+    } else {
+      this.project = new ts.Project({
+        compilerOptions: {
+          target: ts.ts.ScriptTarget.ES2020,
+          module: ts.ts.ModuleKind.ESNext,
+          moduleResolution: ts.ts.ModuleResolutionKind.Bundler,
+          types: [],
+          skipLibCheck: true,
+          noEmit: true,
+        },
+        resolutionHost: createDeclarationResolutionHost(
+          files.map((file) => toForwardSlash(resolve(file))),
+          {
+            resolved: (fallback) => this.moduleFallbacks.push(fallback),
+            ambiguous: (ambiguity) =>
+              this.moduleFallbackAmbiguities.push(ambiguity),
+          },
+        ),
+      });
+    }
   }
 
   /**
    * Add input files to the project, resolve all transitive dependencies,
    * and categorize every resolved file into input / packageDep / stdlib.
    */
-  private resolveAndCategorize(): void {
+  public resolveAndCategorize(): void {
     const addedSourceFiles = this.project.addSourceFilesAtPaths(this.files);
     this.project.resolveSourceFileDependencies();
 
@@ -385,21 +521,16 @@ export class Transpiler {
       .sort((a, b) => a.fileName.localeCompare(b.fileName));
     const inputSet = new Set(
       addedSourceFiles.map((sourceFile) =>
-        Transpiler.toForwardSlash(sourceFile.getFilePath()),
+        toForwardSlash(sourceFile.getFilePath()),
       ),
     );
-
-    // Reset maps
-    this.inputFiles.clear();
-    this.packageDepFiles.clear();
-    this.stdlibFiles.clear();
 
     for (const sf of allProgramFiles) {
       const morphSf =
         this.project.addSourceFileAtPathIfExists(sf.fileName) ??
         this.project.addSourceFileAtPath(sf.fileName);
 
-      const fileName = Transpiler.toForwardSlash(sf.fileName);
+      const fileName = toForwardSlash(sf.fileName);
       if (inputSet.has(fileName)) {
         this.inputFiles.set(fileName, morphSf);
       } else if (isStdlibFile(fileName)) {
@@ -411,18 +542,9 @@ export class Transpiler {
   }
 
   /**
-   * Normalize a file path to use forward slashes (POSIX style).
-   * ts-morph always uses forward slashes internally, but Windows
-   * path.resolve() returns backslashes.
-   */
-  private static toForwardSlash(p: string): string {
-    return p.split("\\").join("/");
-  }
-
-  /**
    * Print a categorized summary of all resolved source files.
    */
-  private printResolutionSummary(): void {
+  public printResolutionSummary(): void {
     const total =
       this.inputFiles.size + this.packageDepFiles.size + this.stdlibFiles.size;
 
@@ -479,7 +601,7 @@ export class Transpiler {
     for (const sf of this.project.getSourceFiles()) {
       for (const ref of sf.getPathReferenceDirectives()) {
         const refText = ref.getFileName();
-        const resolvedPath = Transpiler.toForwardSlash(
+        const resolvedPath = toForwardSlash(
           resolve(dirname(String(sf.getFilePath())), refText),
         );
         if (
@@ -515,7 +637,7 @@ export class Transpiler {
       for (const importDecl of sf.getImportDeclarations()) {
         const moduleSpecifier = importDecl.getModuleSpecifierValue();
         if (!importDecl.getModuleSpecifierSourceFile()) {
-          const file = Transpiler.toForwardSlash(sf.getFilePath());
+          const file = toForwardSlash(sf.getFilePath());
           const candidates = ambiguities.get(`${file}\u0000${moduleSpecifier}`);
           unresolvedRefs.push({
             file,
@@ -530,7 +652,7 @@ export class Transpiler {
       for (const exportDecl of sf.getExportDeclarations()) {
         const moduleSpecifier = exportDecl.getModuleSpecifierValue();
         if (moduleSpecifier && !exportDecl.getModuleSpecifierSourceFile()) {
-          const file = Transpiler.toForwardSlash(sf.getFilePath());
+          const file = toForwardSlash(sf.getFilePath());
           const candidates = ambiguities.get(`${file}\u0000${moduleSpecifier}`);
           unresolvedRefs.push({
             file,
@@ -550,7 +672,7 @@ export class Transpiler {
     );
   }
 
-  private buildResolutionReport(): ResolutionReport {
+  public buildResolutionReport(): ResolutionReport {
     const fallbacks = [
       ...new Map(
         this.moduleFallbacks.map((fallback) => [
@@ -573,7 +695,7 @@ export class Transpiler {
     };
   }
 
-  private printResolutionDetails(report: ResolutionReport): void {
+  public printResolutionDetails(report: ResolutionReport): void {
     if (report.fallbacks.length > 0) {
       console.log(`\n🔁 Module fallbacks (${report.fallbacks.length}):`);
       for (const fallback of report.fallbacks) {
@@ -594,18 +716,6 @@ export class Transpiler {
       console.log(`----------------------------------------`);
     } else {
       console.log(`\n✅ All dependencies resolved successfully.`);
-    }
-  }
-
-  private async validateFiles(): Promise<void> {
-    for (const file of this.files) {
-      if (typeof file !== "string" || file.trim() === "") {
-        throw new TranspileException(
-          `Invalid file path: ${file}`,
-          "INVALID_FILE_PATH",
-          file,
-        );
-      }
     }
   }
 }

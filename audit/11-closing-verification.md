@@ -99,6 +99,9 @@ Two smaller record inaccuracies (not findings):
 
 ### CA-32 — A lone CR in JSDoc escapes the `///` comment and injects Dart declarations
 
+> The separate codex release audit found the same defect independently as
+> `DAR-022` (`10-release-17e8aa9/`); see `12-MASTER-REPORT.md`.
+
 - **Severity:** medium · **Confidence:** confirmed · **Category:** security / implementation
 - **Location:** `src/engine/emitter/packagejs/text.ts:84` (`dartDocLines` splits on `/\r?\n/`)
 - **Evidence:** `10-closing-17e8aa9/fixtures/backend/lonecr/lonecr.d.ts`

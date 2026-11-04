@@ -411,8 +411,39 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `CA-22` | S4 / low | Finding registry integrity: `X-16` is assigned to two different findings; `Where` columns point to deleted files | audit/FINDINGS.md:107 and :183 (two X-16 rows) | ✅ |
 | `CA-24` | S4 / low | No upgrade or rollback notes for existing 0.5.0 users | CHANGELOG.md [1.0.0] section | ✅ |
 | `CA-27` | S4 / low | Watch-latency claims are only partly reproduced (Leaflet edit and three.js core edit) | README.md ('rebuilds take tens of milliseconds'), ROADMAP.md (h3 ~35 ms, Leaflet ≤ 94 ms, three.js ~53 ms), CHANGELOG/PLAN 6.12 ('rebuilds under 100 ms on h3, Leaflet and three.js') | ✅ |
-| `CA-32` | S1 / medium | A lone CR in JSDoc escapes the `///` comment and injects Dart declarations (found by the independent re-run; it overturns the audit's "falsified" lone-CR row) | src/engine/emitter/packagejs/text.ts:84 (`split(/\r?\n/)`); see `11-closing-verification.md` | ✅ |
+| `CA-32` | S1 / medium | A lone CR in JSDoc escapes the `///` comment and injects Dart declarations (found by the independent re-run and, independently, as codex `DAR-022`; it overturns the closing audit's "falsified" lone-CR row) | src/engine/emitter/packagejs/text.ts:84 (`split(/\r?\n/)`); see `11-closing-verification.md` | ✅ |
 | `CA-33` | S4 / low | The closing-audit registration corrupted this file: a `$`-pattern in the `CA-11` title spliced a copy of the header and every pre-CA row into that row, and `CA-30`/`CA-31` sit outside any table | audit/FINDINGS.md (`c8b0eff`, `652caf1`); see `11-closing-verification.md` | ✅ |
+
+---
+## Found by the independent codex release audit (`audit/10-release-17e8aa9`, commit `17e8aa9`)
+
+Registered under the codex audit's own `DAR-` IDs. Full records live in `10-release-17e8aa9/findings.md`. All 23 were independently reproduced in a fresh session; the combined, deduplicated list is `12-MASTER-REPORT.md`.
+
+| ID | Tier / severity | Finding | Same defect as | Ev. |
+|---|---|---|---|---|
+| `DAR-001` | S1 / high | Filesystem compilation never collects syntax diagnostics; recovery can absorb the next declaration into a broken signature, exit 0 | `CA-10` | ✅ |
+| `DAR-002` | S2 / medium | Explicit inputs that are missing, unreadable or directories are dropped silently when another input is readable | — | ✅ |
+| `DAR-003` | S1 / high | `jsPath` ignores module-export identity: default, `export =` and aliased exports dispatch to nonexistent JS properties | — | ✅ |
+| `DAR-004` | S1 / medium | Named re-exports lose aliases and cannot traverse barrels | `CA-03` | ✅ |
+| `DAR-005` | S2 / medium | Parameter lowering reintroduces keywords and duplicate names after allocation | — | ✅ |
+| `DAR-006` | S2 / medium | Override arity padding fails through a second inheritance level (`INVALID_OVERRIDE`) | — | ✅ |
+| `DAR-007` | S2 / medium | Hoisted inherited-static names (`Child_foo`) are not reserved (`DUPLICATE_DEFINITION`) | — | ✅ |
+| `DAR-008` | S2 / medium | Minted alias renamed by allocation keeps its stale name at use sites (`UNDEFINED_CLASS`) | — | ✅ |
+| `DAR-009` | S1 / medium | Dependent generic defaults resolve in the caller's binder (`Pair<String, T>`) | — | ✅ |
+| `DAR-010` | S1 / medium | Nullable generic aliases drop explicit type arguments | — | ✅ |
+| `DAR-011` | S1 / medium | Hoisted object literals lose enclosing type parameters | — | ✅ |
+| `DAR-012` | S1 / high | JS `Date` exposed as Dart `DateTime` | `CA-01` | ✅ |
+| `DAR-013` | S1 / medium | Quoted member names keep TS escape text instead of the decoded key | — | ✅ |
+| `DAR-014` | S2 / medium | Sibling import/export URIs are not escaped (`#`, `'`) | `CA-11` | ✅ |
+| `DAR-015` | S1 / medium | `asserts x is T` emitted as a `bool`-returning function | — | ✅ |
+| `DAR-016` | S1 / medium | Watch cannot recover when a previously missing imported file is created | — | ✅ |
+| `DAR-017` | S1 / medium | Watch misses the one-library to shared-support transition | — | ✅ |
+| `DAR-018` | S2 / medium | CLI watch root chosen by textual prefix | `CA-15` | ✅ |
+| `DAR-019` | S3 / medium | Link-report cycle memoisation marks cycle members resolved | `CA-13` | ✅ |
+| `DAR-020` | S2 / medium | Private-only constructors leave a public implicit Dart constructor | `CA-16` | ✅ |
+| `DAR-021` | S1 / medium | Inherited constructors do not substitute superclass type arguments | — | ✅ |
+| `DAR-022` | S1 / medium | Lone-CR JSDoc escapes the generated `///` comment | `CA-32` | ✅ |
+| `DAR-023` | S2 / medium | Watch CLI suppresses diagnostics and `-lv` output that one-shot mode reports | — | ✅ |
 
 ---
 ## Historical pre-S1 corpus frequency data

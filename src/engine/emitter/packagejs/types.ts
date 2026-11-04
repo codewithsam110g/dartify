@@ -232,6 +232,29 @@ export function restElement(parameter: IRParameter, context: EmitContext): strin
   return "dynamic";
 }
 
+function arrayElement(type: IRType): IRType | undefined {
+  if (type.kind === TypeKind.Array) return type.elementType;
+  if (
+    type.kind === TypeKind.TypeReference &&
+    (type.host?.qualifiedName === "Array" || type.host?.qualifiedName === "ReadonlyArray")
+  ) {
+    return type.genericArgs?.[0];
+  }
+  return undefined;
+}
+
+/** `List<lub>` when every member is an array, else undefined. */
+function listUpperBound(members: readonly IRType[], context: EmitContext): string | undefined {
+  if (members.length < 2) return undefined;
+  const elements = members.map(arrayElement);
+  if (elements.some((element) => !element)) return undefined;
+  const list = core("List", context);
+  const texts = [...new Set(elements.map((element) => emit(element!, context).text))];
+  if (texts.length === 1) return `${list}<${texts[0]}>`;
+  const inner = listUpperBound(elements as IRType[], context);
+  return `${list}<${inner ?? "dynamic"}>`;
+}
+
 type UnionShape =
   | { kind: "single"; emitted: Emitted }
   | { kind: "degraded"; members: string[]; display: string };
@@ -251,6 +274,11 @@ function unionShape(type: IRType, context: EmitContext): UnionShape {
     return { kind: "single", emitted: nullable(plain(unique[0]), isNullable) };
   }
   if (unique.includes("dynamic")) return { kind: "single", emitted: DYNAMIC };
+  // A union of lists is a list of the members' least upper bound
+  // (`number[][] | number[][][]` → `List<List<dynamic>>`), as js_facade_gen
+  // computes; more precise than degrading the whole union.
+  const listBound = listUpperBound(concrete, context);
+  if (listBound) return { kind: "single", emitted: nullable(plain(listBound), isNullable) };
   // Members that are themselves support typedefs are described by their
   // TypeScript spelling; their Dart names are not allocated yet.
   const described = unique.map((text) => {

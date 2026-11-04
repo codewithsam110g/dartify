@@ -22,7 +22,17 @@
 
 export type Blocks = Map<string, string[]>;
 
-export function normalizeDart(source: string): Blocks {
+export interface NormalizeOptions {
+  /** Drop `///` documentation lines. */
+  ignoreDocs?: boolean;
+  /**
+   * Also substitute non-`dynamic` local typedefs (`typedef H3Index = String;`)
+   * with their right-hand side, for comparison with tools that inlined them.
+   */
+  inlineTypedefs?: boolean;
+}
+
+export function normalizeDart(source: string, options: NormalizeOptions = {}): Blocks {
   let text = source.replace(/\r\n/g, "\n");
   // Block comments (including `dynamic /*num|List<num>*/` explanations).
   text = text.replace(/\/\*[\s\S]*?\*\//g, " ");
@@ -40,7 +50,11 @@ export function normalizeDart(source: string): Blocks {
   const joined: string[] = [];
   for (const line of lines) {
     const previous = joined[joined.length - 1];
-    if (previous !== undefined && /[(,]$/.test(previous.trim())) {
+    const unterminated =
+      previous !== undefined &&
+      /^\s*external /.test(previous) &&
+      !/[;{}]$/.test(previous.trim());
+    if (previous !== undefined && (/[(,]$/.test(previous.trim()) || unterminated)) {
       joined[joined.length - 1] = `${previous.trim()} ${line.trim()}`;
     } else {
       joined.push(line);
@@ -48,9 +62,14 @@ export function normalizeDart(source: string): Blocks {
   }
 
   const dynamicTypedefs = new Set<string>();
+  const aliasTypedefs = new Map<string, string>();
   for (const line of joined) {
     const match = line.match(/^typedef ([A-Za-z_$][\w$]*)(?:<[^=]*>)? = dynamic;$/);
     if (match) dynamicTypedefs.add(match[1]);
+    const alias = line.match(/^typedef ([A-Za-z_$][\w$]*) = (?!dynamic;)([^;]+);$/);
+    if (alias && options.inlineTypedefs && !alias[2].includes(" Function")) {
+      aliasTypedefs.set(alias[1], alias[2]);
+    }
   }
 
   const normalizeLine = (raw: string): string => {
@@ -58,6 +77,9 @@ export function normalizeDart(source: string): Blocks {
     line = line.replace(/@JS\("([^".]*)"\)/g, "@JS()");
     line = line.replace(/\brequired\s+/g, "").replace(/\bcovariant\s+/g, "");
     line = line.replace(/\?(?=[\s,)>\]};])/g, "");
+    for (const [name, target] of aliasTypedefs) {
+      line = line.replace(new RegExp(`(?<![\\w$.])${name.replace(/\$/g, "\\$")}(?![\\w$])`, "g"), target);
+    }
     for (const name of dynamicTypedefs) {
       line = line.replace(new RegExp(`(?<![\\w$.])${name.replace(/\$/g, "\\$")}(?![\\w$])`, "g"), "dynamic");
     }
@@ -89,6 +111,7 @@ export function normalizeDart(source: string): Blocks {
   let pending: string[] = [];
   for (let index = 0; index < joined.length; index++) {
     const line = normalizeLine(joined[index]);
+    if (options.ignoreDocs && line.startsWith("///")) continue;
     if (line.startsWith("@") || line.startsWith("///")) {
       pending.push(line);
       continue;
@@ -137,7 +160,9 @@ export function normalizeDart(source: string): Blocks {
     }
     const typedefMatch = line.match(/^typedef ([A-Za-z_$][\w$]*)/);
     if (typedefMatch) {
-      if (!dynamicTypedefs.has(typedefMatch[1])) add(typedefMatch[1], [...pending, line]);
+      if (!dynamicTypedefs.has(typedefMatch[1]) && !aliasTypedefs.has(typedefMatch[1])) {
+        add(typedefMatch[1], [...pending, line]);
+      }
       pending = [];
       continue;
     }

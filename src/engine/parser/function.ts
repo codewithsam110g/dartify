@@ -13,10 +13,10 @@ export function parseFunction(
   funcDecl: ts.FunctionDeclaration,
   context: ParseContext = declarationParseContext(
     funcDecl,
-    funcDecl.getName() ?? "anonFunc",
+    funcDecl.getName() ?? "default",
   ),
 ): IRFunction {
-  const name = funcDecl.getName() ?? "anonFunc";
+  const name = funcDecl.getName() ?? "default";
   const declarations = funcDecl
     .getSymbol()
     ?.getDeclarations()

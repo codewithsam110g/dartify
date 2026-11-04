@@ -86,6 +86,7 @@ exports[`AST Parsers to IR > parseClass() > should parse a simple class with pro
 
 exports[`AST Parsers to IR > parseEnum() > should parse a numeric enum 1`] = `
 {
+  "isConst": false,
   "kind": "enum",
   "loc": {
     "column": 1,

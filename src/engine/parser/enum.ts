@@ -71,6 +71,7 @@ export function parseEnum(declaration: ts.EnumDeclaration): IREnum {
     kind: IRDeclKind.Enum,
     modifiers: declarationModifiersOf(declaration),
     name: declaration.getName(),
+    isConst: declaration.isConstEnum(),
     members,
   };
 }

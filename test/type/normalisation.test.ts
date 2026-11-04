@@ -112,13 +112,16 @@ describe("the empty type literal (T-16)", () => {
 });
 
 describe("intersection dispatch (T-08)", () => {
-  test.each([
-    ["Foo & null", "Foo?"],
-    ["Foo & undefined", "Foo?"],
-    ["Foo & void", "Foo"],
-  ])("%s -> %s", (source, expected) => {
-    expect(emitType(parseType(createTypeNode(source)))).toBe(expected);
-  });
+  // `T-18`: these used to widen to `Foo?`/`Foo`. Under strict null checks an
+  // intersection with an empty-domain member has no inhabitants.
+  test.each(["Foo & null", "Foo & undefined", "Foo & void", "string & number"])(
+    "%s is never, not a widened member",
+    (source) => {
+      const ir = parseType(createTypeNode(source));
+      expect(ir.kind).toBe(TypeKind.Never);
+      expect(ir.isNullable).toBe(false);
+    },
+  );
 
   test("never anywhere in an intersection wins", () => {
     const ir = parseType(createTypeNode("Foo & never"));
@@ -167,10 +170,8 @@ describe("intersections reach the output (T-09)", () => {
 
   // `any & T` is `any` in TypeScript. Promoting `T` out of it would hand
   // callers a `T` API over a value the source never promised was one.
-  test("the first member is taken as written, not the most specific", () => {
-    expect(emitType(parseType(createTypeNode("any & Foo")))).toBe(
-      "dynamic /* dynamic&Foo */",
-    );
+  test("any absorbs the intersection rather than promoting a member", () => {
+    expect(parseType(createTypeNode("any & Foo")).kind).toBe(TypeKind.Any);
   });
 
   test("no intersection reaches the output as bare dynamic", async () => {

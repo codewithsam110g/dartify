@@ -44,7 +44,7 @@ checkboxes and evidence synchronized with this summary.
     then delete `src/context.ts` and `src/reset.ts`.
   - [x] Prove sequential, cross-instance, and same-instance overlapping calls;
     nested mutation isolation; and unchanged single-run output.
-- [ ] Preserve module-export/anonymity/const-enum facts and correct impossible
+- [x] Preserve module-export/anonymity/const-enum facts and correct impossible
   intersections (`P-15`–`P-17`, `T-18`).
 - [ ] Enforce external-module visibility and deterministic/legal semantic names
   (`L-19`, `E-29`, `E-30`).

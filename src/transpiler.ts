@@ -17,6 +17,7 @@ import {
   LinkReport,
 } from "./engine/phase/linkerPhase";
 import { SymbolTable } from "./symbol/table";
+import { ModuleExportTable } from "./symbol/exports";
 import {
   renderAllFiles,
   writeAllFiles,
@@ -177,6 +178,7 @@ export class Transpiler {
       // Phase 1: Symbol generation into run-owned state.
       const symbolTable = new SymbolTable();
       const namespaceExports: NamespaceExports = new Map();
+      const moduleExports: ModuleExportTable = new Map();
       const generation: GenerationDiagnostic[] = [];
       for (const [filePath, sourceFile] of [
         ...run.inputFiles,
@@ -188,12 +190,17 @@ export class Transpiler {
             sourceFile,
             symbolTable,
             namespaceExports,
+            moduleExports,
           )),
         );
       }
 
       // Phase 2: semantic normalization followed by reference linking.
-      const program = await runLinker(symbolTable, namespaceExports);
+      const program = await runLinker(
+        symbolTable,
+        namespaceExports,
+        moduleExports,
+      );
       if (this.debug) {
         printGenerationDiagnostics(generation);
         printLinkSummary(program.report);
@@ -336,11 +343,13 @@ export class Transpiler {
     try {
       const symbolTable = new SymbolTable();
       const namespaceExports: NamespaceExports = new Map();
+      const moduleExports: ModuleExportTable = new Map();
       const generation = await generateSymbols(
         filePath,
         sourceFile,
         symbolTable,
         namespaceExports,
+        moduleExports,
       );
       for (const diagnostic of generation) {
         errors.push(
@@ -353,7 +362,7 @@ export class Transpiler {
           ),
         );
       }
-      program = await runLinker(symbolTable, namespaceExports);
+      program = await runLinker(symbolTable, namespaceExports, moduleExports);
 
       const rendered = renderAllFiles(program, ".", dirname(filePath), debug);
       // Exactly one input file, so at most one rendered output.

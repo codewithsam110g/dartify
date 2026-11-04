@@ -7,6 +7,12 @@ import { SemanticReport } from "@engine/semantic/types";
 import { Symbol } from "@/symbol";
 import { SymbolTable } from "@/symbol/table";
 import { NamespaceExports } from "./symbolGeneration";
+import {
+  LinkedModuleExports,
+  linkModuleExports,
+  ModuleExportDiagnostic,
+  ModuleExportTable,
+} from "@/symbol/exports";
 
 export enum LinkState {
   LinkedIndependent = "LinkedIndependent",
@@ -52,6 +58,8 @@ export interface LinkReport {
   results: Map<string, LinkResult>;
   edges: LinkEdge[];
   diagnostics: LinkDiagnostic[];
+  /** Unresolved module export records; filled after reference linking. */
+  moduleExportDiagnostics: ModuleExportDiagnostic[];
   valid: number;
   broken: number;
   aliasesMinted: number;
@@ -97,20 +105,30 @@ function edgeSortKey(edge: LinkEdge): string {
 export interface LinkedProgram {
   readonly symbols: ReadonlyMap<string, readonly Symbol[]>;
   readonly namespaceExports: ReadonlyMap<string, ReadonlySet<string>>;
+  /** Resolved `export =`, default, list and re-export records (`P-17`). */
+  readonly moduleExports: LinkedModuleExports;
   readonly report: LinkReport;
 }
 
 export async function runLinker(
   symbolTable: SymbolTable,
   namespaceExports: NamespaceExports,
+  moduleExports: ModuleExportTable = new Map(),
 ): Promise<LinkedProgram> {
   const semantic = runSemanticPass(symbolTable);
   const report = symbolTable.transaction((table) =>
     linkDraft(table, namespaceExports, semantic),
   );
+  const symbols = symbolTable.getSymbolTable();
+  const linkedExports = linkModuleExports(
+    structuredClone(moduleExports),
+    symbols.keys(),
+  );
+  report.moduleExportDiagnostics = [...linkedExports.diagnostics];
   return {
-    symbols: symbolTable.getSymbolTable(),
+    symbols,
     namespaceExports: structuredClone(namespaceExports),
+    moduleExports: linkedExports,
     report,
   };
 }
@@ -263,6 +281,7 @@ function linkDraft(
     results,
     edges,
     diagnostics,
+    moduleExportDiagnostics: [],
     valid,
     broken,
     aliasesMinted: semantic.aliasesMinted,

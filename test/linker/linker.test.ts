@@ -102,11 +102,45 @@ describe("S2 linker", () => {
     );
   });
 
+  test("never binds an unrelated external module by terminal name (L-19)", async () => {
+    await withTestProject(
+      {
+        "a.d.ts": "export interface Missing {}",
+        "use.d.ts": "export interface Uses { value: Missing }",
+      },
+      ({ analysis, files }) => {
+        const result = analysis.link.results.get(
+          `${files.get("use.d.ts")}::Uses`,
+        )!;
+        expect(result.state).toBe(LinkState.NotLinkedDirect);
+        if (result.state === LinkState.NotLinkedDirect) {
+          expect(result.failure.kind).toBe("missing");
+        }
+      },
+    );
+  });
+
+  test("binds declare-global and script declarations by bare name", async () => {
+    await withTestProject(
+      {
+        "globals.d.ts": "export {};\ndeclare global { interface Shared {} }",
+        "script.d.ts": "interface Scripted {}",
+        "use.d.ts": "export interface Uses { a: Shared; b: Scripted }",
+      },
+      ({ analysis, files }) => {
+        const result = analysis.link.results.get(
+          `${files.get("use.d.ts")}::Uses`,
+        )!;
+        expect(result.state).toBe(LinkState.LinkedResolved);
+      },
+    );
+  });
+
   test("reports syntax-only repeated global names as ambiguous", async () => {
     await withTestProject(
       {
-        "a.d.ts": "export interface Options {}",
-        "b.d.ts": "export interface Options {}",
+        "a.d.ts": "interface Options {}",
+        "b.d.ts": "interface Options {}",
         "use.d.ts": "export interface Uses { options: Options }",
       },
       ({ analysis, files }) => {

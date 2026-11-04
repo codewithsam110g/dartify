@@ -40,6 +40,24 @@ export interface SymbolOrigin {
   scopes: readonly ModuleScope[];
   /** Stable registration order within the source file. */
   sourceOrder: number;
+  /**
+   * Whether the declaring file is an ES/CommonJS module (has a top-level
+   * import or export). Declarations in a module are visible elsewhere only
+   * through an import, never by bare name (`L-19`).
+   */
+  fileIsModule?: boolean;
+}
+
+/**
+ * Whether a facet is visible by bare name from any file: declared in a script
+ * (non-module) file outside any `declare module`, or inside `declare global`.
+ */
+export function isGloballyVisible(facet: SymbolFacet): boolean {
+  if (facet.origin.scopes.some((scope) => scope.kind === "global")) return true;
+  if (facet.origin.scopes.some((scope) => scope.kind === "externalModule")) {
+    return false;
+  }
+  return facet.origin.fileIsModule !== true;
 }
 
 export interface SymbolProvenance {

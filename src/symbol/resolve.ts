@@ -1,5 +1,5 @@
 import { IRReferenceTarget } from "@ir/type";
-import { Symbol } from "./index";
+import { isGloballyVisible, Symbol } from "./index";
 import {
   FQN_SEPARATOR,
   logicalNameOfFQN,
@@ -116,8 +116,15 @@ export function resolveReference(
 
   const logicalParts = logicalName.split("|");
   const terminalName = logicalParts[logicalParts.length - 1] ?? logicalName;
+  // The terminal-name fallback may only bind a declaration the referencing
+  // file can see without an import. A unique `Missing` exported from an
+  // unrelated module is not in scope (`L-19`).
   const globalMatches = [...table.keys()].filter(
-    (candidate) => terminalNameOfFQN(candidate) === terminalName,
+    (candidate) =>
+      terminalNameOfFQN(candidate) === terminalName &&
+      (table.get(candidate) ?? []).some((symbol) =>
+        symbol.facets.some(isGloballyVisible),
+      ),
   );
   const globalResult = uniqueOrAmbiguous(
     normalizedFQN,

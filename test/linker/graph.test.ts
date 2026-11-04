@@ -14,6 +14,7 @@ describe("S2 graph model", () => {
         [second, { state: LinkState.LinkedIndependent }],
       ]),
       edges: [],
+      moduleExportDiagnostics: [],
       diagnostics: [],
       valid: 2,
       broken: 0,

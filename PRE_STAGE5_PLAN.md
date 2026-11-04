@@ -48,17 +48,17 @@ Commit: `refactor(context): make compiler runs independently owned`
 
 Commit: `feat(ir): preserve module exports and const-enum identity`
 
-- [ ] Represent anonymous class/function declarations explicitly. Keep their
+- [x] Represent anonymous class/function declarations explicitly. Keep their
   source name absent, use a stable internal default-export FQN, and allocate a
   collision-safe Dart-only name; never invent `anonFunc` or emit `@JS("")`.
-- [ ] Add module-export records for direct named/default declarations,
+- [x] Add module-export records for direct named/default declarations,
   `export =`, identifier default exports, export lists, namespace re-exports,
   and star re-exports. Resolve targets and chains into `LinkedProgram` with
   explicit unresolved/ambiguous diagnostics.
-- [ ] Add `IREnum.isConst`. Until S5 emits compile-time constants, suppress
+- [x] Add `IREnum.isConst`. Until S5 emits compile-time constants, suppress
   const-enum and anonymous-default runtime bindings with structured diagnostics
   rather than targeting nonexistent JavaScript properties.
-- [ ] Cover callable CommonJS exports, namespace/class exports, named and
+- [x] Cover callable CommonJS exports, namespace/class exports, named and
   anonymous defaults, re-export chains, ambient const enums, and computed
   const-enum members.
 
@@ -66,14 +66,14 @@ Commit: `feat(ir): preserve module exports and const-enum identity`
 
 Commit: `fix(linker): preserve impossible types and module visibility`
 
-- [ ] Ask the TypeScript checker whether intersections reduce to `never` and
+- [x] Ask the TypeScript checker whether intersections reduce to `never` and
   emit Dart `Never`, not nullable or assignable substitutes.
-- [ ] Record whether symbols originate in script-global, external-module,
+- [x] Record whether symbols originate in script-global, external-module,
   nested ambient-module, or `declare global` scope.
-- [ ] Limit syntax fallback to same-file/module declarations and declarations
+- [x] Limit syntax fallback to same-file/module declarations and declarations
   proven globally visible. Never bind an unrelated external module by a unique
   terminal name.
-- [ ] Test impossible intersections, explicit `never`, external-module
+- [x] Test impossible intersections, explicit `never`, external-module
   isolation, valid globals, checker-backed imports, ambiguity, and re-exports.
 
 ### 4.14 — Deterministic legal Dart names

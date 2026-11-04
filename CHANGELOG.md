@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Declaration identity and type truth (tasks 4.12–4.13)
+
+- Anonymous default exports keep an absent source name; const enums are marked
+  `isConst`; `export =`, default identifiers, export lists and star/namespace
+  re-exports are resolved into `LinkedProgram.moduleExports` (`P-15`–`P-17`).
+- Intersections that reduce to `never` (including `T & null`) now produce
+  `Never` instead of widening to `T?` (`T-18`).
+- The bare-name linker fallback no longer binds declarations exported from an
+  unrelated module (`L-19`).
+
 ### Run ownership (task 4.11)
 
 - Deleted the process-global `context.ts` singleton and `reset.ts` seam. Every

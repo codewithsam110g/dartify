@@ -32,4 +32,11 @@ export interface IRDeclarationModifiers {
   isDeclare: boolean;
   /** Whether TypeScript treats the declaration as ambient, including parents. */
   isAmbient: boolean;
+  /**
+   * `export default class {}` / `export default function () {}` — the source
+   * declaration has no name (`P-15`). The IR `name` is the stable internal
+   * `default`; no JavaScript property of that spelling exists, so backends
+   * must not bind one.
+   */
+  isAnonymousDefault?: boolean;
 }

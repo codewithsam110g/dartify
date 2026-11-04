@@ -26,7 +26,7 @@ export function parseClass(
   declaration: ts.ClassDeclaration,
   context: ParseContext = declarationParseContext(
     declaration,
-    declaration.getName() || "Error_Class",
+    declaration.getName() ?? "default",
   ),
 ): IRClass {
   const extendsNode = declaration.getExtends();
@@ -131,7 +131,7 @@ export function parseClass(
     ...nodeMetadata(declaration),
     kind: IRDeclKind.Class,
     modifiers: declarationModifiersOf(declaration),
-    name: declaration.getName() || "",
+    name: declaration.getName() ?? "default",
     extends: extendsNode
       ? parseType(extendsNode, 0, context.child("extends"))
       : undefined,

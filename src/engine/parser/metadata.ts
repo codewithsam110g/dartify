@@ -55,8 +55,15 @@ export function declarationModifiersOf(
     node.compilerNode as ts.ts.Declaration,
   );
 
+  const name = (node as ts.Node & { getName?: () => string | undefined })
+    .getName?.();
+  const anonymousDefault =
+    isDefault &&
+    (ts.Node.isClassDeclaration(node) || ts.Node.isFunctionDeclaration(node)) &&
+    !name;
   return {
     exportKind: isDefault ? "default" : isExported ? "named" : "none",
+    ...(anonymousDefault ? { isAnonymousDefault: true } : {}),
     isDeclare: hasModifier(node, ts.SyntaxKind.DeclareKeyword),
     isAmbient:
       node.getSourceFile().isDeclarationFile() ||

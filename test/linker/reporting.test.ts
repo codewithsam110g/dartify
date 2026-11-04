@@ -45,6 +45,7 @@ describe("verbose linker reporting", () => {
     });
     const report: LinkReport = {
       semantic,
+      moduleExportDiagnostics: [],
       results: new Map([
         ["/a.d.ts::A", { state: LinkState.LinkedResolved }],
         [

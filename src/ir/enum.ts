@@ -13,5 +13,11 @@ export interface IREnumMember extends IRNode, IRBindingName {
 
 export interface IREnum extends IRDeclaration, IRBindingName {
   kind: IRDeclKind.Enum;
+  /**
+   * `const enum`: TypeScript inlines member values and normally erases the
+   * runtime object (`P-16`). Backends lower members to compile-time constants
+   * instead of runtime property reads.
+   */
+  isConst: boolean;
   members: IREnumMember[];
 }

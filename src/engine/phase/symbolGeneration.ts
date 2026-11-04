@@ -9,6 +9,7 @@ import {
 import * as parser from "@parser/index";
 import { TranspileException } from "@/transpiler";
 import { SymbolTable } from "@/symbol/table";
+import { ModuleExportRecord, ModuleExportTable } from "@/symbol/exports";
 import { IRDeclarationUnion } from "@ir/declaration";
 import { createFQN, createFQNPrefix } from "@/symbol/fqn";
 import { ParseContext } from "@parser/context";
@@ -42,19 +43,35 @@ export async function generateSymbols(
   sourceFile: ts.SourceFile,
   symbolTable: SymbolTable,
   namespaceExports: NamespaceExports,
+  moduleExports: ModuleExportTable = new Map(),
 ): Promise<GenerationDiagnostic[]> {
-  const generator = new SymbolGenerator(symbolTable, namespaceExports);
+  const generator = new SymbolGenerator(
+    symbolTable,
+    namespaceExports,
+    moduleExports,
+  );
   return generator.generateSymbols(fp, sourceFile);
 }
 
 class SymbolGenerator {
   private moduleScopes: ModuleScope[] = [];
   private sourceOrder = 0;
+  private fileIsModule = false;
 
   constructor(
     private readonly symbolTable: SymbolTable,
     private readonly namespaceExports: NamespaceExports,
+    private readonly moduleExports: ModuleExportTable,
   ) {}
+
+  private recordExport(filePath: string, record: ModuleExportRecord): void {
+    // Only file-level export statements describe the file's module. Exports
+    // inside `declare module "x"` blocks belong to that ambient module.
+    if (this.moduleScopes.length > 0) return;
+    let records = this.moduleExports.get(filePath);
+    if (!records) this.moduleExports.set(filePath, (records = []));
+    records.push(record);
+  }
 
   private parseContext(fqn: string, filePath: string): ParseContext {
     return new ParseContext(fqn, (hoistedFQN, declaration) => {
@@ -89,6 +106,7 @@ class SymbolGenerator {
         filePath,
         scopes: this.moduleScopes.map((scope) => ({ ...scope })),
         sourceOrder: this.sourceOrder++,
+        fileIsModule: this.fileIsModule,
       },
       emit: true,
       ...(synthetic ? { synthetic } : {}),
@@ -108,6 +126,7 @@ class SymbolGenerator {
     sourceFile: ts.SourceFile,
   ): Promise<GenerationDiagnostic[]> {
     const errors: TranspileException[] = [];
+    this.fileIsModule = ts.ts.isExternalModule(sourceFile.compilerNode);
     try {
       await this.walkStatements(sourceFile.getStatements(), errors, fp);
     } catch (error) {
@@ -221,6 +240,57 @@ class SymbolGenerator {
         break;
       }
 
+      case ts.SyntaxKind.ExportAssignment: {
+        const assignment = statement as ts.ExportAssignment;
+        this.recordExport(filePath, {
+          kind: "assignment",
+          isDefault: !assignment.isExportEquals(),
+          expression: assignment.getExpression().getText(),
+          line: assignment.getStartLineNumber(),
+        });
+        break;
+      }
+
+      case ts.SyntaxKind.ExportDeclaration: {
+        const declaration = statement as ts.ExportDeclaration;
+        const specifier = declaration.getModuleSpecifierValue();
+        const target = declaration.getModuleSpecifierSourceFile();
+        const targetFile = target
+          ? String(target.getFilePath()).split("\\").join("/")
+          : undefined;
+        const common = {
+          ...(targetFile ? { targetFile } : {}),
+          isTypeOnly: declaration.isTypeOnly(),
+          line: declaration.getStartLineNumber(),
+        };
+        const namespaceExport = declaration.getNamespaceExport();
+        if (namespaceExport && specifier !== undefined) {
+          this.recordExport(filePath, {
+            kind: "namespace",
+            alias: namespaceExport.getName(),
+            specifier,
+            ...common,
+          });
+        } else if (declaration.hasNamedExports()) {
+          this.recordExport(filePath, {
+            kind: "named",
+            elements: declaration.getNamedExports().map((element) => {
+              const alias = element.getAliasNode()?.getText();
+              return {
+                name: alias ?? element.getName(),
+                ...(alias ? { propertyName: element.getName() } : {}),
+                isTypeOnly: element.isTypeOnly(),
+              };
+            }),
+            ...(specifier !== undefined ? { specifier } : {}),
+            ...common,
+          });
+        } else if (specifier !== undefined) {
+          this.recordExport(filePath, { kind: "star", specifier, ...common });
+        }
+        break;
+      }
+
       default:
         // Ignore unhandled top-level statements for symbol generation (e.g., Imports, Exports, etc.)
         // It's normal for files to contain logic that doesn't generate new public declarations in our IR.
@@ -258,7 +328,7 @@ class SymbolGenerator {
     node: ts.ClassDeclaration,
     filePath: string,
   ): void {
-    const className = node.getName() || "Error_Class";
+    const className = node.getName() ?? "default";
     const fqn = createFQN(filePath, this.fqnScopes(), className);
     const parsedClass = parser.parseClass(
       node,
@@ -271,7 +341,7 @@ class SymbolGenerator {
     node: ts.FunctionDeclaration,
     filePath: string,
   ): void {
-    const functionName = node.getName() || "Error_Function";
+    const functionName = node.getName() ?? "default";
     const fqn = createFQN(filePath, this.fqnScopes(), functionName);
     const parsedFunction = parser.parseFunction(
       node,

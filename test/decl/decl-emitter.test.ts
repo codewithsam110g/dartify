@@ -92,6 +92,7 @@ describe("Declaration Emitter Unit Tests", () => {
       kind:IRDeclKind.Enum,
       modifiers: TEST_MODIFIERS,
       name: "Direction",
+      isConst: false,
       members: [
         { name: "Up", initializer: { kind: "implicit" } },
         { name: "Down", initializer: { kind: "implicit" } },

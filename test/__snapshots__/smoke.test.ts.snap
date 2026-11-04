@@ -261,14 +261,14 @@ extension Anon_Class_method_0_extend_return_intersection_0Extension on Anon_Clas
 @JS("Class")
 class Class {
   external static Anon_Class_method_0_extend_return_intersection_0 /* Anon_Class_method_0_extend_return_intersection_0&TypeOfClass */ extend(dynamic props);
-  external static dynamic /* dynamic&TypeOfClass */ include(dynamic props);
-  external static dynamic /* dynamic&TypeOfClass */ mergeOptions(dynamic props);
+  external static dynamic include(dynamic props);
+  external static dynamic mergeOptions(dynamic props);
   external static void callInitHooks();
 }
 @JS("Class.addInitHook")
-external dynamic /* dynamic&TypeOfClass */ Class_addInitHook_1(void Function() initHookFn);
+external dynamic Class_addInitHook_1(void Function() initHookFn);
 @JS("Class.addInitHook")
-external dynamic /* dynamic&TypeOfClass */ Class_addInitHook_2(String methodName, [/* rest */ List<dynamic> args]);
+external dynamic Class_addInitHook_2(String methodName, [/* rest */ List<dynamic> args]);
 
 @JS("Transformation")
 class Transformation {

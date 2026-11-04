@@ -14,6 +14,11 @@ All notable changes to this project will be documented in this file.
 - The bare-name linker fallback no longer binds declarations exported from an
   unrelated module (`L-19`).
 
+### Tooling (task 4.16)
+
+- Declared `engines.node` as `^20.19.0 || ^22.12.0 || >=23` (`X-15`).
+- `pnpm test:coverage` now runs with `@vitest/coverage-v8` (`X-16`).
+
 ### Host type provenance (task 4.17)
 
 - References to TypeScript/Node/Undici host declarations carry a non-linkable

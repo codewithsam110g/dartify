@@ -319,7 +319,7 @@ the locked phase APIs, task order, commit boundaries, and acceptance commands.
 | 4.13 | ✅ Normalize impossible intersections without widening and prevent terminal-name fallback across unrelated external modules | `T-18`, `L-19` |
 | 4.14 | ✅ Make alias/collision allocation insertion-stable and revalidate every scope-derived Dart identifier | `E-29`, `E-30` |
 | 4.15 | Replace false unit expectations and add categorized Dart analyzer plus dart2js/runtime fixture probes | `X-14` |
-| 4.16 | Declare the dependency-compatible Node floor and make the coverage command executable or remove it | `X-15`, `X-16` |
+| 4.16 | ✅ Declare the dependency-compatible Node floor and make the coverage command executable or remove it | `X-15`, `X-16` |
 | 4.17 | ✅ Preserve checker-confirmed TypeScript standard-library/host identity on references without turning host declarations into generated-file dependency edges | `I-15` |
 
 #### 4.11 locked design — no replacement singleton

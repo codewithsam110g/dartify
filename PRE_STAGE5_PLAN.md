@@ -124,14 +124,14 @@ Commit: `test(gates): execute Dart analyzer and interop probes`
 
 Commit: `build(tooling): enforce runtime and coverage contracts`
 
-- [ ] Declare `engines.node` as `^20.19.0 || ^22.12.0 || >=23` and align
+- [x] Declare `engines.node` as `^20.19.0 || ^22.12.0 || >=23` and align
   contributor documentation.
-- [ ] Install the Vitest-3-compatible `@vitest/coverage-v8`; make
+- [x] Install the Vitest-3-compatible `@vitest/coverage-v8`; make
   `test:coverage` run `vitest run --coverage`. Do not invent a numeric coverage
   threshold.
-- [ ] Add Node CI for 20.19.0, 22.12.0, and 24.x with frozen pnpm installation,
+- [x] Add Node CI for 20.19.0, 22.12.0, and 24.x with frozen pnpm installation,
   tests, typecheck, and build. Run coverage once.
-- [ ] Keep Dart validation as the documented opt-in command rather than a
+- [x] Keep Dart validation as the documented opt-in command rather than a
   required Node CI job.
 
 ## Public and Internal Contracts

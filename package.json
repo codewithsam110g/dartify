@@ -28,7 +28,7 @@
     "test:s4": "vitest run test/linker/symbol-table.test.ts test/linker/semantic.test.ts test/linker/reporting.test.ts test/decl/decl-emitter.test.ts",
     "test:s5:fixture": "vitest run test/decl/s5-emitter-fixture.test.ts",
     "fixture:s5": "tsx src/cli.ts -d \"def_files/synthetic/s5_emitter/*.d.ts\" -o output/s5_emitter -lv",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-coverage --reporter=verbose",
     "test:cli": "pnpm build && node dist/cli.js -d \"def_files/h3/h3.d.ts\" -o ./output",
     "clean": "rm -rf dist output",
@@ -49,6 +49,9 @@
   ],
   "author": "Samba Siva Rao Kovvuru <codewithsam110g>",
   "license": "Apache-2.0",
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=23"
+  },
   "packageManager": "pnpm@10.9.0",
   "dependencies": {
     "fast-glob": "^3.3.3",
@@ -58,6 +61,7 @@
   "devDependencies": {
     "@types/node": "^24.0.3",
     "@types/yargs": "^17.0.33",
+    "@vitest/coverage-v8": "3.2.4",
     "@vitest/ui": "^3.2.4",
     "@viz-js/viz": "^3.27.0",
     "tsup": "^8.5.0",

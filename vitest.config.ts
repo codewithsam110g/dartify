@@ -35,7 +35,9 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      exclude: ["node_modules/", "test/", "def_files/", "**/*.d.ts"],
+      include: ["src/**/*.ts"],
+      exclude: ["src/legacy/**", "**/*.d.ts"],
+      reportsDirectory: "output/coverage",
     },
 
     // Global test setup

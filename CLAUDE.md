@@ -119,8 +119,8 @@ scoped to the type tests. `test:stress` sets `DARTIFY_STRESS=1` inline, which is
 POSIX-shell syntax; on Windows use `pnpm test:run test/stress.test.ts` with the
 variable set separately.
 
-`test:coverage` is currently nonfunctional because the Vitest coverage provider
-is not installed (`X-16`). Do not report coverage until that command is repaired.
+`test:coverage` runs `vitest run --coverage` (v8) and writes to
+`output/coverage/`; no numeric threshold is enforced.
 The S5 fixture is a golden, not an executable Dart correctness gate: `X-14`
 requires analyzer and dart2js/runtime probes before S5 output can be accepted.
 

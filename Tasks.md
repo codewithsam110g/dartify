@@ -50,7 +50,7 @@ checkboxes and evidence synchronized with this summary.
   (`L-19`, `E-29`, `E-30`).
 - [ ] Replace the false expectations identified by `X-14` and establish a
   categorized Dart analyzer/compiler/runtime fixture gate.
-- [ ] Declare the dependency-compatible Node range and repair or remove the
+- [x] Declare the dependency-compatible Node range and repair or remove the
   nonfunctional coverage command (`X-15`, `X-16`).
 - [x] Preserve checker-confirmed TypeScript host/stdlib reference identity
   without adding host declarations to generated dependency edges (`I-15`).

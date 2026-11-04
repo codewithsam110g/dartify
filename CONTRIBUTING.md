@@ -21,7 +21,8 @@ linking.
 
 ## Development
 
-Use the pinned pnpm 10 toolchain:
+Use Node `^20.19.0 || ^22.12.0 || >=23` (the floor set by `yargs@18`, declared
+in `engines`) and the pinned pnpm 10 toolchain:
 
 ```sh
 pnpm install

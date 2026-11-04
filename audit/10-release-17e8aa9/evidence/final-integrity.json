@@ -1,0 +1,14 @@
+{
+  "repository": {
+    "matched": 1848,
+    "expected": 1848,
+    "mismatches": []
+  },
+  "isolated_snapshot": {
+    "matched": 1848,
+    "expected": 1848,
+    "mismatches": []
+  },
+  "checked_at_utc": "2026-11-04T19:14:37.415655+00:00",
+  "method": "Only captured file paths/content hashed; no Git metadata accessed. Does not revalidate current ref identity or inventory later/new paths."
+}

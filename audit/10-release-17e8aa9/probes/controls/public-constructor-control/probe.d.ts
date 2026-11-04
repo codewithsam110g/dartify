@@ -1,0 +1,1 @@
+export declare class Private {constructor();x:number}

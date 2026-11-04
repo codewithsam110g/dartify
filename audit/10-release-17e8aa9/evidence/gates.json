@@ -1,0 +1,103 @@
+[
+  {
+    "name": "typecheck",
+    "command": [
+      "pnpm",
+      "exec",
+      "tsc",
+      "--noEmit"
+    ],
+    "exit_code": 0,
+    "seconds": 1.8
+  },
+  {
+    "name": "build",
+    "command": [
+      "pnpm",
+      "build"
+    ],
+    "exit_code": 0,
+    "seconds": 1.0
+  },
+  {
+    "name": "default",
+    "command": [
+      "pnpm",
+      "test"
+    ],
+    "exit_code": 0,
+    "seconds": 11.75
+  },
+  {
+    "name": "s2",
+    "command": [
+      "pnpm",
+      "test:s2"
+    ],
+    "exit_code": 0,
+    "seconds": 1.59
+  },
+  {
+    "name": "s3",
+    "command": [
+      "pnpm",
+      "test:s3"
+    ],
+    "exit_code": 0,
+    "seconds": 1.64
+  },
+  {
+    "name": "s4",
+    "command": [
+      "pnpm",
+      "test:s4"
+    ],
+    "exit_code": 0,
+    "seconds": 2.41
+  },
+  {
+    "name": "s5",
+    "command": [
+      "pnpm",
+      "test:s5:fixture"
+    ],
+    "exit_code": 0,
+    "seconds": 0.93
+  },
+  {
+    "name": "dart",
+    "command": [
+      "pnpm",
+      "test:dart"
+    ],
+    "exit_code": 0,
+    "seconds": 10.86
+  },
+  {
+    "name": "e2e",
+    "command": [
+      "pnpm",
+      "test:e2e"
+    ],
+    "exit_code": 0,
+    "seconds": 3.3
+  },
+  {
+    "name": "incremental",
+    "command": [
+      "pnpm",
+      "test:incremental"
+    ],
+    "exit_code": 0,
+    "seconds": 13.1
+  },
+  {
+    "name": "stress",
+    "command": [
+      "pnpm",
+      "test:stress"
+    ],
+    "exit_code": 0,
+    "seconds": 102.59
+  }
+]

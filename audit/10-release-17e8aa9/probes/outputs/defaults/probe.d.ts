@@ -1,0 +1,1 @@
+export default function named(x:number):number; export declare const a:number;

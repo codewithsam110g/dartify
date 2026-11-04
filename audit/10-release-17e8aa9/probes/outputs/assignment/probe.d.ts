@@ -1,0 +1,1 @@
+declare function named(x:number):number; export = named; export as namespace Root;

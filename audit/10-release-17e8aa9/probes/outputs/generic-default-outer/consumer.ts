@@ -1,0 +1,1 @@
+import {f} from "./probe"; f<number>({a:"a",b:"b"});

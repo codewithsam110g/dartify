@@ -1,0 +1,1 @@
+declare function hidden(x:number):number; export { hidden as publicName };

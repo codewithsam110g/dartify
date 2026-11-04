@@ -1,0 +1,1 @@
+export interface Pair<T,U=T>{a:T;b:U} export declare function f<T>(x:Pair<string,string>):T;

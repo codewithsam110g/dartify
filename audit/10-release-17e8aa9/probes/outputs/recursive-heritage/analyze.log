@@ -1,0 +1,2 @@
+ERROR|COMPILE_TIME_ERROR|RECURSIVE_INTERFACE_INHERITANCE|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/recursive-heritage/dart/probe.dart|11|16|1|'A' can't be a superinterface of itself: B, A.
+ERROR|COMPILE_TIME_ERROR|RECURSIVE_INTERFACE_INHERITANCE|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/recursive-heritage/dart/probe.dart|19|16|1|'B' can't be a superinterface of itself: B, A.

@@ -1,0 +1,1 @@
+export declare function named(x:number):number;

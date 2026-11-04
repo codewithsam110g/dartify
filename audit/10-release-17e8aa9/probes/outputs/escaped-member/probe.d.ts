@@ -1,0 +1,1 @@
+export interface Weird { "a\u0062": number; "a.b": number; "a-b": number; } export declare const weird:Weird;

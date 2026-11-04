@@ -1,0 +1,2 @@
+TS compiler oracle=5
+CAUGHT: NoSuchMethodError: method not found: 'named' (self.Root.named is not a function)

@@ -1,0 +1,15 @@
+
+> dart_bindgen@1.0.0 test:s2 /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+> DARTIFY_S2_CORPUS=1 vitest run test/linker/corpus.test.ts
+
+
+ RUN  v3.2.4 /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+
+ ✓ test/linker/corpus.test.ts (2 tests) 849ms
+   ✓ S2 corpus gate > three.js has exact internal targets and exposes missing external types  655ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  00:05:48
+   Duration  1.20s (transform 125ms, setup 0ms, collect 250ms, tests 849ms, environment 0ms, prepare 25ms)
+

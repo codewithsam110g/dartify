@@ -1,0 +1,1 @@
+export interface KeyOfFoo {} export interface FooExtension {x:number} export declare const x:keyof FooExtension;

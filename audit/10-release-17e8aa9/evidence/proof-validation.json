@@ -1,0 +1,98 @@
+{
+  "checked_at_utc": "2026-11-04T19:14:17.067002+00:00",
+  "method": "Assertions over retained concrete proof artifacts; does not rerun or replace compiler/runtime evidence.",
+  "findings": {
+    "DAR-001": {
+      "verified": true,
+      "check": "CLI malformed syntax succeeds; identical string API collects syntax errors"
+    },
+    "DAR-002": {
+      "verified": true,
+      "check": "mixed missing input and directory accepted; single missing control fails"
+    },
+    "DAR-003": {
+      "verified": true,
+      "check": "three actual TypeScript export implementations succeed as JS, fail as Dart; ordinary control succeeds"
+    },
+    "DAR-004": {
+      "verified": true,
+      "check": "public alias and chained-barrel consumers fail to resolve declared exported classes"
+    },
+    "DAR-005": {
+      "verified": true,
+      "check": "destructuring keyword and rest duplicate diagnostics"
+    },
+    "DAR-006": {
+      "verified": true,
+      "check": "third-level override fails Dart analysis"
+    },
+    "DAR-007": {
+      "verified": true,
+      "check": "late static name duplicates author function"
+    },
+    "DAR-008": {
+      "verified": true,
+      "check": "minted alias use no longer names a type"
+    },
+    "DAR-009": {
+      "verified": true,
+      "check": "valid defaulted generic consumer rejected; explicit-argument control accepted"
+    },
+    "DAR-010": {
+      "verified": true,
+      "check": "nullable-generic consumer rejected by TS but accepted by Dart"
+    },
+    "DAR-011": {
+      "verified": true,
+      "check": "inline-generic shape misuse rejected by TS but accepted by Dart"
+    },
+    "DAR-012": {
+      "verified": true,
+      "check": "native Date returns 2020; compiled Dart DateTime getter fails"
+    },
+    "DAR-013": {
+      "verified": true,
+      "check": "escaped spelling dispatch fails; decoded-key control returns 11"
+    },
+    "DAR-014": {
+      "verified": true,
+      "check": "hash/quote filenames corrupt generated import URI/literal"
+    },
+    "DAR-015": {
+      "verified": true,
+      "check": "assertion signature is bool but successful JS return becomes null"
+    },
+    "DAR-016": {
+      "verified": true,
+      "check": "isolated watch without any cold run stays stale and then throws on importer edit"
+    },
+    "DAR-017": {
+      "verified": true,
+      "check": "same Promise consumer fails incrementally, passes cold"
+    },
+    "DAR-018": {
+      "verified": true,
+      "check": "native watch misses sibling-prefix input and handles in-root control"
+    },
+    "DAR-019": {
+      "verified": true,
+      "check": "cycle hides transitive failure; acyclic control propagates it"
+    },
+    "DAR-020": {
+      "verified": true,
+      "check": "private construction accepted and bypasses JS initialization; public external control works"
+    },
+    "DAR-021": {
+      "verified": true,
+      "check": "inherited generic constructor erases string constraint; explicit constructor restores it"
+    },
+    "DAR-022": {
+      "verified": true,
+      "check": "valid CR-only source creates Dart errors; CRLF control passes"
+    },
+    "DAR-023": {
+      "verified": true,
+      "check": "watch with -lv hides warning and verbose records shown/available in ordinary mode"
+    }
+  }
+}

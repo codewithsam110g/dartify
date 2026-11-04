@@ -1,0 +1,1 @@
+export interface A {x:number;run(x:number):number}

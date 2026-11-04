@@ -1,0 +1,1 @@
+export default function named(x:number){return x+1;} export const a=1;

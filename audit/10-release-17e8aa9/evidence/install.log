@@ -1,0 +1,2 @@
+ ERROR  Unknown options: 'frozen-lockfile', 'state-dir'
+For help, run: pnpm help add

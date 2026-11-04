@@ -1,0 +1,17 @@
+
+> dart_bindgen@1.0.0 test:s4 /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+> vitest run test/linker/symbol-table.test.ts test/linker/semantic.test.ts test/linker/reporting.test.ts test/decl/decl-emitter.test.ts
+
+
+ RUN  v3.2.4 /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+
+ ✓ test/linker/symbol-table.test.ts (3 tests) 2ms
+ ✓ test/linker/reporting.test.ts (2 tests) 5ms
+ ✓ test/linker/semantic.test.ts (25 tests) 1587ms
+ ✓ test/decl/decl-emitter.test.ts (24 tests) 1614ms
+
+ Test Files  4 passed (4)
+      Tests  54 passed (54)
+   Start at  00:05:51
+   Duration  1.99s (transform 233ms, setup 0ms, collect 745ms, tests 3.21s, environment 0ms, prepare 112ms)
+

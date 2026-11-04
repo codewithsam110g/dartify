@@ -1,0 +1,1 @@
+export interface Box<T>{value:T} export declare const box:Box<string>;

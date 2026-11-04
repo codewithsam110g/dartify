@@ -19,7 +19,21 @@ export interface Backend {
    * per-file because some target rules (Dart's ambiguous-export check) span
    * libraries.
    */
-  renderLibraries(inputs: readonly LibraryInput[]): Map<string, RenderedLibrary>;
+  renderLibraries(
+    inputs: readonly LibraryInput[],
+    session?: RenderSession,
+  ): Map<string, RenderedLibrary>;
+}
+
+/**
+ * Lets a watch session re-render only what a change can affect. Libraries not
+ * in `dirty` may be served from `cache`, which the backend owns and the
+ * session keeps alive between renders; cross-library rules (export
+ * ambiguity, shared support) are still evaluated over every library.
+ */
+export interface RenderSession {
+  dirty: ReadonlySet<string>;
+  cache: Map<string, unknown>;
 }
 
 export interface LibraryInput {

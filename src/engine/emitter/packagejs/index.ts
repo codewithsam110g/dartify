@@ -7,6 +7,7 @@ import {
   BackendDiagnostic,
   LibraryInput,
   RenderedLibrary,
+  RenderSession,
   SUPPORT_LIBRARY,
 } from "../backend";
 import { renderSupportLibrary, SUPPORT_PUBLIC_NAMES, supportExports } from "./support";
@@ -42,10 +43,26 @@ const TYPE_DEFINITIONS_HEADER = [
 export function createPackageJsBackend(): Backend {
   return {
     id: "package:js",
-    renderLibraries(inputs: readonly LibraryInput[]): Map<string, RenderedLibrary> {
+    renderLibraries(
+      inputs: readonly LibraryInput[],
+      session?: RenderSession,
+    ): Map<string, RenderedLibrary> {
       if (inputs.length === 0) return new Map();
       const index = new ProgramIndex(inputs[0].program.symbols, inputs[0].outputPathOfFile);
-      const drafts = new Map(inputs.map((input) => [input.sourceFile, renderLibrary(input, index)]));
+      const drafts = new Map<string, LibraryDraft>();
+      for (const input of inputs) {
+        const cached = session?.cache.get(input.sourceFile) as LibraryDraft | undefined;
+        const draft =
+          cached && !session!.dirty.has(input.sourceFile)
+            ? cached
+            : renderLibrary(input, index);
+        session?.cache.set(input.sourceFile, draft);
+        drafts.set(input.sourceFile, draft);
+      }
+      if (session) {
+        const live = new Set(inputs.map((input) => input.sourceFile));
+        for (const file of [...session.cache.keys()]) if (!live.has(file)) session.cache.delete(file);
+      }
       // The shared support library exists only if some library used it.
       const usesSupport = [...drafts.values()].some((draft) =>
         draft.reExports.some((directive) => directive.targetFile === SUPPORT_LIBRARY),

@@ -37,6 +37,33 @@ export class SymbolTable {
     ]);
   }
 
+  /**
+   * Registers a symbol whose ownership the caller hands over: it must be a
+   * fresh object graph the caller never touches again. Symbol generation
+   * builds every symbol from scratch, so it adopts instead of cloning (three.js
+   * spent ~190 ms cloning freshly built symbols).
+   */
+  public adopt(fqn: string, symbol: Symbol): void {
+    this.assertSymbolMatches(fqn, symbol);
+    const group = this.symbols.get(fqn);
+    if (group) group.push(symbol);
+    else this.symbols.set(fqn, [symbol]);
+  }
+
+  /**
+   * Transfers the whole table to the caller without copying and leaves this
+   * table empty. Used once per run by the linker, which owns the result and
+   * hands it to backends as the `LinkedProgram`; nothing can reach it through
+   * the table afterwards, so ownership stays exclusive (`L-10`) without the
+   * three deep copies the transactional path costs.
+   */
+  public release(): SymbolTableDraft {
+    const owned = this.symbols;
+    for (const [fqn, group] of owned) this.validatedGroup(fqn, group);
+    this.symbols = new Map();
+    return owned;
+  }
+
   public replace(fqn: string, symbols: readonly Symbol[]): void {
     this.symbols.set(fqn, structuredClone(this.validatedGroup(fqn, symbols)));
   }

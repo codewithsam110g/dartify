@@ -31,8 +31,11 @@ export type TypeTarget =
  */
 export class ProgramIndex {
   private readonly targets = new Map<string, TypeTarget | null>();
-  private ownedAnonymous?: Map<string, SymbolFacet>;
-  private ownedAliases?: Set<SymbolFacet>;
+  private readonly ownershipByFile = new Map<
+    string,
+    { owned: Map<string, SymbolFacet>; aliases: Set<SymbolFacet> }
+  >();
+  private filesIndex?: Map<string, (readonly Symbol[])[]>;
 
   constructor(
     public readonly symbols: ReadonlyMap<string, readonly Symbol[]>,
@@ -67,22 +70,27 @@ export class ProgramIndex {
    * §5.11). Returns the owning alias facet for such an anonymous FQN.
    */
   aliasOwnerOf(anonymousFQN: string): SymbolFacet | undefined {
-    this.computeOwnership();
-    return this.ownedAnonymous!.get(anonymousFQN);
+    return this.ownership(sourceFileOfFQN(anonymousFQN)).owned.get(anonymousFQN);
   }
 
   /** Whether an alias facet is replaced by the class it names. */
   isOwningAlias(facet: SymbolFacet): boolean {
-    this.computeOwnership();
-    return this.ownedAliases!.has(facet);
+    return this.ownership(facet.origin.filePath).aliases.has(facet);
   }
 
-  private computeOwnership(): void {
-    if (this.ownedAnonymous) return;
-    this.ownedAnonymous = new Map();
-    this.ownedAliases = new Set();
+  /**
+   * Ownership is decided per file and lazily: an anonymous hoisted type can
+   * only be referenced from its own file, so counting that file's uses is
+   * enough, and incremental renders never walk unaffected files.
+   */
+  private ownership(file: string): { owned: Map<string, SymbolFacet>; aliases: Set<SymbolFacet> } {
+    let entry = this.ownershipByFile.get(file);
+    if (entry) return entry;
+    entry = { owned: new Map(), aliases: new Set() };
+    this.ownershipByFile.set(file, entry);
+    const groups = this.groupsOfFile(file);
     const uses = new Map<string, number>();
-    for (const group of this.symbols.values()) {
+    for (const group of groups) {
       for (const symbol of group) {
         for (const facet of symbol.facets) {
           forEachIRType(facet.ir, (type) => {
@@ -92,7 +100,7 @@ export class ProgramIndex {
         }
       }
     }
-    for (const group of this.symbols.values()) {
+    for (const group of groups) {
       for (const symbol of group) {
         for (const facet of symbol.facets) {
           if (!facet.emit || facet.ir.kind !== IRDeclKind.TypeAlias) continue;
@@ -101,15 +109,29 @@ export class ProgramIndex {
           if (alias.type.kind !== TypeKind.TypeReference || alias.type.isNullable) continue;
           const target = alias.type.reference?.resolvedFQN;
           if (!target || uses.get(target) !== 1) continue;
-          if (sourceFileOfFQN(target) !== sourceFileOfFQN(symbol.fqn)) continue;
+          if (sourceFileOfFQN(target) !== file) continue;
           const anonymous = this.typeFacet(target);
           if (anonymous?.synthetic !== "anonymousType") continue;
           if (anonymous.ir.kind !== IRDeclKind.Interface) continue;
-          this.ownedAnonymous.set(target, facet);
-          this.ownedAliases.add(facet);
+          entry.owned.set(target, facet);
+          entry.aliases.add(facet);
         }
       }
     }
+    return entry;
+  }
+
+  private groupsOfFile(file: string): (readonly Symbol[])[] {
+    if (!this.filesIndex) {
+      this.filesIndex = new Map();
+      for (const [fqn, group] of this.symbols) {
+        const owner = sourceFileOfFQN(fqn);
+        const list = this.filesIndex.get(owner) ?? [];
+        list.push(group);
+        this.filesIndex.set(owner, list);
+      }
+    }
+    return this.filesIndex.get(file) ?? [];
   }
 
   private computeTarget(fqn: string): TypeTarget | undefined {

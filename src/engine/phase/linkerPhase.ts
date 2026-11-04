@@ -2,7 +2,10 @@ import {
   ResolutionResult,
   resolveReference,
 } from "@/symbol/resolve";
-import { runSemanticPass } from "@engine/semantic/run";
+import {
+  runSemanticPassOnDraft,
+  SemanticPassResult,
+} from "@engine/semantic/run";
 import { SemanticReport } from "@engine/semantic/types";
 import { Symbol } from "@/symbol";
 import { SymbolTable } from "@/symbol/table";
@@ -115,11 +118,11 @@ export async function runLinker(
   namespaceExports: NamespaceExports,
   moduleExports: ModuleExportTable = new Map(),
 ): Promise<LinkedProgram> {
-  const semantic = runSemanticPass(symbolTable);
-  const report = symbolTable.transaction((table) =>
-    linkDraft(table, namespaceExports, semantic),
-  );
-  const symbols = symbolTable.getSymbolTable();
+  // The run's table is consumed here: the linker takes ownership instead of
+  // copying, and the result becomes the caller's `LinkedProgram`.
+  const symbols = symbolTable.release();
+  const semantic = runSemanticPassOnDraft(symbols);
+  const report = linkDraft(symbols, namespaceExports, semantic);
   const linkedExports = linkModuleExports(
     structuredClone(moduleExports),
     symbols.keys(),
@@ -136,15 +139,33 @@ export async function runLinker(
 function linkDraft(
   table: Map<string, Symbol[]>,
   namespaceExports: NamespaceExports,
-  semantic: ReturnType<typeof runSemanticPass>,
+  semantic: SemanticPassResult,
 ): LinkReport {
-  const edges: LinkEdge[] = [];
+  const linked = linkReferences(table, table, namespaceExports);
+  return summarizeLinks(linked.edgesByFQN, linked.diagnostics, table.keys(), semantic);
+}
+
+export interface LinkedReferences {
+  edgesByFQN: Map<string, LinkEdge[]>;
+  diagnostics: LinkDiagnostic[];
+}
+
+/**
+ * Resolves every reference owned by `groups` against `table`, writing
+ * `resolvedFQN`/`resolvedDartName`/`resolvedDeps` in place. `groups` may be a
+ * subset of `table`: watch mode re-links only the files a change can affect.
+ */
+export function linkReferences(
+  groups: ReadonlyMap<string, readonly Symbol[]>,
+  table: ReadonlyMap<string, readonly Symbol[]>,
+  namespaceExports: ReadonlyMap<string, ReadonlySet<string>>,
+): LinkedReferences {
   const diagnostics: LinkDiagnostic[] = [];
   const edgesByFQN = new Map<string, LinkEdge[]>();
 
-  for (const fqn of [...table.keys()].sort()) {
+  for (const fqn of [...groups.keys()].sort()) {
     const groupEdges: LinkEdge[] = [];
-    for (const symbol of table.get(fqn) ?? []) {
+    for (const symbol of groups.get(fqn) ?? []) {
       const resolvedDeps = new Set<string>();
       for (const dependency of symbol.deps) {
         if (
@@ -181,7 +202,6 @@ function linkDraft(
           resolution,
         };
         groupEdges.push(edge);
-        edges.push(edge);
       }
       symbol.resolvedDeps = [...resolvedDeps].sort();
     }
@@ -192,7 +212,19 @@ function linkDraft(
       ),
     );
   }
+  return { edgesByFQN, diagnostics };
+}
 
+/** Builds the whole-program `LinkReport` from per-symbol edges. */
+export function summarizeLinks(
+  edgesByFQN: ReadonlyMap<string, readonly LinkEdge[]>,
+  linkDiagnostics: readonly LinkDiagnostic[],
+  symbolFQNs: Iterable<string>,
+  semantic: SemanticPassResult,
+): LinkReport {
+  const fqns = [...symbolFQNs].sort();
+  const edges = fqns.flatMap((fqn) => edgesByFQN.get(fqn) ?? []);
+  const diagnostics = [...linkDiagnostics];
   edges.sort((a, b) => edgeSortKey(a).localeCompare(edgeSortKey(b)));
   diagnostics.sort((a, b) =>
     `${a.ownerFQN}\u0000${a.writtenName}`.localeCompare(
@@ -263,7 +295,7 @@ function linkDraft(
   const results = new Map<string, LinkResult>();
   let valid = 0;
   let broken = 0;
-  for (const fqn of [...table.keys()].sort()) {
+  for (const fqn of fqns) {
     const result = checkDeps(fqn);
     results.set(fqn, result);
     if (

@@ -26,6 +26,8 @@ jobs:
       - run: pnpm build
       - if: matrix.node == '24.x'
         run: pnpm test:coverage
+      - if: matrix.node == '24.x'
+        run: pnpm test:incremental
 
   dart:
     # The v1 acceptance test: generated bindings must pass `dart analyze`

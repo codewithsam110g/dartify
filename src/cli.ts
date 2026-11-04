@@ -24,6 +24,7 @@ interface CliOptions {
   enableLogs: boolean;
   verbose: boolean;
   dryRun: boolean;
+  watch: boolean;
 }
 
 const argv = yargs(hideBin(process.argv))
@@ -57,6 +58,12 @@ const argv = yargs(hideBin(process.argv))
     describe: "Show what would be processed without doing it",
     default: false,
   })
+  .option("watch", {
+    alias: "w",
+    type: "boolean",
+    describe: "Rebuild incrementally whenever an input changes",
+    default: false,
+  })
   .option("tsconfig", {
     alias: "p",
     type: "string",
@@ -71,6 +78,7 @@ const argv = yargs(hideBin(process.argv))
     'dart_bindgen --def-files "types/**/*.d.ts" -lv',
     "Enable logs and print the detailed linker report",
   )
+  .example('dart_bindgen -d "types/**/*.d.ts" -o ./generated -w', "Watch and rebuild on change")
   .help()
   .alias("help", "h")
   .version(pkg.version)
@@ -147,6 +155,11 @@ async function main(options: CliOptions): Promise<void> {
       return;
     }
 
+    if (options.watch) {
+      await watchFiles(readableFiles, options);
+      return;
+    }
+
     console.log("\nProcessing files...");
     await processFiles(readableFiles, options);
 
@@ -206,6 +219,60 @@ async function processFiles(
       `⚠️  Module resolution: ${unresolved} unresolved reference(s); rerun with -l for resolution details or -lv for the full linker report`,
     );
   }
+}
+
+/**
+ * Watch mode: one incremental `WatchSession`, rebuilt on every change under
+ * the inputs' common directory. Changes are debounced so an editor's save
+ * burst becomes one rebuild.
+ */
+async function watchFiles(files: string[], options: CliOptions): Promise<void> {
+  const { WatchSession } = await import("./watch");
+  const { watch } = await import("fs");
+  const session = new WatchSession({
+    files,
+    outDir: options.output,
+    tsConfigFilePath: options.tsconfig ? path.resolve(process.cwd(), options.tsconfig) : undefined,
+  });
+  const report = (label: string, build: Awaited<ReturnType<typeof session.build>>) => {
+    const failures = build.analysis.generation.length;
+    const status = failures > 0 ? `⚠️  ${failures} generation error(s); nothing written` : `wrote ${build.written.length}`;
+    console.log(
+      `${label}: ${build.files.size} libraries, rebuilt ${build.rebuilt.length} source file(s), ${status} — ${build.timings.total} ms`,
+    );
+  };
+  report("Initial build", await session.build());
+  // Warm the incremental path (statement replay, partial link and render) so
+  // the first real edit is as fast as later ones; outputs are unchanged.
+  await session.build([files[0]]);
+
+  const roots = [...new Set(files.map((file) => path.dirname(file)))];
+  const root = roots.reduce((common, directory) => {
+    while (!directory.startsWith(common)) common = path.dirname(common);
+    return common;
+  });
+  const pending = new Set<string>();
+  let timer: NodeJS.Timeout | undefined;
+  let running = Promise.resolve();
+  const flush = () => {
+    const changed = [...pending];
+    pending.clear();
+    running = running.then(async () => {
+      try {
+        report(`Rebuilt (${changed.map((file) => path.relative(process.cwd(), file)).join(", ")})`, await session.build(changed));
+      } catch (error) {
+        console.error("Rebuild failed:", error instanceof Error ? error.message : error);
+      }
+    });
+  };
+  watch(root, { recursive: true }, (_, fileName) => {
+    if (!fileName || !fileName.toString().endsWith(".ts")) return;
+    pending.add(path.resolve(root, fileName.toString()));
+    clearTimeout(timer);
+    timer = setTimeout(flush, 25);
+  });
+  console.log(`Watching ${path.relative(process.cwd(), root) || "."} for changes (Ctrl+C to stop)`);
+  await new Promise(() => undefined);
 }
 
 main(argv);

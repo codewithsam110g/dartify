@@ -11,7 +11,12 @@ import { dirname, extname, join, relative } from "path";
 import { Symbol } from "@/symbol";
 import { sourceFileOfFQN } from "@/symbol/fqn";
 import { TranspileException } from "@/transpiler";
-import { Backend, BackendDiagnostic, SUPPORT_LIBRARY } from "@emitter/backend";
+import {
+  Backend,
+  BackendDiagnostic,
+  RenderSession,
+  SUPPORT_LIBRARY,
+} from "@emitter/backend";
 import { createPackageJsBackend } from "@emitter/packagejs/index";
 import { SUPPORT_FILE_NAME } from "@emitter/packagejs/support";
 import { LinkedProgram } from "./linkerPhase";
@@ -44,6 +49,7 @@ export function renderAllFiles(
   inputRoot: string,
   debug = false,
   backend: Backend = createPackageJsBackend(),
+  session?: RenderSession,
 ): Map<string, RenderedFile> {
   const fileGroups = groupSymbolsByFile(program.symbols);
 
@@ -108,6 +114,7 @@ export function renderAllFiles(
       moduleExports: program.moduleExports.byFile.get(sourceFile) ?? [],
       ...(supportPath ? { supportPath } : {}),
     })),
+    session,
   );
   const rendered = new Map<string, RenderedFile>();
   for (const [sourceFile, outputPath] of outputPathOfFile) {

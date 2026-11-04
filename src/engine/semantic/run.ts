@@ -33,7 +33,7 @@ export function runSemanticPass(symbolTable: SymbolTable): SemanticPassResult {
  * caller's `SymbolTable`; it is replaced wholesale with the semantic output and
  * committed only if this function returns.
  */
-function runSemanticPassOnDraft(table: SymbolTableDraft): SemanticPassResult {
+export function runSemanticPassOnDraft(table: SymbolTableDraft): SemanticPassResult {
   const input: ReadonlyMap<string, readonly Symbol[]> = new Map(table);
   const report = emptySemanticReport();
   report.inputSymbols = [...input.values()].reduce(
@@ -112,7 +112,7 @@ function cloneAndConsolidate(
       {
         fqn,
         facets,
-        deps: dependenciesOfFacets(facets),
+        deps: [],
         resolvedDeps: [],
         ...(clones.every((symbol) => symbol.minted) ? { minted: true } : {}),
       },
@@ -212,7 +212,7 @@ function canonicalizeAnonymousSymbols(
   return redirects;
 }
 
-function rewriteRedirects(
+export function rewriteRedirects(
   draft: Map<string, Symbol[]>,
   redirects: ReadonlyMap<string, string>,
 ): void {
@@ -270,4 +270,46 @@ function refreshDependencies(draft: Map<string, Symbol[]>): void {
       }
     }
   }
+}
+
+/**
+ * Combines independent per-file semantic results. Every semantic rewrite is
+ * keyed by an FQN that includes its file, so running the pass file by file
+ * (watch mode) and merging is equivalent to one whole-program pass.
+ */
+export function mergeSemanticResults(
+  results: readonly SemanticPassResult[],
+): SemanticPassResult {
+  const report = emptySemanticReport();
+  const counts = [
+    "inputSymbols",
+    "inputDeclarations",
+    "outputSymbols",
+    "outputFacets",
+    "anonymousSymbolsCanonicalized",
+    "declarationGroupsMerged",
+    "overloadGroupsRenamed",
+    "overloadsRenamed",
+    "keywordRenames",
+    "namespaceRenames",
+    "dualFacetRenames",
+    "globalDeclarationsHoisted",
+    "externalAugmentationsSuppressed",
+  ] as const;
+  let aliasesMinted = 0;
+  let aliasUseSites = 0;
+  for (const result of results) {
+    for (const key of counts) report[key] += result.report[key];
+    report.redirects.push(...result.report.redirects);
+    report.suppressedAugmentations.push(...result.report.suppressedAugmentations);
+    report.diagnostics.push(...result.report.diagnostics);
+    aliasesMinted += result.aliasesMinted;
+    aliasUseSites += result.aliasUseSites;
+  }
+  report.redirects.sort((a, b) => a.fromFQN.localeCompare(b.fromFQN));
+  report.suppressedAugmentations.sort((a, b) => a.ownerFQN.localeCompare(b.ownerFQN));
+  report.diagnostics.sort((a, b) =>
+    `${a.ownerFQN}\u0000${a.code}`.localeCompare(`${b.ownerFQN}\u0000${b.code}`),
+  );
+  return { report, aliasesMinted, aliasUseSites };
 }

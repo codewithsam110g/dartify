@@ -136,10 +136,13 @@ function collectReferenceTarget(node: ReferenceLikeNode): CollectedReference {
     // In particular, an optional class property such as `value?: T` can be
     // reported as the surrounding union rather than as T. The declaration
     // identity is definitive and prevents a fake `/file.d.ts::T` dependency.
+    // Cheapest checks first: the symbol's declarations decide almost every
+    // case, and `getType()` (a full checker query) is only needed when the
+    // name has no symbol at all.
     if (
-      node.getType().isTypeParameter() ||
+      symbol?.getDeclarations().some(ts.Node.isTypeParameterDeclaration) ||
       isLexicalTypeParameter(node, writtenName) ||
-      symbol?.getDeclarations().some(ts.Node.isTypeParameterDeclaration)
+      (!symbol && node.getType().isTypeParameter())
     ) {
       return {};
     }

@@ -13,7 +13,7 @@ import { ModuleExportRecord, ModuleExportTable } from "@/symbol/exports";
 import { IRDeclarationUnion } from "@ir/declaration";
 import { createFQN, createFQNPrefix } from "@/symbol/fqn";
 import { ParseContext } from "@parser/context";
-import { dependenciesOf } from "@/symbol/dependencies";
+import { cloneData } from "@ir/clone";
 
 /** `export as namespace X` aliases, keyed by declaring file. Run-owned. */
 export type NamespaceExports = Map<string, Set<string>>;
@@ -32,6 +32,41 @@ export interface GenerationDiagnostic {
 }
 
 /**
+ * One top-level statement's generation output, kept by a watch session so an
+ * unchanged statement is replayed instead of re-parsed. `symbols` are pristine
+ * copies never handed to a table (the semantic pass mutates what it receives).
+ */
+export interface StatementCacheEntry {
+  symbols: Symbol[];
+  namespaceAliases: string[];
+  exportRecords: ModuleExportRecord[];
+  errors: { code: string; message: string; line?: number; column?: number }[];
+  /** 1-based start line when cached; replay shifts every location by the delta. */
+  line: number;
+  /** Identifier tokens in the statement text. */
+  tokens: Set<string>;
+  /** Names the statement declares. */
+  declared: Set<string>;
+  /** Whether other statements can read this one's types through `typeof`. */
+  valueLike: boolean;
+  /** Names this statement reads as values (`typeof X`; any name in an enum). */
+  valueTokens: Set<string>;
+}
+
+/** Keyed by statement position-independent identity (see `statementKey`). */
+export type StatementCache = Map<string, StatementCacheEntry>;
+
+export interface GenerateOptions {
+  /**
+   * Reuse unchanged top-level statements from a previous generation of the
+   * same file, and leave this generation's statements in the cache.
+   */
+  statementCache?: StatementCache;
+  /** Receives the FQNs registered by statements that were actually parsed. */
+  freshFQNs?: Set<string>;
+}
+
+/**
  * Top-level entry point for symbol generation.
  *
  * Parses the AST of one file into the run-owned `symbolTable` and records any
@@ -44,13 +79,77 @@ export async function generateSymbols(
   symbolTable: SymbolTable,
   namespaceExports: NamespaceExports,
   moduleExports: ModuleExportTable = new Map(),
+  options: GenerateOptions = {},
 ): Promise<GenerationDiagnostic[]> {
   const generator = new SymbolGenerator(
     symbolTable,
     namespaceExports,
     moduleExports,
+    options.statementCache,
+    options.freshFQNs,
   );
   return generator.generateSymbols(fp, sourceFile);
+}
+
+const IDENTIFIER = /[A-Za-z_$][\w$]*/g;
+
+function lineOf(node: ts.Node): { line: number; column: number } {
+  const position = ts.ts.getLineAndCharacterOfPosition(
+    node.getSourceFile().compilerNode,
+    node.getStart(),
+  );
+  return { line: position.line + 1, column: position.character + 1 };
+}
+
+/** Names a top-level statement declares, read from syntax alone. */
+function declaredNamesOf(statement: ts.Statement, into = new Set<string>()): Set<string> {
+  const named = statement as ts.Statement & { getName?: () => string | undefined };
+  if (ts.Node.isVariableStatement(statement)) {
+    for (const declaration of statement.getDeclarations()) into.add(declaration.getName());
+  } else if (ts.Node.isModuleDeclaration(statement)) {
+    for (const segment of statement.getName().split(".")) into.add(segment.replace(/['"]/g, ""));
+    for (const inner of statement.getStatements()) declaredNamesOf(inner, into);
+  } else if (named.getName) {
+    into.add(named.getName() ?? "default");
+  } else {
+    for (const token of statement.getText().match(IDENTIFIER) ?? []) into.add(token);
+  }
+  return into;
+}
+
+/** Statements whose *types* other statements can read through `typeof`. */
+function isValueLike(statement: ts.Statement): boolean {
+  return (
+    ts.Node.isVariableStatement(statement) ||
+    ts.Node.isEnumDeclaration(statement) ||
+    ts.Node.isModuleDeclaration(statement) ||
+    ts.Node.isClassDeclaration(statement)
+  );
+}
+
+function valueTokensOf(statement: ts.Statement): Set<string> {
+  const text = statement.getFullText();
+  if (ts.Node.isEnumDeclaration(statement)) return new Set(text.match(IDENTIFIER) ?? []);
+  return new Set([...text.matchAll(/\btypeof\s+([A-Za-z_$][\w$]*)/g)].map((match) => match[1]));
+}
+
+/** Shifts every source location in a cloned statement output by `delta`. */
+function shiftLocations(value: unknown, delta: number, seen = new Set<object>()): void {
+  if (delta === 0 || value === null || typeof value !== "object" || seen.has(value)) return;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (const item of value) shiftLocations(item, delta, seen);
+    return;
+  }
+  const record = value as Record<string, unknown>;
+  const loc = record.loc as { line?: number } | undefined;
+  if (loc && typeof loc.line === "number" && !seen.has(loc)) {
+    seen.add(loc);
+    loc.line += delta;
+  }
+  for (const key in record) {
+    if (key !== "loc") shiftLocations(record[key], delta, seen);
+  }
 }
 
 class SymbolGenerator {
@@ -58,10 +157,15 @@ class SymbolGenerator {
   private sourceOrder = 0;
   private fileIsModule = false;
 
+  /** Symbols registered while a statement is being captured for the cache. */
+  private captured?: Symbol[];
+
   constructor(
     private readonly symbolTable: SymbolTable,
     private readonly namespaceExports: NamespaceExports,
     private readonly moduleExports: ModuleExportTable,
+    private readonly statementCache?: StatementCache,
+    private readonly freshFQNs?: Set<string>,
   ) {}
 
   private recordExport(filePath: string, record: ModuleExportRecord): void {
@@ -115,10 +219,149 @@ class SymbolGenerator {
     const symbol: Symbol = {
       fqn,
       facets: [facet],
-      deps: dependenciesOf(ir),
+      // Dependencies are derived once, after semantic rewrites, by the
+      // semantic pass (`refreshDependencies`); computing them here was a
+      // full IR walk thrown away immediately.
+      deps: [],
       resolvedDeps: [],
     };
-    this.symbolTable.register(fqn, symbol);
+    this.captured?.push(symbol);
+    this.symbolTable.adopt(fqn, symbol);
+  }
+
+  /**
+   * Generates the file's top-level statements, replaying cached ones that are
+   * provably unaffected: same text and position-independent identity, and no
+   * identifier they mention is declared by a statement that changed or
+   * disappeared (which could change what the checker binds it to).
+   */
+  private async walkTopLevelWithCache(
+    statements: ts.Statement[],
+    errors: TranspileException[],
+    filePath: string,
+    cache: StatementCache,
+  ): Promise<void> {
+    const overloadIndex = new Map<string, number>();
+    const keys = statements.map((statement) => {
+      let overload = "";
+      if (ts.Node.isFunctionDeclaration(statement)) {
+        const name = statement.getName() ?? "default";
+        const index = overloadIndex.get(name) ?? 0;
+        overloadIndex.set(name, index + 1);
+        overload = `${name}#${index}`;
+      }
+      const { column } = lineOf(statement);
+      return `${this.fileIsModule ? "m" : "s"}\u0000${column}\u0000${overload}\u0000${statement.getFullText()}`;
+    });
+    // Binding: a name declared before but not now (or now but not before)
+    // can change what any statement mentioning it binds to. Values: a
+    // changed variable/enum/namespace/class can change what `typeof` reads.
+    const used = new Set<string>();
+    const newDeclared = new Set<string>();
+    const changedValues = new Set<string>();
+    keys.forEach((key, index) => {
+      const statement = statements[index];
+      const names = declaredNamesOf(statement);
+      names.forEach((name) => newDeclared.add(name));
+      if (cache.has(key) && !used.has(key)) used.add(key);
+      else if (isValueLike(statement)) names.forEach((name) => changedValues.add(name));
+    });
+    const oldDeclared = new Set<string>();
+    for (const [key, entry] of cache) {
+      entry.declared.forEach((name) => oldDeclared.add(name));
+      if (!used.has(key) && entry.valueLike) entry.declared.forEach((name) => changedValues.add(name));
+    }
+    const touched = new Set<string>();
+    for (const name of newDeclared) if (!oldDeclared.has(name)) touched.add(name);
+    for (const name of oldDeclared) if (!newDeclared.has(name)) touched.add(name);
+
+    const next: StatementCache = new Map();
+    for (const [index, statement] of statements.entries()) {
+      const key = keys[index];
+      const entry = cache.get(key);
+      const reusable =
+        entry !== undefined &&
+        !next.has(key) &&
+        ![...touched].some((name) => entry.tokens.has(name)) &&
+        ![...changedValues].some((name) => entry.valueTokens.has(name));
+      if (reusable) {
+        this.replay(entry, statement, filePath, errors);
+        next.set(key, entry);
+        continue;
+      }
+      const firstError = errors.length;
+      const aliasesBefore = new Set(this.namespaceExports.get(filePath) ?? []);
+      const recordsBefore = this.moduleExports.get(filePath)?.length ?? 0;
+      this.captured = [];
+      await this.walkStatements([statement], errors, filePath);
+      const symbols = this.captured;
+      this.captured = undefined;
+      for (const symbol of symbols) this.freshFQNs?.add(symbol.fqn);
+      const declared = declaredNamesOf(statement);
+      for (const symbol of symbols) {
+        for (const segment of symbol.fqn.slice(symbol.fqn.indexOf("::") + 2).split("|")) {
+          declared.add(segment);
+        }
+      }
+      next.set(key, {
+        symbols: cloneData(symbols),
+        namespaceAliases: [...(this.namespaceExports.get(filePath) ?? [])].filter(
+          (alias) => !aliasesBefore.has(alias),
+        ),
+        exportRecords: structuredClone(
+          (this.moduleExports.get(filePath) ?? []).slice(recordsBefore),
+        ),
+        errors: errors.slice(firstError).map((error) => ({
+          code: error.code,
+          message: error.message,
+          ...(error.line !== undefined ? { line: error.line } : {}),
+          ...(error.column !== undefined ? { column: error.column } : {}),
+        })),
+        line: lineOf(statement).line,
+        tokens: new Set(statement.getFullText().match(IDENTIFIER) ?? []),
+        declared,
+        valueLike: isValueLike(statement),
+        valueTokens: valueTokensOf(statement),
+      });
+    }
+    cache.clear();
+    for (const [key, entry] of next) cache.set(key, entry);
+  }
+
+  private replay(
+    entry: StatementCacheEntry,
+    statement: ts.Statement,
+    filePath: string,
+    errors: TranspileException[],
+  ): void {
+    const delta = lineOf(statement).line - entry.line;
+    const symbols = cloneData(entry.symbols);
+    shiftLocations(symbols, delta);
+    for (const symbol of symbols) {
+      for (const facet of symbol.facets) {
+        facet.origin = { ...facet.origin, sourceOrder: this.sourceOrder++ };
+      }
+      this.symbolTable.adopt(symbol.fqn, symbol);
+    }
+    if (entry.namespaceAliases.length > 0) {
+      let aliases = this.namespaceExports.get(filePath);
+      if (!aliases) this.namespaceExports.set(filePath, (aliases = new Set()));
+      entry.namespaceAliases.forEach((alias) => aliases!.add(alias));
+    }
+    for (const record of entry.exportRecords) {
+      this.recordExport(filePath, { ...structuredClone(record), line: record.line + delta });
+    }
+    for (const error of entry.errors) {
+      errors.push(
+        new TranspileException(
+          error.message,
+          error.code,
+          filePath,
+          error.line !== undefined ? error.line + delta : undefined,
+          error.column,
+        ),
+      );
+    }
   }
 
   public async generateSymbols(
@@ -128,7 +371,11 @@ class SymbolGenerator {
     const errors: TranspileException[] = [];
     this.fileIsModule = ts.ts.isExternalModule(sourceFile.compilerNode);
     try {
-      await this.walkStatements(sourceFile.getStatements(), errors, fp);
+      if (this.statementCache) {
+        await this.walkTopLevelWithCache(sourceFile.getStatements(), errors, fp, this.statementCache);
+      } else {
+        await this.walkStatements(sourceFile.getStatements(), errors, fp);
+      }
     } catch (error) {
       const transpileError =
         error instanceof TranspileException
@@ -166,8 +413,8 @@ class SymbolGenerator {
               `Error processing statement declaration: ${error instanceof Error ? error.message : String(error)}`,
               "STATEMENT_DECLARATION_ERROR",
               filePath,
-              statement.getStartLineNumber(),
-              statement.getSourceFile().getLineAndColumnAtPos(statement.getStart()).column,
+              lineOf(statement).line,
+              lineOf(statement).column,
             );
         errors.push(transpileError);
       }

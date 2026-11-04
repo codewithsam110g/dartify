@@ -428,7 +428,7 @@ function printLinkSummary(report: LinkReport): void {
  * Uses the longest common ancestor of all resolved input files so sibling
  * source trees remain distinct under the output directory (`R-03`).
  */
-function resolvedInputRoot(inputFiles: readonly string[]): string {
+export function resolvedInputRoot(inputFiles: readonly string[]): string {
   const directories = inputFiles.map((file) => resolve(dirname(file)));
   if (directories.length === 0) return ".";
 
@@ -470,11 +470,15 @@ function toForwardSlash(p: string): string {
  * categorized file maps and the fallback records the resolution host emits.
  * Constructed per call and discarded with it.
  */
-class ResolutionRun {
+export class ResolutionRun {
   public readonly project: ts.Project;
   public readonly inputFiles = new Map<string, ts.SourceFile>();
   public readonly packageDepFiles = new Map<string, ts.SourceFile>();
-  public readonly stdlibFiles = new Map<string, ts.SourceFile>();
+  /**
+   * Host library files are recorded by name only: dartify never parses them,
+   * so materializing ts-morph wrappers for ~50 lib files was waste (`R-05`).
+   */
+  public readonly stdlibFiles = new Set<string>();
   private readonly moduleFallbacks: ModuleFallbackResolution[] = [];
   private readonly moduleFallbackAmbiguities: ModuleFallbackAmbiguity[] = [];
 
@@ -516,9 +520,81 @@ class ResolutionRun {
    * Add input files to the project, resolve all transitive dependencies,
    * and categorize every resolved file into input / packageDep / stdlib.
    */
+  /**
+   * Removes project files no input reaches through imports, re-exports,
+   * module augmentations or reference directives, using the compiler's own
+   * resolution. Returns whether anything was removed.
+   */
+  private pruneUnreachable(inputs: readonly ts.SourceFile[]): boolean {
+    // Resolution lookups the compiler exposes at runtime but omits from its
+    // public typings; they answer with the program's own resolution results.
+    const program = this.project.getProgram().compilerObject as ts.ts.Program & {
+      getResolvedModuleFromModuleSpecifier(
+        specifier: ts.ts.StringLiteralLike,
+        sourceFile: ts.ts.SourceFile,
+      ): { resolvedModule?: { resolvedFileName: string } } | undefined;
+      getSourceFileFromReference(
+        sourceFile: ts.ts.SourceFile,
+        reference: ts.ts.FileReference,
+      ): ts.ts.SourceFile | undefined;
+      getResolvedTypeReferenceDirectiveFromTypeReferenceDirective(
+        reference: ts.ts.FileReference,
+        sourceFile: ts.ts.SourceFile,
+      ): { resolvedTypeReferenceDirective?: { resolvedFileName?: string } } | undefined;
+    };
+    const reachable = new Set<string>();
+    const queue = inputs.map((input) => String(input.getFilePath()));
+    while (queue.length > 0) {
+      const fileName = queue.pop()!;
+      if (reachable.has(fileName)) continue;
+      reachable.add(fileName);
+      const sourceFile = program.getSourceFile(fileName);
+      if (!sourceFile) continue;
+      const compiled = sourceFile as ts.ts.SourceFile & {
+        imports?: readonly ts.ts.Node[];
+        moduleAugmentations?: readonly ts.ts.Node[];
+      };
+      for (const specifier of [...(compiled.imports ?? []), ...(compiled.moduleAugmentations ?? [])]) {
+        if (!ts.ts.isStringLiteralLike(specifier)) continue;
+        const target = program.getResolvedModuleFromModuleSpecifier(specifier, sourceFile)
+          ?.resolvedModule?.resolvedFileName;
+        if (target) queue.push(target);
+      }
+      for (const reference of sourceFile.referencedFiles) {
+        const target = program.getSourceFileFromReference(sourceFile, reference)?.fileName;
+        if (target) queue.push(target);
+      }
+      for (const reference of sourceFile.typeReferenceDirectives) {
+        const target = program.getResolvedTypeReferenceDirectiveFromTypeReferenceDirective(
+          reference,
+          sourceFile,
+        )?.resolvedTypeReferenceDirective?.resolvedFileName;
+        if (target) queue.push(target);
+      }
+    }
+    let removed = false;
+    for (const sourceFile of this.project.getSourceFiles()) {
+      if (reachable.has(String(sourceFile.getFilePath()))) continue;
+      this.project.removeSourceFile(sourceFile);
+      removed = true;
+    }
+    return removed;
+  }
+
+  /**
+   * Re-entrant: a watch session calls it again after refreshing changed files,
+   * and the project's program is rebuilt incrementally.
+   */
   public resolveAndCategorize(): void {
+    this.inputFiles.clear();
+    this.packageDepFiles.clear();
+    this.stdlibFiles.clear();
     const addedSourceFiles = this.project.addSourceFilesAtPaths(this.files);
     this.project.resolveSourceFileDependencies();
+    // A long-lived project (watch mode) keeps every file it ever loaded as a
+    // root; drop the ones the inputs no longer reach, so the program is the
+    // one a cold compilation would build. A no-op on a fresh project.
+    if (this.pruneUnreachable(addedSourceFiles)) this.project.resolveSourceFileDependencies();
 
     // project.getSourceFiles() only returns explicitly added files.
     // The TS program's getSourceFiles() returns ALL resolved files including
@@ -535,15 +611,16 @@ class ResolutionRun {
     );
 
     for (const sf of allProgramFiles) {
-      const morphSf =
-        this.project.addSourceFileAtPathIfExists(sf.fileName) ??
-        this.project.addSourceFileAtPath(sf.fileName);
-
       const fileName = toForwardSlash(sf.fileName);
+      if (!inputSet.has(fileName) && isStdlibFile(fileName)) {
+        this.stdlibFiles.add(fileName);
+        continue;
+      }
+      const morphSf =
+        this.project.getSourceFile(sf.fileName) ??
+        this.project.addSourceFileAtPath(sf.fileName);
       if (inputSet.has(fileName)) {
         this.inputFiles.set(fileName, morphSf);
-      } else if (isStdlibFile(fileName)) {
-        this.stdlibFiles.set(fileName, morphSf);
       } else {
         this.packageDepFiles.set(fileName, morphSf);
       }
@@ -591,14 +668,25 @@ class ResolutionRun {
     console.log(`\nDelta: ${delta} additional files resolved via dependencies`);
   }
 
-  /** Scan all source files for unresolved references. */
-  private detectUnresolvedDeps(): ModuleResolutionIssue[] {
+  private readonly issueCache = new Map<string, ModuleResolutionIssue[]>();
+
+  /**
+   * Scan source files for unresolved references. Files in `reuse` (unchanged
+   * since the last scan, in a watch session) keep their cached issues.
+   */
+  private detectUnresolvedDeps(reuse?: ReadonlySet<string>): ModuleResolutionIssue[] {
     const allResolvedPaths = new Set([
       ...this.inputFiles.keys(),
       ...this.packageDepFiles.keys(),
       ...this.stdlibFiles.keys(),
     ]);
 
+    // Only package paths can satisfy a `/// <reference types>`; computed once
+    // and only when a file has such a directive (it was an O(files × refs)
+    // scan over every resolved path, 270 ms on three.js).
+    let packagePaths: string[] | undefined;
+    const resolvedPackagePaths = () =>
+      (packagePaths ??= [...allResolvedPaths].filter((path) => path.includes("node_modules/")));
     const unresolvedRefs: ModuleResolutionIssue[] = [];
     const ambiguities = new Map(
       this.moduleFallbackAmbiguities.map((item) => [
@@ -608,6 +696,13 @@ class ResolutionRun {
     );
 
     for (const sf of this.project.getSourceFiles()) {
+      const cacheKey = toForwardSlash(sf.getFilePath());
+      const cached = reuse?.has(cacheKey) ? this.issueCache.get(cacheKey) : undefined;
+      if (cached) {
+        unresolvedRefs.push(...cached);
+        continue;
+      }
+      const firstIssue = unresolvedRefs.length;
       for (const ref of sf.getPathReferenceDirectives()) {
         const refText = ref.getFileName();
         const resolvedPath = toForwardSlash(
@@ -628,7 +723,7 @@ class ResolutionRun {
 
       for (const ref of sf.getTypeReferenceDirectives()) {
         const refText = ref.getFileName();
-        const isResolved = [...allResolvedPaths].some(
+        const isResolved = resolvedPackagePaths().some(
           (p) =>
             p.includes(`@types/${refText}`) ||
             p.includes(`node_modules/${refText}`),
@@ -672,6 +767,7 @@ class ResolutionRun {
           });
         }
       }
+      this.issueCache.set(cacheKey, unresolvedRefs.slice(firstIssue));
     }
 
     return unresolvedRefs.sort((a, b) =>
@@ -681,7 +777,7 @@ class ResolutionRun {
     );
   }
 
-  public buildResolutionReport(): ResolutionReport {
+  public buildResolutionReport(reuse?: ReadonlySet<string>): ResolutionReport {
     const fallbacks = [
       ...new Map(
         this.moduleFallbacks.map((fallback) => [
@@ -699,7 +795,7 @@ class ResolutionRun {
       inputFiles: [...this.inputFiles.keys()].sort(),
       packageDependencies: [...this.packageDepFiles.keys()].sort(),
       stdlibFiles: [...this.stdlibFiles.keys()].sort(),
-      unresolved: this.detectUnresolvedDeps(),
+      unresolved: this.detectUnresolvedDeps(reuse),
       fallbacks,
     };
   }

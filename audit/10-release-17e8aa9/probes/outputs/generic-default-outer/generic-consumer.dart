@@ -1,0 +1,1 @@
+import "dart/probe.dart"; void main(){f<num>(Pair<String,String>(a:"a",b:"b"));}

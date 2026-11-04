@@ -1,0 +1,1 @@
+export declare function assert(x:unknown):asserts x is string;

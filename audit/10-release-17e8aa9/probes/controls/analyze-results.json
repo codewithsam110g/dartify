@@ -1,0 +1,57 @@
+[
+  {
+    "name": "alias-control",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "name": "cr-doc",
+    "exit": 3,
+    "output": "ERROR|SYNTACTIC_ERROR|EXPECTED_EXECUTABLE|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/controls/cr-doc/dart/probe.dart|9|18|1|Expected a method, getter, setter or operator declaration.\nERROR|SYNTACTIC_ERROR|EXPECTED_TOKEN|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/controls/cr-doc/dart/probe.dart|9|20|4|Expected to find ';'.\nERROR|SYNTACTIC_ERROR|MISSING_CONST_FINAL_VAR_OR_TYPE|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/controls/cr-doc/dart/probe.dart|9|20|4|Variables must be declared using the keywords 'const', 'final', 'var' or a type name.\n"
+  },
+  {
+    "name": "crlf-doc-control",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "name": "escape-control",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "name": "export-control",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "name": "generic-named-control",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "name": "override-control",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "name": "parameter-control",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "name": "predicate-control",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "name": "static-control",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "name": "uri-control",
+    "exit": 0,
+    "output": ""
+  }
+]

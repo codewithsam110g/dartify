@@ -1,0 +1,16 @@
+
+> dart_bindgen@1.0.0 test:e2e /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+> DARTIFY_E2E=1 vitest run test/e2e/e2e.test.ts
+
+
+ RUN  v3.2.4 /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+
+ ✓ test/e2e/e2e.test.ts (3 tests) 2582ms
+   ✓ end to end against the real libraries > three: dart2js program output equals the library's own answers  613ms
+   ✓ end to end against the real libraries > leaflet: dart2js program output equals the library's own answers  499ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  00:06:06
+   Duration  2.93s (transform 124ms, setup 0ms, collect 249ms, tests 2.58s, environment 0ms, prepare 25ms)
+

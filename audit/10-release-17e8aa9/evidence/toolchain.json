@@ -1,0 +1,9 @@
+{
+  "node": "24.22.1",
+  "pnpm": "10.9.0",
+  "ts_morph": "28.0.0",
+  "ts_morph_compiler": "6.0.2",
+  "dart": "3.13.5 stable",
+  "platform": "macOS arm64",
+  "scope": "observed local execution; supported Node 20/22 and other platforms not executed"
+}

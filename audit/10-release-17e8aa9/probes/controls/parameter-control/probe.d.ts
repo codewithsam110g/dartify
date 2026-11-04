@@ -1,0 +1,1 @@
+export declare function f(first:number,...values:number[]):number; export declare function two({p,d}:{p:number,d:number},third:number):number;

@@ -1,0 +1,1 @@
+export declare function a():number; export as namespace Two;

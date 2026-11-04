@@ -1,0 +1,86 @@
+
+> dart_bindgen@1.0.0 test /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+> vitest run
+
+
+ RUN  v3.2.4 /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+
+ ✓ test/type/aliasName.test.ts (28 tests) 15ms
+ ✓ test/type/type-emitter.test.ts (14 tests) 3ms
+ ↓ test/dart/dart-gate.test.ts (2 tests | 2 skipped)
+ ↓ test/decl/corpus.test.ts (1 test | 1 skipped)
+ ✓ test/type/tier-a.test.ts (27 tests) 735ms
+   ✓ Tier A: constructs with a real Dart representation > `this` type → enclosing type (js_facade_gen §3.10) > does not invent an owner when there is no enclosing type  397ms
+ ✓ test/linker/reporting.test.ts (2 tests) 1ms
+ ✓ test/type/unsupported.test.ts (15 tests) 460ms
+   ✓ unsupported type classification > type query is classified and keeps its text  434ms
+ ✓ test/type/normalisation.test.ts (27 tests) 1533ms
+   ✓ union normalisation (T-12) > nullability survives the unwrap  702ms
+ ✓ test/type/irNaming.test.ts (34 tests) 911ms
+   ✓ IRType.name carries no Dart vocabulary (T-06) > Array<number>  870ms
+ ✓ test/decl/s3-ir.test.ts (6 tests) 1990ms
+   ✓ Stage 3 complete declaration IR > retains generic constraints/defaults and links their dependencies  805ms
+   ✓ Stage 3 complete declaration IR > records var/let/const and binding-pattern/default parameter facts  349ms
+ ✓ test/linker/linker.test.ts (8 tests) 2125ms
+   ✓ S2 linker > renamed imports retain spelling and link to the target declaration  359ms
+   ✓ S2 linker > generic heritage is represented and linked  368ms
+ ↓ test/e2e/e2e.test.ts (3 tests | 3 skipped)
+ ✓ test/type/type-parser.test.ts (21 tests) 720ms
+   ✓ Type Parser Snapshot Test > Array - Array<T>  687ms
+ ✓ test/linker/symbol-table.test.ts (3 tests) 2ms
+ ↓ test/stress.test.ts (1 test | 1 skipped)
+ ✓ test/decl/s5-emitter-fixture.test.ts (3 tests) 762ms
+ ✓ test/decl/decl-parser.test.ts (7 tests) 563ms
+   ✓ AST Parsers to IR > parseFunction() > should parse a function declaration with parameters  530ms
+ ✓ test/linker/resolve.test.ts (3 tests) 1ms
+ ✓ test/watch.test.ts (2 tests) 2600ms
+   ✓ watch session > a first build equals a fresh render (Leaflet)  1521ms
+   ✓ watch session > incremental rebuilds stay identical and only redo dependents  1076ms
+ ↓ test/linker/corpus.test.ts (2 tests | 2 skipped)
+ ✓ test/linker/module-exports.test.ts (3 tests) 1187ms
+   ✓ 4.12 module export and declaration identity > anonymous default declarations keep an absent source name  472ms
+   ✓ 4.12 module export and declaration identity > records and resolves export assignments, lists, and re-export chains  450ms
+ ✓ test/type/aliasRegistration.test.ts (14 tests) 3581ms
+   ✓ alias registration > a use site names its degradation and the name is declared  505ms
+   ✓ alias registration > one typedef serves every occurrence of the same expression (L-05)  512ms
+   ✓ alias registration > different expressions get different typedefs  387ms
+   ✓ alias registration > the type-definitions section (E-16) > the section is introduced, and only when there is one  345ms
+ ✓ test/type/host-identity.test.ts (4 tests) 982ms
+   ✓ 4.17 host type provenance (I-15) > records checker-confirmed host identity for platform and stdlib types  381ms
+ ✓ test/linker/resolution.test.ts (4 tests) 1023ms
+   ✓ S2 project resolution > resolves a bare module to one explicit declaration input  429ms
+ ✓ test/linker/semantic.test.ts (25 tests) 4181ms
+   ✓ Stage 4 parser identities > gives sibling structural positions distinct anonymous identities  478ms
+ ✓ test/decl/parse-context.test.ts (2 tests) 547ms
+   ✓ immutable parse context > gives return and parameter type literals distinct hoist scopes  546ms
+ ✓ test/linker/graph.test.ts (1 test) 1ms
+ ✓ test/generation-diagnostics.test.ts (2 tests) 908ms
+   ✓ returned generation diagnostics (R-13) > transpileFromString returns statement failures in errors  504ms
+   ✓ returned generation diagnostics (R-13) > analyze reports, render returns partial output, transpile writes nothing  403ms
+ ✓ test/simple.test.ts (6 tests) 1368ms
+   ✓ transpileFromString > emits an external binding for a declared variable  402ms
+ ✓ test/decl/decl-emitter.test.ts (24 tests) 4628ms
+   ✓ S5 declarations > variables are getter/setter pairs; const is getter-only (E-05)  423ms
+   ✓ S5 declarations > const enums lower to compile-time constants (P-16)  383ms
+   ✓ S5 declarations > property bags get an anonymous factory including inherited fields (E-07)  371ms
+ ✓ test/smoke.test.ts (3 tests) 910ms
+   ✓ smoke > transpiles synthetic/probe.d.ts  382ms
+   ✓ smoke > transpiles leaflet/leaflet.d.ts  320ms
+ ✓ test/conformance/h3-golden.test.ts (1 test) 230ms
+ ✓ test/run-isolation.test.ts (6 tests) 4720ms
+   ✓ 4.11 run-owned pipeline state > overlapping transpileFromString calls never observe each other  3806ms
+   ✓ 4.11 run-owned pipeline state > overlapping analyze/render/transpile calls on one instance are independent  467ms
+ ✓ test/watch-differential.test.ts (3 tests | 1 skipped) 8721ms
+   ✓ watch mode equals a cold compilation after every edit > the scripted edit sequence  6810ms
+   ✓ watch mode equals a cold compilation after every edit > Leaflet edit sequence  1909ms
+stdout | test/conformance/conformance.test.ts > js_facade_gen conformance > every reference case has its ledger status
+js_facade_gen conformance: 67/90 parity, 16 improved, 2 differ, 5 out of scope
+
+ ✓ test/conformance/conformance.test.ts (2 tests) 6464ms
+   ✓ js_facade_gen conformance > every reference case has its ledger status  6462ms
+
+ Test Files  30 passed | 5 skipped (35)
+      Tests  299 passed | 10 skipped (309)
+   Start at  00:05:37
+   Duration  10.71s (transform 726ms, setup 0ms, collect 8.76s, tests 51.87s, environment 3ms, prepare 1.50s)
+

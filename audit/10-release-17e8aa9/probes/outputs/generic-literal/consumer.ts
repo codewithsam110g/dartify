@@ -1,0 +1,1 @@
+import {Box} from "./probe"; const b:Box<string>={value:42};

@@ -1,0 +1,1 @@
+export declare const maybe:((x:number)=>string)|null; export declare const cb:()=>number|null;

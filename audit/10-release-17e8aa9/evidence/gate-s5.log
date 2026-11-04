@@ -1,0 +1,14 @@
+
+> dart_bindgen@1.0.0 test:s5:fixture /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+> vitest run test/decl/s5-emitter-fixture.test.ts
+
+
+ RUN  v3.2.4 /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+
+ ✓ test/decl/s5-emitter-fixture.test.ts (3 tests) 212ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  00:05:54
+   Duration  562ms (transform 124ms, setup 0ms, collect 253ms, tests 212ms, environment 0ms, prepare 26ms)
+

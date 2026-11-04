@@ -1,0 +1,14 @@
+
+> dart_bindgen@1.0.0 build /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+> tsup src/cli.ts --format esm --target node20 --out-dir dist --clean
+
+CLI Building entry: src/cli.ts
+CLI Using tsconfig: tsconfig.json
+CLI tsup v8.5.0
+CLI Target: node20
+CLI Cleaning output folder
+ESM Build start
+ESM dist/cli.js            15.29 KB
+ESM dist/watch-MMLOTDRB.js 16.06 KB
+ESM dist/chunk-M36KI3RN.js 262.72 KB
+ESM ⚡️ Build success in 194ms

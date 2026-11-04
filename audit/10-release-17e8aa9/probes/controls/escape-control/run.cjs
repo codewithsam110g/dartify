@@ -1,0 +1,1 @@
+globalThis.self=globalThis;globalThis.weird={ab:11,"a.b":22,"a-b":33};require("./out.js");

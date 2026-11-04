@@ -1,0 +1,22 @@
+{
+  "oneShot": {
+    "exit": 0,
+    "stdout": "\nProcessing files...\nProcessing 1 files to /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/watch-reporting/out\nModule resolution: 0 unresolved references\nCompleted in 158ms\n",
+    "stderr": "\u26a0\ufe0f  Semantic analysis: 1 diagnostic(s); rerun with -lv for complete records\n"
+  },
+  "watch": {
+    "command": [
+      "node",
+      "/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work/dist/cli.js",
+      "-d",
+      "/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/watch-reporting/probe.d.ts",
+      "-o",
+      "/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/watch-reporting/out",
+      "-w",
+      "-lv"
+    ],
+    "terminated_by_harness": true,
+    "stdout": "Patterns: /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/watch-reporting/probe.d.ts\nFound 1 .d.ts files\n\nFiles to process:\n  1. probe.d.ts\nInitial build: 1 libraries, rebuilt 1 source file(s), wrote 1 \u2014 137.2 ms\nWatching . for changes (Ctrl+C to stop)\n",
+    "stderr": ""
+  }
+}

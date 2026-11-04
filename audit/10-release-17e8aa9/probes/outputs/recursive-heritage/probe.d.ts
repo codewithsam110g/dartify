@@ -1,0 +1,1 @@
+export interface A extends B {a:number} export interface B extends A {b:number}

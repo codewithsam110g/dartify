@@ -1,0 +1,79 @@
+[
+  {
+    "area": "CI",
+    "files": 1,
+    "lines": 49,
+    "manual_lines": 49,
+    "fully_read_files": 1
+  },
+  {
+    "area": "dependency lock",
+    "files": 1,
+    "lines": 2504,
+    "manual_lines": 0,
+    "fully_read_files": 0
+  },
+  {
+    "area": "historical exhibit",
+    "files": 4,
+    "lines": 2457,
+    "manual_lines": 2457,
+    "fully_read_files": 4
+  },
+  {
+    "area": "internal tools",
+    "files": 4,
+    "lines": 354,
+    "manual_lines": 354,
+    "fully_read_files": 4
+  },
+  {
+    "area": "live source",
+    "files": 73,
+    "lines": 12606,
+    "manual_lines": 12606,
+    "fully_read_files": 73
+  },
+  {
+    "area": "prior reports",
+    "files": 13,
+    "lines": 4807,
+    "manual_lines": 1124,
+    "fully_read_files": 4
+  },
+  {
+    "area": "reference corpus",
+    "files": 1657,
+    "lines": 143742,
+    "manual_lines": 125,
+    "fully_read_files": 7
+  },
+  {
+    "area": "root docs and configuration",
+    "files": 16,
+    "lines": 2434,
+    "manual_lines": 2434,
+    "fully_read_files": 16
+  },
+  {
+    "area": "snapshots",
+    "files": 4,
+    "lines": 5501,
+    "manual_lines": 420,
+    "fully_read_files": 0
+  },
+  {
+    "area": "synthetic fixtures",
+    "files": 21,
+    "lines": 741,
+    "manual_lines": 741,
+    "fully_read_files": 21
+  },
+  {
+    "area": "tests and test assets",
+    "files": 54,
+    "lines": 5604,
+    "manual_lines": 5604,
+    "fully_read_files": 54
+  }
+]

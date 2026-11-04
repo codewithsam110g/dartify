@@ -1,0 +1,20 @@
+
+> dart_bindgen@1.0.0 test:incremental /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+> DARTIFY_INCREMENTAL=1 vitest run test/watch.test.ts test/watch-differential.test.ts
+
+
+ RUN  v3.2.4 /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+
+ ✓ test/watch.test.ts (2 tests) 1012ms
+   ✓ watch session > a first build equals a fresh render (Leaflet)  422ms
+   ✓ watch session > incremental rebuilds stay identical and only redo dependents  589ms
+ ✓ test/watch-differential.test.ts (3 tests) 12335ms
+   ✓ watch mode equals a cold compilation after every edit > the scripted edit sequence  4349ms
+   ✓ watch mode equals a cold compilation after every edit > Leaflet edit sequence  2005ms
+   ✓ watch mode equals a cold compilation after every edit > three.js edit sequence  5931ms
+
+ Test Files  2 passed (2)
+      Tests  5 passed (5)
+   Start at  00:06:09
+   Duration  12.70s (transform 144ms, setup 0ms, collect 529ms, tests 13.35s, environment 0ms, prepare 51ms)
+

@@ -1,0 +1,1 @@
+ERROR|COMPILE_TIME_ERROR|INVALID_OVERRIDE|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/generic-override/dart/probe.dart|24|16|1|'Child.f' ('num Function([num])') isn't a valid override of 'Mid.f' ('num Function(num, [String])').

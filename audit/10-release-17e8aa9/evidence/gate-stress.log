@@ -1,0 +1,19 @@
+
+> dart_bindgen@1.0.0 test:stress /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+> DARTIFY_STRESS=1 vitest run test/stress.test.ts
+
+
+ RUN  v3.2.4 /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+
+stderr | test/stress.test.ts > stress: full def_files corpus > every file transpiles without throwing
+
+⚠️  720/1661 file(s) rendered empty
+
+ ✓ test/stress.test.ts (1 test) 101803ms
+   ✓ stress: full def_files corpus > every file transpiles without throwing  101802ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  00:06:22
+   Duration  102.17s (transform 122ms, setup 0ms, collect 266ms, tests 101.80s, environment 0ms, prepare 27ms)
+

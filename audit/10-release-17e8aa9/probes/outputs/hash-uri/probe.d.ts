@@ -1,0 +1,1 @@
+import {A} from './a#b'; export declare const a:A;

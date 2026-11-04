@@ -1,0 +1,8 @@
+alias-barrel a.d.ts true
+new-global b.d.ts true
+remove-global b.d.ts true
+import-becomes-resolvable b.d.ts true
+import-becomes-resolvable a.d.ts true
+support-toggle b.d.ts false
+support-toggle b.d.ts true
+export-root a.d.ts true

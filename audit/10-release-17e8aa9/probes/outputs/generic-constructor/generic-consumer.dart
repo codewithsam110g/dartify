@@ -1,0 +1,1 @@
+import "dart/probe.dart"; void main(){Child(42);}

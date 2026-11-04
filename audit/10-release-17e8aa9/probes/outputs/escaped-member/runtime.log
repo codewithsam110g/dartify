@@ -1,0 +1,2 @@
+JS oracle=11,22,33
+CAUGHT: TypeError: null: type 'JSNull' is not a subtype of type 'num'

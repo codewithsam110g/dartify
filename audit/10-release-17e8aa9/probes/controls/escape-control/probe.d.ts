@@ -1,0 +1,1 @@
+export interface Weird { "ab":number; "a.b":number; "a-b":number } export declare const weird:Weird;

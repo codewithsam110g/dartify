@@ -1,0 +1,20 @@
+[
+  {
+    "name": "defaults",
+    "exit": 0,
+    "stdout": "TS compiler oracle=5\nCAUGHT: NoSuchMethodError: method not found: 'named' (self.Root.named is not a function)\n",
+    "stderr": ""
+  },
+  {
+    "name": "assignment",
+    "exit": 0,
+    "stdout": "TS compiler oracle=5\nCAUGHT: NoSuchMethodError: method not found: 'named' (self.Root.named is not a function)\n",
+    "stderr": ""
+  },
+  {
+    "name": "local-alias",
+    "exit": 0,
+    "stdout": "TS compiler oracle=5\nCAUGHT: NoSuchMethodError: method not found: 'hidden' (self.Root.hidden is not a function)\n",
+    "stderr": ""
+  }
+]

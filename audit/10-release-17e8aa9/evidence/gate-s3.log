@@ -1,0 +1,18 @@
+
+> dart_bindgen@1.0.0 test:s3 /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+> DARTIFY_S3_CORPUS=1 vitest run test/decl/corpus.test.ts
+
+
+ RUN  v3.2.4 /Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work
+
+stdout | test/decl/corpus.test.ts > S3 declaration fidelity corpus census > retains the Stage 3 contract across representative declaration corpora
+[S3 census] {"declarations":2342,"declarationsMissingLocation":0,"parsedTypes":25253,"parsedTypesMissingLocation":0,"typeParameters":365,"parameters":6384,"callSignatures":286,"constructSignatures":50,"indexSignatures":44,"jsDocs":4853,"enumInitializers":{"implicit":1,"number":11,"string":1,"computed":1},"variableKinds":{"var":1,"let":6,"const":741}}
+
+ ✓ test/decl/corpus.test.ts (1 test) 898ms
+   ✓ S3 declaration fidelity corpus census > retains the Stage 3 contract across representative declaration corpora  898ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  00:05:50
+   Duration  1.28s (transform 138ms, setup 0ms, collect 272ms, tests 898ms, environment 0ms, prepare 26ms)
+

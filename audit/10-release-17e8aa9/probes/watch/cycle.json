@@ -1,0 +1,50 @@
+{
+  "errors": [],
+  "results": [
+    [
+      "/virtual.d.ts::A",
+      {
+        "state": "NotLinkedDirect",
+        "failure": {
+          "kind": "missing",
+          "reference": "Missing",
+          "lookupFQN": "/virtual.d.ts::Missing"
+        }
+      }
+    ],
+    [
+      "/virtual.d.ts::B",
+      {
+        "state": "LinkedResolved"
+      }
+    ]
+  ],
+  "edges": [
+    {
+      "from": "/virtual.d.ts::A",
+      "writtenName": "B",
+      "resolution": {
+        "kind": "resolved",
+        "fqn": "/virtual.d.ts::B",
+        "strategy": "checker"
+      }
+    },
+    {
+      "from": "/virtual.d.ts::A",
+      "writtenName": "Missing",
+      "resolution": {
+        "kind": "missing",
+        "lookupFQN": "/virtual.d.ts::Missing"
+      }
+    },
+    {
+      "from": "/virtual.d.ts::B",
+      "writtenName": "A",
+      "resolution": {
+        "kind": "resolved",
+        "fqn": "/virtual.d.ts::A",
+        "strategy": "checker"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+ERROR|COMPILE_TIME_ERROR|DUPLICATE_DEFINITION|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/heritage-static-collision/dart/probe.dart|23|15|9|The name 'Child_foo' is already defined.

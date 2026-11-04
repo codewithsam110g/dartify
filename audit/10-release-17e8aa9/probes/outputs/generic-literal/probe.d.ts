@@ -1,0 +1,1 @@
+export declare function f<T>(x:{value:T}):T; export type Box<T>={value:T};

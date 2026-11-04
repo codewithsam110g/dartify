@@ -1,0 +1,105 @@
+{
+  "uid": 501,
+  "source_unchanged": true,
+  "cases": [
+    {
+      "name": "spaces",
+      "command": [
+        "node",
+        "/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work/dist/cli.js",
+        "-d",
+        "space name.d.ts",
+        "-o",
+        "out spaces"
+      ],
+      "exit": 0,
+      "stdout": "\nProcessing files...\nProcessing 1 files to out spaces\nModule resolution: 0 unresolved references\nCompleted in 98ms\n",
+      "stderr": ""
+    },
+    {
+      "name": "unicode-path",
+      "command": [
+        "node",
+        "/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work/dist/cli.js",
+        "-d",
+        "\u03c4\u03cd\u03c0\u03bf\u03c2.d.ts",
+        "-o",
+        "out \u03c4\u03cd\u03c0\u03bf\u03c2"
+      ],
+      "exit": 0,
+      "stdout": "\nProcessing files...\nProcessing 1 files to out \u03c4\u03cd\u03c0\u03bf\u03c2\nModule resolution: 0 unresolved references\nCompleted in 95ms\n",
+      "stderr": ""
+    },
+    {
+      "name": "input-symlink",
+      "command": [
+        "node",
+        "/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work/dist/cli.js",
+        "-d",
+        "linked.d.ts",
+        "-o",
+        "out-link"
+      ],
+      "exit": 0,
+      "stdout": "\nProcessing files...\nProcessing 1 files to out-link\nModule resolution: 0 unresolved references\nCompleted in 99ms\n",
+      "stderr": ""
+    },
+    {
+      "name": "input-output-overlap",
+      "command": [
+        "node",
+        "/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work/dist/cli.js",
+        "-d",
+        "valid.d.ts",
+        "-o",
+        "."
+      ],
+      "exit": 0,
+      "stdout": "\nProcessing files...\nProcessing 1 files to .\nModule resolution: 0 unresolved references\nCompleted in 97ms\n",
+      "stderr": ""
+    },
+    {
+      "name": "denied-input",
+      "command": [
+        "node",
+        "/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work/dist/cli.js",
+        "-d",
+        "denied.d.ts",
+        "-o",
+        "out-denied"
+      ],
+      "exit": 1,
+      "stdout": "\nProcessing files...\nProcessing 0 files to out-denied\n",
+      "stderr": "Error: Files array cannot be empty\n"
+    },
+    {
+      "name": "mixed-denied",
+      "command": [
+        "node",
+        "/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work/dist/cli.js",
+        "-d",
+        "valid.d.ts",
+        "denied.d.ts",
+        "-o",
+        "out-mixed-denied"
+      ],
+      "exit": 0,
+      "stdout": "\nProcessing files...\nProcessing 1 files to out-mixed-denied\nModule resolution: 0 unresolved references\nCompleted in 97ms\n",
+      "stderr": ""
+    },
+    {
+      "name": "readonly-output",
+      "command": [
+        "node",
+        "/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/work/dist/cli.js",
+        "-d",
+        "valid.d.ts",
+        "-o",
+        "readonly"
+      ],
+      "exit": 1,
+      "stdout": "\nProcessing files...\nProcessing 1 files to readonly\n",
+      "stderr": "Error: Unexpected error during transpilation: EACCES: permission denied, open 'readonly/valid.dart'\n"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+import {Child} from "./probe"; new Child(42);

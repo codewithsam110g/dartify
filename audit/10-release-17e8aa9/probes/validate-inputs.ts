@@ -1,0 +1,5 @@
+import {Project,ts} from '../work/node_modules/ts-morph/dist/ts-morph.js';
+import {readdirSync,writeFileSync} from 'node:fs';import {resolve,join}from'node:path';
+const root=resolve('../probes/outputs');const results=[];
+for(const entry of readdirSync(root,{withFileTypes:true})){if(!entry.isDirectory())continue;const dir=join(root,entry.name);const files=readdirSync(dir).filter(n=>n.endsWith('.d.ts')).map(n=>join(dir,n));if(!files.length)continue;const p=new Project({compilerOptions:{strict:true,skipLibCheck:false,noEmit:true,target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.ESNext,moduleResolution:ts.ModuleResolutionKind.Bundler,types:[]}});p.addSourceFilesAtPaths(files);const diagnostics=p.getPreEmitDiagnostics().map(d=>({code:d.getCode(),message:d.getMessageText(),file:d.getSourceFile()?.getBaseName(),line:d.getLineNumber()}));const item={name:entry.name,diagnostics};results.push(item);console.log(entry.name,JSON.stringify(diagnostics));}
+writeFileSync(join(root,'typescript-input-diagnostics.json'),JSON.stringify(results,null,2));

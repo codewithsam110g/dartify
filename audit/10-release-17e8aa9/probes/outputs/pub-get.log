@@ -1,0 +1,7 @@
+Resolving dependencies...
+Downloading packages...
+  js 0.6.7 (discontinued)
+Got dependencies!
+1 package is discontinued.
+1 package has newer versions incompatible with dependency constraints.
+Try `dart pub outdated` for more information.

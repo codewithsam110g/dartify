@@ -1,0 +1,10 @@
+ERROR|SYNTACTIC_ERROR|EXPECTED_TOKEN|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/quote-uri/dart/probe.dart|8|8|3|Expected to find ';'.
+ERROR|COMPILE_TIME_ERROR|URI_DOES_NOT_EXIST|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/quote-uri/dart/probe.dart|8|8|3|Target of URI doesn't exist: 'a'.
+ERROR|SYNTACTIC_ERROR|MISSING_FUNCTION_PARAMETERS|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/quote-uri/dart/probe.dart|8|11|1|Functions must have an explicit list of parameters.
+ERROR|SYNTACTIC_ERROR|MISSING_FUNCTION_BODY|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/quote-uri/dart/probe.dart|8|12|1|A function body must be provided.
+ERROR|SYNTACTIC_ERROR|EXPECTED_EXECUTABLE|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/quote-uri/dart/probe.dart|8|12|1|Expected a method, getter, setter or operator declaration.
+ERROR|SYNTACTIC_ERROR|EXPECTED_TOKEN|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/quote-uri/dart/probe.dart|8|13|4|Expected to find ';'.
+ERROR|SYNTACTIC_ERROR|MISSING_CONST_FINAL_VAR_OR_TYPE|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/quote-uri/dart/probe.dart|8|13|4|Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+ERROR|SYNTACTIC_ERROR|EXPECTED_EXECUTABLE|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/quote-uri/dart/probe.dart|8|17|9|Expected a method, getter, setter or operator declaration.
+ERROR|SYNTACTIC_ERROR|UNTERMINATED_STRING_LITERAL|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/quote-uri/dart/probe.dart|8|25|1|Unterminated string literal.
+ERROR|COMPILE_TIME_ERROR|UNDEFINED_CLASS|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/quote-uri/dart/probe.dart|11|10|1|Undefined class 'A'.

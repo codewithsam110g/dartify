@@ -1,0 +1,1 @@
+export interface Callable { (x:number):number; tag:string } export declare const fn:Callable;

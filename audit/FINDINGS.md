@@ -147,7 +147,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `R-08` / `D-05` **[FIXED — S6]** | `-l` is now accurately documented phase/module logging; `-lv` prints structured linker details and `--version` is long-only. The separate IR-dump decision and unused 251-line `log.ts` remain — `src/log.ts` deleted; `tools/ir.ts` (`pnpm ir`) dumps the owned `LinkedProgram` as an observer | `cli.ts`, `reporting/linker.ts`, `src/log.ts` |
 | `E-13` **[FIXED — S5]** | ~~`stripQuotes` strips quotes globally, not just delimiters~~ — only delimiting quotes are removed (`unquote`); `utils/stripQuotes` is deleted | `utils/utils.ts:2` |
 | `R-04` **[FIXED — S2]** | Files/reports/groups are sorted while source declaration order is preserved | `transpiler.ts`, `emitterPhase.ts` |
-| `R-05` | Every program file materialised as a ts-morph object, including 51 stdlib files | `transpiler.ts:184-196` |
+| `R-05` **[FIXED — watch work]** | ~~Every program file materialised as a ts-morph object, including 51 stdlib files~~ — stdlib files are classified by compiler file name into a `Set` and never wrapped; three.js cold 4.2 s → ~2.3 s together with `R-16` | `transpiler.ts` |
 | `X-05` **[FIXED]** | ~~Snapshot path rewrite assumes POSIX separator~~ — normalises separators first | `vitest.config.ts` |
 | `X-07` **[FIXED]** | ~~`pnpm test` is watch mode~~ — repointed at `vitest run`; `test:watch` unchanged | `package.json` |
 | `X-08` **[FIXED]** | ~~`test:cli` placeholder path and wrong flags~~ — now `-d def_files/h3/h3.d.ts -o ./output` | `package.json` |
@@ -177,6 +177,12 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `E-39` **[FIXED — S6]** | ~~`type X = { … }` emitted a hoisted `Anon_X` class plus `typedef X = Anon_X` (h3 `CoordIJ`, js_facade_gen §5.11)~~ — an alias that is the literal's only user emits the class under its own name | `emitter/packagejs/program.ts` | ✅ |
 | `E-40` **[FIXED — post-v1 review]** | ~~Backend support declarations (`Promise<T>` and its `toFuture` extension, named union/host typedefs) are emitted per library. A consumer importing two generated libraries that both need `Promise` sees two classes of that name and must `hide`/prefix one. Barrels already hide such duplicates (`E-38`)~~ — runs that render several libraries emit one `dartify_support.dart` holding `Promise`, `PromiseToFuture` and `JSBigInt`; each library imports and re-exports what it uses, so values flow between libraries and barrels see one origin. Single-library output stays self-contained (`decl-emitter.test.ts`; three.js uses it from 11 libraries, analyzer-clean) | `emitter/packagejs/types.ts` | 🔍 |
 | `E-41` | Collision suffixes are `name_2` where js_facade_gen used `name2` (§8.5). Accepted difference, recorded in the conformance ledger | `semantic/names.ts` | ✅ |
+| `E-42` **[FIXED — e2e]** | ~~A module declaring `export as namespace L` (UMD) bound its declarations as bare globals (`@JS("LatLng")`), so every Leaflet binding failed at runtime with `LatLng is not defined`. `dart analyze` cannot see this~~ — module-level declarations of such a file bind `L.<name>`; `--js-root` supplies the same root for module libraries without the declaration. Found by `pnpm test:e2e` against the real `leaflet` package | `emitter/packagejs/declarations.ts`, `index.ts` | ✅ |
+| `E-43` **[FIXED — e2e]** | ~~TypeScript assignability is structural, Dart's nominal: three.js `Vector3` satisfies `Vector3Like` but did not implement it, so `v.add(Vector3(1, 2, 3))` failed to compile~~ — a class or interface implements every named property-only shape (≥ 2 members, no methods/signatures/type parameters) whose full property set is a strict subset of its own and matches member by member (writable members exactly, readonly members by `provableSubtype`). The strict-subset rule keeps conformance acyclic. Watch mode re-renders everything when a shape changes | `emitter/packagejs/declarations.ts`, `program.ts`, `watch.ts` | ✅ |
+| `E-44` **[FIXED — e2e]** | ~~Module libraries addressed as bare globals produce `@JS() class AudioContext` / `WebGLProgram`, which dart2js rejects ("conflicts with natively supported class") for the whole program~~ — `--js-root THREE` (or `jsRoot` in `TranspilerOptions`) binds `THREE.AudioContext`; without a root such a class or runtime-bound interface reports a `NATIVE_NAME_CONFLICT` diagnostic naming the fix. The Dart gate and e2e suite generate three.js with `jsRoot: "THREE"` | `emitter/packagejs/declarations.ts`, `cli.ts` | ✅ |
+| `X-16` **[FIXED]** | ~~`.gitignore` excluded `**/*.dart`, so the h3 golden, the runtime probe's `main.dart` and every hand-written Dart fixture were never committed: on a fresh clone the default suite's h3 golden, `pnpm test:dart` and `pnpm test:e2e` could not run~~ — generated Dart stays ignored; `def_files/**` and `test/**` Dart is tracked | `.gitignore` | ✅ |
+| `R-16` **[FIXED — watch work]** | Watch rebuilds kept files a project no longer imported as program roots, so a removed import still emitted its library. `ResolutionRun.pruneUnreachable` walks the compiler's resolved imports, references and type directives from the inputs and drops the rest; the differential suite's "stop importing it" edit covers it | `transpiler.ts` | ✅ |
+| `W-01` | Watch mode (`dartify -w`, `WatchSession`) caches per file and per top-level statement. Correctness is defined differentially: after every scripted edit — declaration merging, re-exports, inheritance, generics, `typeof`, file creation/removal, structural shapes — the incremental Dart output, linked IR, link report and diagnostics must equal a cold compilation byte for byte (`test/watch-differential.test.ts`, 28 fixture + 6 Leaflet + 4 three.js edits; `pnpm bench` verifies every timed rebuild too). Invalidation is conservative where proof is hard: any heritage or shape change re-renders every library | `watch.ts`, `phase/symbolGeneration.ts` | ✅ |
 
 ---
 
@@ -317,5 +323,15 @@ work is sequenced as `PLAN.md` tasks 4.11–4.17.
 | stress | 1,655/1,655 (1,654 + the runtime probe): 0 throws, 0 returned errors, 0 `// ERROR emitting` markers; 719 known empty outputs |
 | coverage (`pnpm test:coverage`) | 90.1% lines over `src/**` |
 | compiler / build | `tsc` clean / 252 KB bundle of live `src` only |
-| three.js end-to-end | ~7 s for 420 libraries |
+| three.js end-to-end | ~7 s for 420 libraries (now ~2.3 s cold, see below) |
+
+### Post-v1 watch + e2e baseline
+
+| Measure | Result |
+|---|---|
+| normal suite | **299 passed**, 10 skipped (opt-in tiers) |
+| `pnpm test:e2e` | 3/3 — dart2js-compiled programs against real h3-js 4.4.0, three 0.180.0, leaflet 1.9.4 (+jsdom) match plain JavaScript |
+| `pnpm test:incremental` | watch unit tests + differential suite (fixture, Leaflet, three.js): every edit byte-identical to a cold build |
+| watch rebuild (`pnpm bench`, median of 5, each verified against a cold build) | h3 ~35 ms · Leaflet ~19–94 ms · three.js idle ~42 ms, leaf/core edit ~53 ms |
+| three.js cold | 4.2 s → ~2.3 s |
 

@@ -86,6 +86,8 @@ Options:
   -l, --enable-logs               Enable phase and module-resolution logging
   -v, --verbose                   Print structured linker and emission details; implies -l
       --dry-run                   Show what would be processed without writing files
+  -w, --watch                     Rebuild incrementally whenever an input changes
+      --js-root <name>            Global that module libraries are reached through (e.g. THREE)
   -h, --help                      Show help
       --version                   Show version number
 ```
@@ -96,7 +98,16 @@ dart_bindgen -d "types/**/*.d.ts" -o ./generated
 
 # Show resolution, linking and emission diagnostics in full
 dart_bindgen -d "path/to/my-lib.d.ts" -lv
+
+# Keep bindings current while you edit; rebuilds take tens of milliseconds
+dart_bindgen -d "types/**/*.d.ts" -o ./generated --watch
+
+# A module library loaded as a <script> global (three.js exposes THREE)
+dart_bindgen -d "node_modules/@types/three/index.d.ts" -o ./generated --js-root THREE
 ```
+
+Libraries that declare `export as namespace X` (Leaflet's `L`) get that root
+automatically.
 
 The generated libraries need `package:js` in your `pubspec.yaml`:
 
@@ -115,6 +126,9 @@ Implementation code is out of scope.
 pnpm install
 pnpm test                 # unit, smoke, conformance and h3-golden tests
 pnpm test:dart            # dart analyze baseline + dart2js runtime probe (needs a Dart SDK)
+pnpm test:e2e             # generated bindings run against real h3-js, three and leaflet (needs Dart)
+pnpm test:incremental     # watch mode must equal a cold build after every scripted edit
+pnpm bench                # watch rebuild latency per corpus, each build verified
 pnpm test:stress          # the full 1,654-file corpus (opt-in, minutes)
 pnpm exec tsc --noEmit
 pnpm build

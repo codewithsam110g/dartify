@@ -26,6 +26,9 @@ target-agnostic IR:
 - **S5** rebuilt the `package:js` emitter once, behind a backend seam.
 - **S6** made the `js_facade_gen` reference cases and the shipped h3 bindings
   executable gates, added a Dart analyzer + dart2js runtime gate and CI.
+- **After S6**, an end-to-end suite runs generated bindings against the real
+  h3-js, three and leaflet packages, and `--watch` rebuilds incrementally in
+  well under 100 ms, verified byte for byte against cold builds.
 
 Measured results:
 
@@ -36,6 +39,8 @@ Measured results:
 | three.js (420 libraries) | 0 errors/warnings |
 | js_facade_gen reference cases | 67/90 parity, 16 improved, 2 differ, 5 out of scope |
 | runtime | dart2js probe passes: overloads, rest args, constructors, renames, index operators, factories, promises |
+| end-to-end | Dart programs using the h3, three.js and Leaflet bindings produce the same results as the JavaScript libraries |
+| watch | rebuild after an edit: h3 ~35 ms, Leaflet ≤ 94 ms, three.js ~53 ms |
 
 ---
 

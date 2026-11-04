@@ -45,6 +45,23 @@ The drop-in replacement for the archived `js_facade_gen`, targeting
 - The CLI prints backend and module-export diagnostics; `pnpm ir` dumps the
   linked IR; `src/legacy` moved to `docs/history/legacy`.
 
+### Watch mode and end-to-end testing
+
+- `dart_bindgen -w` rebuilds on change through `WatchSession`, which caches
+  per file, per top-level statement and per declaration fingerprint and writes
+  only changed libraries. Rebuilds: h3 ~35 ms, Leaflet ≤ 94 ms, three.js
+  ~53 ms (420 libraries; cold build 4.2 s → ~2.3 s).
+- `pnpm test:incremental` and `pnpm bench` compare every incremental build
+  byte for byte with a cold compilation (declaration merging, re-exports,
+  inheritance, generics, `typeof`, added/removed files, structural shapes).
+- `pnpm test:e2e` compiles Dart programs against generated h3, three.js and
+  Leaflet bindings with dart2js and runs them against the real npm packages.
+- `export as namespace L` libraries bind `L.<name>` (`E-42`); classes
+  implement property-only shapes they structurally satisfy, e.g. three.js
+  `Vector3` implements `Vector3Like` (`E-43`); `--js-root <name>` binds module
+  libraries under a global (three.js: `--js-root THREE`), and bare-global
+  classes that would clash with dart2js native classes are diagnosed (`E-44`).
+
 ## [Unreleased — pre-S5 barrier]
 
 ### Declaration identity and type truth (tasks 4.12–4.13)

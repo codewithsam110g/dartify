@@ -44,6 +44,8 @@ identity, the executable Dart gate, and the Node/coverage/CI contracts.
 - [x] Make the `js_facade_gen` reference cases executable (67/90 parity, 16 improved).
 - [x] Reproduce the js_facade_gen bindings shipped in h3 (63/63).
 - [x] Validate h3, Leaflet and three.js with `dart analyze` (0 errors/warnings) in CI.
+- [x] Run generated bindings against the real h3-js/three/leaflet packages (`pnpm test:e2e`).
+- [x] Watch mode with sub-100 ms rebuilds, differentially verified against cold builds.
 
 ## Release
 

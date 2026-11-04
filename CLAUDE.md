@@ -76,6 +76,9 @@ pnpm test:ui                        # browser UI at localhost:51204/__vitest__/
 pnpm test:update                    # accept snapshot changes (vitest run -u)
 pnpm test:stress                    # opt-in full 1,654-file corpus, ~6 min currently
 pnpm test:dart                      # dart analyze baseline + dart2js runtime probe (needs Dart)
+pnpm test:e2e                       # generated bindings run against real h3-js/three/leaflet (needs Dart)
+pnpm test:incremental               # watch-mode differential suite incl. three.js (~40 s)
+pnpm bench                          # watch rebuild latency, every build verified vs a cold one
 pnpm test:s2                        # opt-in linker corpus gate
 pnpm test:s3                        # opt-in declaration-fidelity census
 pnpm test:s4                        # focused semantic + emitter-adapter gate
@@ -85,6 +88,8 @@ pnpm exec tsc --noEmit              # typecheck — must stay at 0 errors
 pnpm dev -d "<glob>" -o <outdir>    # run the CLI from source
 pnpm dev -d "<file>" -o <out> -l    # phase + module-resolution logs
 pnpm dev -d "<file>" -o <out> -lv   # + detailed structured linker report
+pnpm dev -d "<glob>" -o <out> -w    # watch mode: incremental rebuild on change
+pnpm dev -d "<glob>" -o <out> --js-root THREE  # bind module globals under THREE.*
 pnpm graph -d "<glob>" -o g.svg     # dependency graph SVG (internal tooling)
 pnpm ir -d "<glob>" -o ir.json      # linked IR as JSON (internal tooling)
 pnpm build                          # tsup → dist/
@@ -126,10 +131,12 @@ Test tiers: `simple` (sanity) · `smoke` (3 files, byte-exact snapshots) ·
 (semantic contract + backend behaviour) · `test:s5:fixture` (multi-file
 golden) · `test:dart` (analyzer + dart2js, opt-in locally, CI) · `stress`
 (1,654-file corpus, opt-in; fails on throws, returned errors and
-`// ERROR emitting` markers). Stress's 719 empty outputs are files with no
+`// ERROR emitting` markers) · `test:e2e` (dart2js programs against the
+real npm packages, opt-in locally, CI) · `test:incremental` (watch output
+equals a cold build after every scripted edit, CI). Stress's 719 empty outputs are files with no
 declarations a single-file run can bind (barrels and comment-only files).
 
-Current gates: 294 passed / 6 skipped; S2 2/2, S3 1/1, S4 53/53, S5 fixture
+Current gates: 299 passed / 10 skipped; e2e 3/3, incremental 5/5; S2 2/2, S3 1/1, S4 53/53, S5 fixture
 3/3, Dart gate 2/2, conformance 67/90 parity + 16 improved + 2 differ + 5 out
 of scope, h3 golden 63/63, stress 1,655/1,655 (the runtime probe is the 1,655th file). The protected S3 input floor
 remains 2,530 declarations.
@@ -178,6 +185,13 @@ declarations.ts lowers declarations; index.ts renders all libraries and
 resolves barrel export ambiguity. v2 adds a second Backend, not a second
 compiler.
 src/ir/visit.ts is the live recursive IR walker used by generation and aliases.
+
+Watch mode (src/watch.ts, `dartify -w`): WatchSession keeps one ts-morph
+project and caches, per file, generation output (down to top-level statements
+in symbolGeneration.ts `StatementCache`), semantic drafts and link results,
+plus per-FQN member/heritage fingerprints that decide which libraries
+re-render. The contract is differential: incremental == cold, byte for byte
+(test/watch-differential.test.ts). When unsure, invalidate more.
 ```
 
 FQN scheme: `<abs file path>::<scope|segments|>Name`. `::` splits physical from
@@ -281,6 +295,19 @@ Consequences worth holding on to:
   members to structurally compatible but nominally unrelated types. An override
   must be provable against *every* overridden declaration, not only the
   nearest one.
+- **`dart analyze` clean is not "works".** The e2e suite found three
+  runtime-only defects in analyzer-clean output: missing `L.` roots for
+  `export as namespace` (`E-42`), structural assignability (`E-43`) and
+  dart2js native-class conflicts (`E-44`). three.js must be generated with
+  `--js-root THREE`; a bare-global `AudioContext` class breaks every dart2js
+  program that imports it.
+- **Watch caches must never change output.** Any new invalidation shortcut
+  needs a differential edit in `test/watch-differential.test.ts` proving the
+  incremental build still equals a cold one; heritage and structural-shape
+  changes deliberately re-render everything.
+- **`.gitignore` ignores generated `*.dart`** but tracks `def_files/**` and
+  `test/**` Dart (`X-16`). A new hand-written Dart fixture elsewhere must be
+  allow-listed, or it silently never reaches CI.
 - **`refactor/orchestration` is the working branch.** `main` is what ships to
   npm. Broken states on the working branch are fine.
 

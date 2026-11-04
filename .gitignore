@@ -7,8 +7,10 @@ dist/
 # Output Files
 output/
 
-# Dart Files
+# Dart Files (generated output; hand-written fixtures and goldens are tracked)
 **/*.dart
+!def_files/**/*.dart
+!test/**/*.dart
 
 # Logs
 logs/

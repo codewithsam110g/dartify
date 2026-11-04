@@ -501,6 +501,17 @@ output is the accepted `dart:html`/`dart:svg` deprecation info. The backend is
 | 6.9 | *(optional)* `1.0.0-beta.0` under the npm `next` tag; soak | — |
 | 6.10 | Merge to `main`, publish **`1.0.0`** — code-complete and gated; merging to `main` and `npm publish` are the owner's release decision | — |
 
+### Post-S6: watch mode and end-to-end
+
+Code-complete v1 left two questions open: does the generated code *work*
+against the real library, and can dartify run under a file watcher?
+
+| # | Task | Findings |
+|---|---|---|
+| 6.11 | ✅ `pnpm test:e2e` — Dart programs call generated h3, three.js and Leaflet bindings, are compiled by dart2js and run in Node against the real npm packages; output must equal the same calls in JavaScript. Found three defects `dart analyze` cannot see | `E-42`, `E-43`, `E-44` |
+| 6.12 | ✅ `dartify -w` / `WatchSession`: file, statement and fingerprint caches; rebuilds under 100 ms on h3, Leaflet and three.js | `W-01`, `R-05`, `R-16` |
+| 6.13 | ✅ Differential correctness: every simulated edit's incremental output equals a cold compilation byte for byte (`pnpm test:incremental`, `pnpm bench`) | `W-01` |
+
 ---
 
 ## The v1 acceptance test
@@ -552,6 +563,7 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 | Pre-S5 barrier | ☑ **done** | 4.11–4.17: run-owned state, module exports, `never`/visibility, deterministic names, host identity, executable Dart gate, Node/coverage/CI contracts |
 | S5 emitter | ☑ **done** | h3, Leaflet, S5 fixture, synthetic/legacy fixtures, 90 conformance cases and 420 three.js libraries: 0 analyzer errors/warnings (three.js was 8,342 errors); dart2js runtime probe passes; suite **294 passed** |
 | S6 ship | ☑ **6.1–6.8 done**; 6.9–6.10 pending a publish decision | js_facade_gen cases **67/90 parity, 16 improved, 2 differ, 5 out of scope**; h3 golden **63/63**; `pnpm test:dart` in CI; bundle 252 KB; version 1.0.0 |
+| Post-S6 | ☑ **6.11–6.13 done** | `pnpm test:e2e` 3/3 against real h3-js/three/leaflet; watch rebuilds h3 ~35 ms, Leaflet ≤ 94 ms, three.js ~53 ms, each verified byte-for-byte against a cold build; suite **299 passed** |
 
 When a finding is resolved, mark it `[FIXED]` in `audit/FINDINGS.md` and keep
 the ID — plan tasks and commit messages reference them.

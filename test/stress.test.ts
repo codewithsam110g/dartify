@@ -3,8 +3,10 @@
  *
  *   DARTIFY_STRESS=1 pnpm test:run test/stress.test.ts
  *
- * Runs the current 1,654-file `def_files/` corpus and asserts only that nothing
- * *crashes*. Deliberately snapshot-free: byte-exact output over a corpus this
+ * Runs the current 1,654-file `def_files/` corpus and asserts on the *output*,
+ * not just the absence of an exception (`X-12`): no file may throw, return a
+ * non-TypeScript generation/emission error, or contain an
+ * `// ERROR emitting` marker. Deliberately snapshot-free: byte-exact output over a corpus this
  * size is unreviewable (X-02), but "the tool survived every file in
  * DefinitelyTyped" is a real and cheap signal, and it is the thing most likely
  * to catch a parser change that throws on some construct nobody thought about.
@@ -28,6 +30,8 @@ const defFiles = ENABLED
 describe.skipIf(!ENABLED)("stress: full def_files corpus", () => {
   const failures: { file: string; error: string }[] = [];
   const emptyOutputs: string[] = [];
+  const returnedErrors: { file: string; error: string }[] = [];
+  const errorMarkers: string[] = [];
 
   test("every file transpiles without throwing", async () => {
     for (const relPath of defFiles) {
@@ -44,6 +48,14 @@ describe.skipIf(!ENABLED)("stress: full def_files corpus", () => {
         if (result.content.trim() === "" && source.trim() !== "") {
           emptyOutputs.push(relPath);
         }
+        // TypeScript's own diagnostics (`TS####`) describe the input, not
+        // dartify; everything else is a pipeline failure.
+        for (const error of result.errors) {
+          if (!/^TS\d+$/.test(error.code)) {
+            returnedErrors.push({ file: relPath, error: `${error.code}: ${error.message}` });
+          }
+        }
+        if (result.content.includes("// ERROR emitting")) errorMarkers.push(relPath);
       } catch (error) {
         failures.push({
           file: relPath,
@@ -69,5 +81,7 @@ describe.skipIf(!ENABLED)("stress: full def_files corpus", () => {
     }
 
     expect(failures).toEqual([]);
-  }, 600_000);
+    expect(returnedErrors).toEqual([]);
+    expect(errorMarkers).toEqual([]);
+  }, 900_000);
 });

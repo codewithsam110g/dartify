@@ -134,7 +134,7 @@ export class LibraryPlan {
       .map((declaration, index) => ({ declaration, name: supportNames[index], index }))
       .filter(({ index }) => body.includes(`${SUPPORT_OPEN}${index}${SUPPORT_CLOSE}`));
     if (used.length > 0) {
-      supportSection.push(...supportHeader, "");
+      supportSection.push("", ...supportHeader, ...(supportHeader.length > 0 ? [""] : []));
       const ordered = used.sort((a, b) => a.name.localeCompare(b.name));
       for (const { declaration, name } of ordered) {
         supportSection.push(...declaration.render(name), "");

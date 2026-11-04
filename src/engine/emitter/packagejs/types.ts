@@ -24,6 +24,18 @@ export interface EmitContext {
   shadowed?: ReadonlySet<string>;
   /** This library's own output path, for self-qualified references. */
   outputPath?: string;
+  /**
+   * The shared support library for multi-library runs (`E-40`); `used`
+   * collects the support names this library referenced.
+   */
+  shared?: { path: string; used: Set<string> };
+}
+
+/** A use of a name from the shared support library, if there is one. */
+function sharedName(context: EmitContext, name: string): string | undefined {
+  if (!context.shared) return undefined;
+  context.shared.used.add(name);
+  return context.plan.siblingName(context.shared.path, name);
 }
 
 /** A context whose scope substitutes `typeParams` with emitted `args`. */
@@ -490,6 +502,8 @@ function padTypeArguments(
 
 /** `typedef` used for `bigint`, which has no faithful package:js type. */
 function bigIntSupport(context: EmitContext): Emitted {
+  const shared = sharedName(context, "JSBigInt");
+  if (shared) return plain(shared);
   const token = context.plan.support({
     key: "host:bigint",
     base: "JSBigInt",
@@ -582,6 +596,8 @@ function host(type: IRType, identity: IRHostTypeIdentity, context: EmitContext):
 
 /** The per-library `Promise<T>` interop class (js_facade_gen §2.16). */
 function promiseSupport(context: EmitContext): string {
+  const shared = sharedName(context, "Promise");
+  if (shared) return shared;
   const promiseToFuture = context.plan.importName(
     "package:js/js_util.dart",
     "promiseToFuture",

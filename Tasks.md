@@ -55,4 +55,3 @@ identity, the executable Dart gate, and the Node/coverage/CI contracts.
 - [ ] Add a `dart:js_interop` backend behind a CLI flag (v2).
 - [ ] Evaluate advanced utility and mapped types with the TypeScript checker.
 - [ ] Emit external-module augmentations (currently modeled and suppressed).
-- [ ] Share backend support declarations across generated libraries (`E-40`).

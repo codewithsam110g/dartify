@@ -190,6 +190,24 @@ describe("S5 multi-file libraries", () => {
     expect(b.content).toContain("external void f(a.Options x, Options y, Shared z);");
   });
 
+  test("libraries share one Promise type through the support library (E-40)", async () => {
+    const report = await renderTestProject({
+      "load.d.ts": "export declare function load(): Promise<string>;",
+      "save.d.ts": "export declare function save(pending: Promise<string>): void;",
+    });
+    const byName = (suffix: string) =>
+      [...report.files.values()].find((file) => file.outputPath.endsWith(suffix))!;
+    const support = byName("dartify_support.dart");
+    expect(support.content).toContain("abstract class Promise<T> {}");
+    expect(support.content).toContain("extension PromiseToFuture<T> on Promise<T>");
+    for (const name of ["load.dart", "save.dart"]) {
+      const content = byName(name).content;
+      expect(content).toContain("import 'dartify_support.dart' show Promise;");
+      expect(content).toContain("export 'dartify_support.dart' show Promise, PromiseToFuture;");
+      expect(content).not.toContain("abstract class Promise");
+    }
+  });
+
   test("barrels re-export and hide names two sources both supply", async () => {
     const report = await renderTestProject({
       "one.d.ts": "export declare function one(x: Record<string, number>): void;",

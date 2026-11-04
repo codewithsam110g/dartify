@@ -11,8 +11,9 @@ import { dirname, extname, join, relative } from "path";
 import { Symbol } from "@/symbol";
 import { sourceFileOfFQN } from "@/symbol/fqn";
 import { TranspileException } from "@/transpiler";
-import { Backend, BackendDiagnostic } from "@emitter/backend";
+import { Backend, BackendDiagnostic, SUPPORT_LIBRARY } from "@emitter/backend";
 import { createPackageJsBackend } from "@emitter/packagejs/index";
+import { SUPPORT_FILE_NAME } from "@emitter/packagejs/support";
 import { LinkedProgram } from "./linkerPhase";
 
 /**
@@ -89,6 +90,14 @@ export function renderAllFiles(
     outputPathOfFile.set(file, outputPath);
   }
 
+  // Several libraries share one runtime-support library (`E-40`); a single
+  // library stays self-contained. The name avoids every generated path.
+  let supportPath: string | undefined;
+  if (outputPathOfFile.size > 1) {
+    supportPath = join(outDir, SUPPORT_FILE_NAME);
+    while (ownerOfOutput.has(supportPath)) supportPath = supportPath.replace(/\.dart$/, "_.dart");
+  }
+
   const libraries = backend.renderLibraries(
     [...outputPathOfFile].map(([sourceFile, outputPath]) => ({
       program,
@@ -97,6 +106,7 @@ export function renderAllFiles(
       outputPathOfFile,
       symbols: fileGroups.get(sourceFile) ?? [],
       moduleExports: program.moduleExports.byFile.get(sourceFile) ?? [],
+      ...(supportPath ? { supportPath } : {}),
     })),
   );
   const rendered = new Map<string, RenderedFile>();
@@ -116,6 +126,16 @@ export function renderAllFiles(
     if (debug && library.diagnostics.length > 0) {
       console.log(`  ⚠️  ${outputPath}: ${library.diagnostics.length} backend diagnostic(s)`);
     }
+  }
+  const support = libraries.get(SUPPORT_LIBRARY);
+  if (support && supportPath) {
+    rendered.set(supportPath, {
+      sourceFile: SUPPORT_FILE_NAME,
+      outputPath: supportPath,
+      content: support.content,
+      symbolCount: 0,
+      diagnostics: [],
+    });
   }
   return rendered;
 }

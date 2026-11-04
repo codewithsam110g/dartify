@@ -7,7 +7,9 @@ import {
   BackendDiagnostic,
   LibraryInput,
   RenderedLibrary,
+  SUPPORT_LIBRARY,
 } from "../backend";
+import { renderSupportLibrary, SUPPORT_PUBLIC_NAMES, supportExports } from "./support";
 import {
   emitAnonymousDefault,
   emitClass,
@@ -44,6 +46,18 @@ export function createPackageJsBackend(): Backend {
       if (inputs.length === 0) return new Map();
       const index = new ProgramIndex(inputs[0].program.symbols, inputs[0].outputPathOfFile);
       const drafts = new Map(inputs.map((input) => [input.sourceFile, renderLibrary(input, index)]));
+      // The shared support library exists only if some library used it.
+      const usesSupport = [...drafts.values()].some((draft) =>
+        draft.reExports.some((directive) => directive.targetFile === SUPPORT_LIBRARY),
+      );
+      if (usesSupport) {
+        drafts.set(SUPPORT_LIBRARY, {
+          content: `${renderSupportLibrary().replace(/\n$/, "")}\n`,
+          diagnostics: [],
+          publicNames: new Set(SUPPORT_PUBLIC_NAMES),
+          reExports: [],
+        });
+      }
       const hidden = resolveExports(drafts);
       const result = new Map<string, RenderedLibrary>();
       for (const [file, draft] of drafts) {
@@ -160,6 +174,7 @@ function renderLibrary(input: LibraryInput, index: ProgramIndex): LibraryDraft {
     file: input.sourceFile,
     scope: new Map(),
     outputPath: input.outputPath,
+    ...(input.supportPath ? { shared: { path: input.supportPath, used: new Set<string>() } } : {}),
   };
   const diagnostics: BackendDiagnostic[] = [];
 
@@ -206,6 +221,16 @@ function renderLibrary(input: LibraryInput, index: ProgramIndex): LibraryDraft {
   }
 
   const directives = reExports(input, index);
+  // A library that uses shared support names re-exports them, so users get
+  // `Promise` and its `toFuture` extension from the library they import.
+  if (context.shared && context.shared.used.size > 0) {
+    directives.push({
+      uri: siblingUri(input.outputPath, context.shared.path),
+      targetFile: SUPPORT_LIBRARY,
+      show: [...new Set([...context.shared.used].flatMap(supportExports))].sort(),
+    });
+    directives.sort((a, b) => a.uri.localeCompare(b.uri));
+  }
   const finished = plan.finish(
     body.join("\n").replace(/\n+$/, ""),
     minted.length > 0 ? [] : TYPE_DEFINITIONS_HEADER,

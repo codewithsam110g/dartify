@@ -34,7 +34,20 @@ export interface LibraryInput {
   symbols: readonly Symbol[];
   /** This file's resolved module export records (`P-17`). */
   moduleExports: readonly ResolvedModuleExport[];
+  /**
+   * Where a shared runtime-support library goes, when the run renders more
+   * than one library (`E-40`). Interop helpers such as `Promise<T>` are then
+   * declared once there, so values flow between generated libraries. Absent
+   * for single-library runs, which stay self-contained.
+   */
+  supportPath?: string;
 }
+
+/**
+ * Key under which `renderLibraries` returns the shared support library, when
+ * one was needed. It has no TypeScript source file.
+ */
+export const SUPPORT_LIBRARY = "\u0000dartify-support";
 
 export interface BackendDiagnostic {
   code: string;

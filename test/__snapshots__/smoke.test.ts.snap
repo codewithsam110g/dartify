@@ -9,232 +9,376 @@ library h3;
 
 import 'package:js/js.dart';
 
+/// Convert an H3 index (64-bit hexidecimal string) into a "split long" - a pair of 32-bit ints
 @JS("h3.h3IndexToSplitLong")
 external SplitLong h3IndexToSplitLong(H3IndexInput h3Index);
 
+/// Get a H3 index string from a split long (pair of 32-bit ints)
 @JS("h3.splitLongToH3Index")
 external H3Index splitLongToH3Index(num lower, num upper);
 
+/// Whether a given string represents a valid H3 cell index
 @JS("h3.isValidCell")
 external bool isValidCell(H3IndexInput h3Index);
 
+/// Whether a given string represents a valid H3 index
+/// (e.g. it may be a cell, directed edge, vertex.)
+/// Use <code>isValidCell</code> to check for a valid
+/// hexagon (or pentagon) cell ID.
 @JS("h3.isValidIndex")
 external bool isValidIndex(H3IndexInput h3Index);
 
+/// Whether the given H3 index is a pentagon
 @JS("h3.isPentagon")
 external bool isPentagon(H3IndexInput h3Index);
 
+/// Whether the given H3 index is in a Class III resolution (rotated versus
+/// the icosahedron and subject to shape distortion adding extra points on
+/// icosahedron edges, making them not true hexagons).
 @JS("h3.isResClassIII")
 external bool isResClassIII(H3IndexInput h3Index);
 
+/// Get the number of the base cell for a given H3 index
 @JS("h3.getBaseCellNumber")
 external num getBaseCellNumber(H3IndexInput h3Index);
 
+/// Get the number of the indexing digit for an H3 index
 @JS("h3.getIndexDigit")
 external num getIndexDigit(H3IndexInput h3Index, num digit);
 
+/// Get the indices of all icosahedron faces intersected by a given H3 index
 @JS("h3.getIcosahedronFaces")
 external List<num> getIcosahedronFaces(H3IndexInput h3Index);
 
+/// Returns the resolution of an H3 index
 @JS("h3.getResolution")
 external num getResolution(H3IndexInput h3Index);
 
+/// Creates a cell from its components (resolution, base cell number, and indexing digits).
+/// This is the inverse operation of \`getResolution\`, \`getBaseCellNumber\`, and \`getIndexDigit\`.
+/// Only allows creating valid cells.
 @JS("h3.constructCell")
 external H3Index constructCell(num baseCellNumber, List<num> digits, num res);
 
+/// Get the hexagon (or pentagon) containing a lat,lon point
 @JS("h3.latLngToCell")
 external H3Index latLngToCell(num lat, num lng, num res);
 
+/// Get the lat,lon center of a given hexagon (or pentagon)
 @JS("h3.cellToLatLng")
 external CoordPair cellToLatLng(H3IndexInput h3Index);
 
+/// Get the vertices of a given hexagon (or pentagon), as an array of [lat, lng]
+/// points. For pentagons and hexagons on the edge of an icosahedron face, this
+/// function may return up to 10 vertices.
 @JS("h3.cellToBoundary")
 external List<CoordPair> cellToBoundary(H3IndexInput h3Index, [bool formatAsGeoJson]);
 
+/// Get the parent of the given hexagon at a particular resolution
 @JS("h3.cellToParent")
 external H3Index cellToParent(H3IndexInput h3Index, num res);
 
+/// Get the children/descendents of the given hexagon at a particular resolution
 @JS("h3.cellToChildren")
 external List<H3Index> cellToChildren(H3IndexInput h3Index, num res);
 
+/// Get the number of children for a cell at a given resolution
 @JS("h3.cellToChildrenSize")
 external num cellToChildrenSize(H3IndexInput h3Index, num res);
 
+/// Get the center child of the given hexagon at a particular resolution
 @JS("h3.cellToCenterChild")
 external H3Index cellToCenterChild(H3IndexInput h3Index, num res);
 
+/// Get the position of the cell within an ordered list of all children of the
+/// cell's parent at the specified resolution.
 @JS("h3.cellToChildPos")
 external num cellToChildPos(H3IndexInput h3Index, num parentRes);
 
+/// Get the child cell at a given position within an ordered list of all children
+/// at the specified resolution
 @JS("h3.childPosToCell")
 external H3Index childPosToCell(num childPos, H3IndexInput h3Index, num childRes);
 
+/// Get all hexagons in a k-ring around a given center. The order of the hexagons is undefined.
 @JS("h3.gridDisk")
 external List<H3Index> gridDisk(H3IndexInput h3Index, num ringSize);
 
+/// Get all hexagons in a k-ring around a given center, in an array of arrays
+/// ordered by distance from the origin. The order of the hexagons within each ring is undefined.
 @JS("h3.gridDiskDistances")
 external List<List<H3Index>> gridDiskDistances(H3IndexInput h3Index, num ringSize);
 
+/// Get all hexagons in a hollow hexagonal ring centered at origin with sides of a given length.
 @JS("h3.gridRing")
 external List<H3Index> gridRing(H3IndexInput h3Index, num ringSize);
 
+/// Get all hexagons in a hollow hexagonal ring centered at origin with sides of a given length.
+/// Unlike gridDisk, this function will throw an error if there is a pentagon anywhere in the ring.
 @JS("h3.gridRingUnsafe")
 external List<H3Index> gridRingUnsafe(H3IndexInput h3Index, num ringSize);
 
+/// Get all hexagons with centers contained in a given polygon. The polygon
+/// is specified with GeoJson semantics as an array of loops. Each loop is
+/// an array of [lat, lng] pairs (or [lng, lat] if isGeoJson is specified).
+/// The first loop is the perimeter of the polygon, and subsequent loops are
+/// expected to be holes.
 @JS("h3.polygonToCells")
-external List<H3Index> polygonToCells(dynamic /* List<List<num>>|List<List<List<num>>> */ coordinates, num res, [bool isGeoJson]);
+external List<H3Index> polygonToCells(ListListNumOrListListListNum coordinates, num res, [bool isGeoJson]);
 
+/// Get all hexagons with centers contained in a given polygon. The polygon
+/// is specified with GeoJson semantics as an array of loops. Each loop is
+/// an array of [lat, lng] pairs (or [lng, lat] if isGeoJson is specified).
+/// The first loop is the perimeter of the polygon, and subsequent loops are
+/// expected to be holes.
 @JS("h3.polygonToCellsExperimental")
-external List<H3Index> polygonToCellsExperimental(dynamic /* List<List<num>>|List<List<List<num>>> */ coordinates, num res, String flags, [bool isGeoJson]);
+external List<H3Index> polygonToCellsExperimental(ListListNumOrListListListNum coordinates, num res, String flags, [bool isGeoJson]);
 
+/// Get the outlines of a set of H3 hexagons, returned in GeoJSON MultiPolygon
+/// format (an array of polygons, each with an array of loops, each an array of
+/// coordinates). Coordinates are returned as [lat, lng] pairs unless GeoJSON
+/// is requested.
+///
+/// It is the responsibility of the caller to ensure that all hexagons in the
+/// set have the same resolution and that the set contains no duplicates. Behavior
+/// is undefined if duplicates or multiple resolutions are present, and the
+/// algorithm may produce unexpected or invalid polygons.
 @JS("h3.cellsToMultiPolygon")
 external List<List<List<CoordPair>>> cellsToMultiPolygon(List<H3IndexInput> h3Indexes, [bool formatAsGeoJson]);
 
+/// Compact a set of hexagons of the same resolution into a set of hexagons across
+/// multiple levels that represents the same area.
 @JS("h3.compactCells")
 external List<H3Index> compactCells(List<H3IndexInput> h3Set);
 
+/// Uncompact a compacted set of hexagons to hexagons of the same resolution
 @JS("h3.uncompactCells")
 external List<H3Index> uncompactCells(List<H3IndexInput> compactedSet, num res);
 
+/// Whether two H3 indexes are neighbors (share an edge)
 @JS("h3.areNeighborCells")
 external bool areNeighborCells(H3IndexInput origin, H3IndexInput destination);
 
+/// Get an H3 index representing a unidirectional edge for a given origin and destination
 @JS("h3.cellsToDirectedEdge")
 external H3Index cellsToDirectedEdge(H3IndexInput origin, H3IndexInput destination);
 
+/// Get the origin hexagon from an H3 index representing a unidirectional edge
 @JS("h3.getDirectedEdgeOrigin")
 external H3Index getDirectedEdgeOrigin(H3IndexInput edgeIndex);
 
+/// Get the destination hexagon from an H3 index representing a unidirectional edge
 @JS("h3.getDirectedEdgeDestination")
 external H3Index getDirectedEdgeDestination(H3IndexInput edgeIndex);
 
+/// Whether the input is a valid unidirectional edge
 @JS("h3.isValidDirectedEdge")
 external bool isValidDirectedEdge(H3IndexInput edgeIndex);
 
+/// Get the [origin, destination] pair represented by a unidirectional edge
 @JS("h3.directedEdgeToCells")
 external List<H3Index> directedEdgeToCells(H3IndexInput edgeIndex);
 
+/// Get all of the unidirectional edges with the given H3 index as the origin (i.e. an edge to
+/// every neighbor)
 @JS("h3.originToDirectedEdges")
 external List<H3Index> originToDirectedEdges(H3IndexInput h3Index);
 
+/// Get the vertices of a given edge as an array of [lat, lng] points. Note that for edges that
+/// cross the edge of an icosahedron face, this may return 3 coordinates.
 @JS("h3.directedEdgeToBoundary")
 external List<CoordPair> directedEdgeToBoundary(H3IndexInput edgeIndex, [bool formatAsGeoJson]);
 
+/// Get the grid distance between two hex indexes. This function may fail
+/// to find the distance between two indexes if they are very far apart or
+/// on opposite sides of a pentagon.
 @JS("h3.gridDistance")
 external num gridDistance(H3IndexInput origin, H3IndexInput destination);
 
+/// Given two H3 indexes, return the line of indexes between them (inclusive).
+///
+/// This function may fail to find the line between two indexes, for
+/// example if they are very far apart. It may also fail when finding
+/// distances for indexes on opposite sides of a pentagon.
+///
+/// Notes:
+///
+///  - The specific output of this function should not be considered stable
+///    across library versions. The only guarantees the library provides are
+///    that the line length will be \`h3Distance(start, end) + 1\` and that
+///    every index in the line will be a neighbor of the preceding index.
+///  - Lines are drawn in grid space, and may not correspond exactly to either
+///    Cartesian lines or great arcs.
 @JS("h3.gridPathCells")
 external List<H3Index> gridPathCells(H3IndexInput origin, H3IndexInput destination);
 
+/// Produces IJ coordinates for an H3 index anchored by an origin.
+///
+/// - The coordinate space used by this function may have deleted
+/// regions or warping due to pentagonal distortion.
+/// - Coordinates are only comparable if they come from the same
+/// origin index.
+/// - Failure may occur if the index is too far away from the origin
+/// or if the index is on the other side of a pentagon.
+/// - This function is experimental, and its output is not guaranteed
+/// to be compatible across different versions of H3.
 @JS("h3.cellToLocalIj")
 external CoordIJ cellToLocalIj(H3IndexInput origin, H3IndexInput destination);
 
+/// Produces an H3 index for IJ coordinates anchored by an origin.
+///
+/// - The coordinate space used by this function may have deleted
+/// regions or warping due to pentagonal distortion.
+/// - Coordinates are only comparable if they come from the same
+/// origin index.
+/// - Failure may occur if the index is too far away from the origin
+/// or if the index is on the other side of a pentagon.
+/// - This function is experimental, and its output is not guaranteed
+/// to be compatible across different versions of H3.
 @JS("h3.localIjToCell")
 external H3Index localIjToCell(H3IndexInput origin, CoordIJ coords);
 
+/// Great circle distance between two geo points. This is not specific to H3,
+/// but is implemented in the library and provided here as a convenience.
 @JS("h3.greatCircleDistance")
 external num greatCircleDistance(List<num> latLng1, List<num> latLng2, String unit);
 
+/// Exact area of a given cell
 @JS("h3.cellArea")
 external num cellArea(H3IndexInput h3Index, String unit);
 
+/// Calculate length of a given unidirectional edge
 @JS("h3.edgeLength")
 external num edgeLength(H3IndexInput edge, String unit);
 
+/// Average hexagon area at a given resolution
 @JS("h3.getHexagonAreaAvg")
 external num getHexagonAreaAvg(num res, String unit);
 
+/// Average hexagon edge length at a given resolution
 @JS("h3.getHexagonEdgeLengthAvg")
 external num getHexagonEdgeLengthAvg(num res, String unit);
 
+/// Find the index for a vertex of a cell.
 @JS("h3.cellToVertex")
 external H3Index cellToVertex(H3IndexInput h3Index, num vertexNum);
 
+/// Find the indexes for all vertexes of a cell.
 @JS("h3.cellToVertexes")
 external List<H3Index> cellToVertexes(H3IndexInput h3Index);
 
+/// Get the lat, lng of a given vertex
 @JS("h3.vertexToLatLng")
 external CoordPair vertexToLatLng(H3IndexInput h3Index);
 
+/// Returns true if the input is a valid vertex index.
 @JS("h3.isValidVertex")
 external bool isValidVertex(H3IndexInput h3Index);
 
+/// The total count of hexagons in the world at a given resolution. Note that above
+/// resolution 8 the exact count cannot be represented in a JavaScript 32-bit number,
+/// so consumers should use caution when applying further operations to the output.
 @JS("h3.getNumCells")
 external num getNumCells(num res);
 
+/// Get all H3 indexes at resolution 0. As every index at every resolution > 0 is
+/// the descendant of a res 0 index, this can be used with h3ToChildren to iterate
+/// over H3 indexes at any resolution.
 @JS("h3.getRes0Cells")
 external List<H3Index> getRes0Cells();
 
+/// Get the twelve pentagon indexes at a given resolution.
 @JS("h3.getPentagons")
 external List<H3Index> getPentagons(num res);
 
+/// Convert degrees to radians
 @JS("h3.degsToRads")
 external num degsToRads(num deg);
 
+/// Convert radians to degrees
 @JS("h3.radsToDegs")
 external num radsToDegs(num rad);
 
 @JS("h3.UNITS.m")
-external String m;
+external String get m;
 
 @JS("h3.UNITS.m2")
-external String m2;
+external String get m2;
 
 @JS("h3.UNITS.km")
-external String km;
+external String get km;
 
 @JS("h3.UNITS.km2")
-external String km2;
+external String get km2;
 
 @JS("h3.UNITS.rads")
-external String rads;
+external String get rads;
 
 @JS("h3.UNITS.rads2")
-external String rads2;
+external String get rads2;
 
 @JS("h3.POLYGON_TO_CELLS_FLAGS.containmentCenter")
-external String containmentCenter;
+external String get containmentCenter;
 
 @JS("h3.POLYGON_TO_CELLS_FLAGS.containmentFull")
-external String containmentFull;
+external String get containmentFull;
 
 @JS("h3.POLYGON_TO_CELLS_FLAGS.containmentOverlapping")
-external String containmentOverlapping;
+external String get containmentOverlapping;
 
 @JS("h3.POLYGON_TO_CELLS_FLAGS.containmentOverlappingBbox")
-external String containmentOverlappingBbox;
+external String get containmentOverlappingBbox;
 
+/// 64-bit hexidecimal string representation of an H3 index
 typedef H3Index = String;
 
-typedef H3IndexInput = dynamic /* String|List<num> */;
+/// 64-bit hexidecimal string representation of an H3 index,
+/// or two 32-bit integers in little endian order in an array.
+/// A JavaScript union of \`String | List<num>\`; Dart has no union types.
+typedef H3IndexInput = dynamic;
 
 @JS()
 @anonymous
-abstract class Anon_h3_CoordIJ{}
-extension Anon_h3_CoordIJExtension on Anon_h3_CoordIJ {
+abstract class Anon_h3_CoordIJ {
+  external factory Anon_h3_CoordIJ({required num i, required num j});
   external num get i;
   external set i(num value);
   external num get j;
   external set j(num value);
 }
 
+/// Coordinates as an \`{i, j}\` pair
 typedef CoordIJ = Anon_h3_CoordIJ;
 
 @JS()
 @anonymous
-abstract class Anon_h3_H3Error{}
-extension Anon_h3_H3ErrorExtension on Anon_h3_H3Error {
+abstract class Anon_h3_H3Error {
+  external factory Anon_h3_H3Error({required String message, required num code});
   external String get message;
   external set message(String value);
   external num get code;
   external set code(num value);
 }
 
+/// Custom JS Error instance with an attached error code. Error codes come from the
+/// core H3 library and can be found [in the H3 docs](https://h3geo.org/docs/library/errors#table-of-error-codes).
 typedef H3Error = Anon_h3_H3Error;
 
+/// Pair of lat,lng coordinates (or lng,lat if GeoJSON output is specified)
 typedef CoordPair = List<num>;
 
+/// Pair of lower,upper 32-bit ints representing a 64-bit value
 typedef SplitLong = List<num>;
+// ---------------------------------------------------------------------------
+// Type definitions
+//
+// TypeScript constructs with no direct Dart representation. Each one is
+// stated once, with its original spelling, and every use site refers to it
+// by name. Replacing a \`dynamic\` here upgrades every use site at once.
+// ---------------------------------------------------------------------------
+
+/// A JavaScript union of \`List<List<num>> | List<List<List<num>>>\`; Dart has no union types.
+typedef ListListNumOrListListListNum = dynamic;
 "
 `;
 
@@ -246,20 +390,21 @@ exports[`smoke > transpiles leaflet/leaflet.d.ts 1`] = `
 library leaflet;
 
 import 'package:js/js.dart';
+import 'dart:html' show Element, Event, HtmlElement, ImageElement, KeyboardEvent, MouseEvent, VideoElement;
+import 'dart:svg' show SvgElement;
+import 'leaflet.dart' as leaflet;
 
+/// A constant that represents the Leaflet version in use.
 @JS("version")
-external String version;
+external String get version;
 
 @JS()
 @anonymous
-class Anon_Class_method_0_extend_return_intersection_0{
-  external factory Anon_Class_method_0_extend_return_intersection_0({List<dynamic> args});
-}
-extension Anon_Class_method_0_extend_return_intersection_0Extension on Anon_Class_method_0_extend_return_intersection_0 {
-}
+abstract class Anon_Class_method_0_extend_return_intersection_0 {}
 
 @JS("Class")
 class Class {
+  external Class();
   external static Anon_Class_method_0_extend_return_intersection_0 /* Anon_Class_method_0_extend_return_intersection_0&TypeOfClass */ extend(dynamic props);
   external static dynamic include(dynamic props);
   external static dynamic mergeOptions(dynamic props);
@@ -268,18 +413,20 @@ class Class {
 @JS("Class.addInitHook")
 external dynamic Class_addInitHook_1(void Function() initHookFn);
 @JS("Class.addInitHook")
-external dynamic Class_addInitHook_2(String methodName, [/* rest */ List<dynamic> args]);
+external dynamic Class_addInitHook_2(String methodName, [dynamic args1, dynamic args2, dynamic args3, dynamic args4, dynamic args5]);
 
 @JS("Transformation")
 class Transformation {
-  external factory Transformation(num a, num b, num c, num d);
+  external Transformation(num a, num b, num c, num d);
   external Point transform(Point point, [num scale]);
   external Point untransform(Point point, [num scale]);
 }
 
+/// Instantiates a Transformation object with the given coefficients.
 @JS("transformation")
 external Transformation transformation_1(num a, num b, num c, num d);
 
+/// Expects an coefficients array of the form \`[a: Number, b: Number, c: Number, d: Number]\`.
 @JS("transformation")
 external Transformation transformation_2(List<num> coefficients);
 
@@ -296,7 +443,7 @@ external Point closestPointOnSegment(Point p, Point p1, Point p2);
 external bool isFlat(List<LatLngExpression> latlngs);
 
 @JS("LineUtil.clipSegment")
-external dynamic /* List<Point>|bool */ clipSegment(Point a, Point b, Bounds bounds, [bool useLastCode, bool round]);
+external ListPointOrBool clipSegment(Point a, Point b, Bounds bounds, [bool useLastCode, bool round]);
 
 @JS("LineUtil.polylineCenter")
 external LatLng polylineCenter(List<LatLngExpression> latlngs, CRS crs);
@@ -307,64 +454,66 @@ external List<Point> clipPolygon(List<Point> points, BoundsExpression bounds, [b
 @JS("PolyUtil.polygonCenter")
 external LatLng polygonCenter(List<LatLngExpression> latlngs, CRS crs);
 
+/// Get Element by its ID or with the given HTML-Element
 @JS("DomUtil.get")
-external HTMLElement? get(dynamic /* String|HTMLElement */ element);
+external HtmlElement? get(StringOrHtmlElement element);
 
 @JS("DomUtil.getStyle")
-external String? getStyle(HTMLElement el, String styleAttrib);
+external String? getStyle(HtmlElement el, String styleAttrib);
+
+/// Creates an HTML element with \`tagName\`, sets its class to \`className\`, and optionally appends it to \`container\` element.
+@JS("DomUtil.create")
+external IndexedHTMLElementTagNameMapT create_1<T /* extends keyof HTMLElementTagNameMap */>(T tagName, [String className, HtmlElement container]);
 
 @JS("DomUtil.create")
-external IndexedHTMLElementTagNameMapT create_1(T tagName, [String className, HTMLElement container]);
-
-@JS("DomUtil.create")
-external HTMLElement create_2(String tagName, [String className, HTMLElement container]);
+external HtmlElement create_2(String tagName, [String className, HtmlElement container]);
 
 @JS("DomUtil.remove")
-external void remove(HTMLElement el);
+external void remove(HtmlElement el);
 
 @JS("DomUtil.empty")
-external void empty(HTMLElement el);
+external void empty(HtmlElement el);
 
 @JS("DomUtil.toFront")
-external void toFront(HTMLElement el);
+external void toFront(HtmlElement el);
 
 @JS("DomUtil.toBack")
-external void toBack(HTMLElement el);
+external void toBack(HtmlElement el);
 
 @JS("DomUtil.hasClass")
-external bool hasClass(HTMLElement el, String name);
+external bool hasClass(HtmlElement el, String name);
 
 @JS("DomUtil.addClass")
-external void addClass(HTMLElement el, String name);
+external void addClass(HtmlElement el, String name);
 
 @JS("DomUtil.removeClass")
-external void removeClass(HTMLElement el, String name);
+external void removeClass(HtmlElement el, String name);
 
 @JS("DomUtil.setClass")
-external void setClass(HTMLElement el, String name);
+external void setClass(HtmlElement el, String name);
 
 @JS("DomUtil.getClass")
-external String getClass(HTMLElement el);
+external String getClass(HtmlElement el);
 
 @JS("DomUtil.setOpacity")
-external void setOpacity(HTMLElement el, num opacity);
+external void setOpacity(HtmlElement el, num opacity);
 
 @JS("DomUtil.testProp")
-external dynamic /* String|bool */ testProp(List<String> props);
+external StringOrBool testProp(List<String> props);
 
 @JS("DomUtil.setTransform")
-external void setTransform(HTMLElement el, Point offset, [num scale]);
+external void setTransform(HtmlElement el, Point offset, [num scale]);
 
 @JS("DomUtil.setPosition")
-external void setPosition(HTMLElement el, Point position);
+external void setPosition(HtmlElement el, Point position);
 
 @JS("DomUtil.getPosition")
-external Point getPosition(HTMLElement el);
+external Point getPosition(HtmlElement el);
 
 @JS()
 @anonymous
-abstract class Anon_DomUtil_getScale_overload_0_return{}
-extension Anon_DomUtil_getScale_overload_0_returnExtension on Anon_DomUtil_getScale_overload_0_return {
+abstract class Anon_DomUtil_getScale_overload_0_return {
+  external factory Anon_DomUtil_getScale_overload_0_return({required num x, required num y, required DOMRect boundingClientRect});
   external num get x;
   external set x(num value);
   external num get y;
@@ -374,10 +523,10 @@ extension Anon_DomUtil_getScale_overload_0_returnExtension on Anon_DomUtil_getSc
 }
 
 @JS("DomUtil.getScale")
-external Anon_DomUtil_getScale_overload_0_return getScale(HTMLElement el);
+external Anon_DomUtil_getScale_overload_0_return getScale(HtmlElement el);
 
 @JS("DomUtil.getSizedParentNode")
-external HTMLElement getSizedParentNode(HTMLElement el);
+external HtmlElement getSizedParentNode(HtmlElement el);
 
 @JS("DomUtil.disableTextSelection")
 external void disableTextSelection();
@@ -392,30 +541,36 @@ external void disableImageDrag();
 external void enableImageDrag();
 
 @JS("DomUtil.preventOutline")
-external void preventOutline(HTMLElement el);
+external void preventOutline(HtmlElement el);
 
 @JS("DomUtil.restoreOutline")
 external void restoreOutline();
 
 @JS("DomUtil.TRANSFORM")
-external String TRANSFORM;
+external String get TRANSFORM;
+@JS("DomUtil.TRANSFORM")
+external set TRANSFORM(String value);
 
 @JS("DomUtil.TRANSITION")
-external String TRANSITION;
+external String get TRANSITION;
+@JS("DomUtil.TRANSITION")
+external set TRANSITION(String value);
 
 @JS("DomUtil.TRANSITION_END")
-external String TRANSITION_END;
+external String get TRANSITION_END;
+@JS("DomUtil.TRANSITION_END")
+external set TRANSITION_END(String value);
 
 @JS("PosAnimation")
-class PosAnimation {
-  external void run(HTMLElement el, Point newPos, [num duration, num easeLinearity]);
+class PosAnimation extends Evented {
+  external PosAnimation();
+  external void run(HtmlElement el, Point newPos, [num duration, num easeLinearity]);
   external void stop();
 }
 
 @JS()
 @anonymous
-abstract class CRS{}
-extension CRSExtension on CRS {
+abstract class CRS {
   external String? get code;
   external set code(String? value);
   external List<num>? get wrapLng;
@@ -424,68 +579,56 @@ extension CRSExtension on CRS {
   external set wrapLat(List<num>? value);
   external bool get infinite;
   external set infinite(bool value);
-  @JS("latLngToPoint")
   external Point latLngToPoint(LatLngExpression latlng, num zoom);
-  @JS("pointToLatLng")
   external LatLng pointToLatLng(PointExpression point, num zoom);
-  @JS("project")
-  external Point project(dynamic /* LatLng|LatLngLiteral */ latlng);
-  @JS("unproject")
+  external Point project(LatLngOrLatLngLiteral latlng);
   external LatLng unproject(PointExpression point);
-  @JS("scale")
   external num scale(num zoom);
-  @JS("zoom")
   external num zoom(num scale);
-  @JS("getProjectedBounds")
   external Bounds getProjectedBounds(num zoom);
-  @JS("distance")
   external num distance(LatLngExpression latlng1, LatLngExpression latlng2);
-  @JS("wrapLatLng")
-  external LatLng wrapLatLng(dynamic /* LatLng|LatLngLiteral */ latlng);
+  external LatLng wrapLatLng(LatLngOrLatLngLiteral latlng);
 }
 
 @JS("CRS.EPSG3395")
-external CRS EPSG3395;
+external CRS get EPSG3395;
 
 @JS("CRS.EPSG3857")
-external CRS EPSG3857;
+external CRS get EPSG3857;
 
 @JS("CRS.EPSG4326")
-external CRS EPSG4326;
+external CRS get EPSG4326;
 
 @JS("CRS.EPSG900913")
-external CRS EPSG900913;
+external CRS get EPSG900913;
 
 @JS("CRS.Earth")
-external CRS Earth;
+external CRS get Earth;
 
 @JS("CRS.Simple")
-external CRS Simple;
+external CRS get Simple;
 
 @JS()
 @anonymous
-abstract class Projection{}
-extension ProjectionExtension on Projection {
+abstract class Projection {
   external Bounds get bounds;
   external set bounds(Bounds value);
-  @JS("project")
-  external Point project(dynamic /* LatLng|LatLngLiteral */ latlng);
-  @JS("unproject")
+  external Point project(LatLngOrLatLngLiteral latlng);
   external LatLng unproject(PointExpression point);
 }
 
 @JS("Projection.LonLat")
-external Projection LonLat;
+external Projection get LonLat;
 
 @JS("Projection.Mercator")
-external Projection Mercator;
+external Projection get Mercator;
 
 @JS("Projection.SphericalMercator")
-external Projection SphericalMercator;
+external Projection get SphericalMercator;
 
 @JS("LatLng")
 class LatLng {
-  external factory LatLng(num latitude, num longitude, [num altitude]);
+  external LatLng(num latitude, num longitude, [num altitude]);
   external num get lat;
   external set lat(num value);
   external num get lng;
@@ -502,27 +645,28 @@ class LatLng {
 
 @JS()
 @anonymous
-abstract class LatLngLiteral{}
-extension LatLngLiteralExtension on LatLngLiteral {
+abstract class LatLngLiteral {
+  external factory LatLngLiteral({required num lat, required num lng, num? alt});
   external num get lat;
   external set lat(num value);
   external num get lng;
   external set lng(num value);
-  external num get alt;
-  external set alt(num value);
+  external num? get alt;
+  external set alt(num? value);
 }
 
 typedef LatLngTuple = List<num>;
 
-typedef LatLngExpression = dynamic /* LatLng|LatLngLiteral|LatLngTuple */;
+/// A JavaScript union of \`LatLng | LatLngLiteral | LatLngTuple\`; Dart has no union types.
+typedef LatLngExpression = dynamic;
 
 @JS("latLng")
 external LatLng latLng_1(num latitude, num longitude, [num altitude]);
 
 @JS()
 @anonymous
-abstract class Anon_latLng_overload_1_param_0_coords_union_3{}
-extension Anon_latLng_overload_1_param_0_coords_union_3Extension on Anon_latLng_overload_1_param_0_coords_union_3 {
+abstract class Anon_latLng_overload_1_param_0_coords_union_3 {
+  external factory Anon_latLng_overload_1_param_0_coords_union_3({required num lat, required num lng, num? alt});
   external num get lat;
   external set lat(num value);
   external num get lng;
@@ -532,12 +676,13 @@ extension Anon_latLng_overload_1_param_0_coords_union_3Extension on Anon_latLng_
 }
 
 @JS("latLng")
-external LatLng latLng_2(dynamic /* LatLngTuple|List<num>|LatLngLiteral|Anon_latLng_overload_1_param_0_coords_union_3 */ coords);
+external LatLng latLng_2(LatLngTupleOrOther coords);
 
 @JS("LatLngBounds")
 class LatLngBounds {
-  external factory LatLngBounds(LatLngExpression southWest, LatLngExpression northEast);
-  external LatLngBounds extend(dynamic /* LatLngExpression|LatLngBoundsExpression */ latlngOrBounds);
+  external LatLngBounds(LatLngExpression southWest, LatLngExpression northEast);
+  external factory LatLngBounds.overload2(List<LatLngExpression> latlngs);
+  external LatLngBounds extend(LatLngExpressionOrLatLngBoundsExpression latlngOrBounds);
   external LatLngBounds pad(num bufferRatio);
   external LatLng getCenter();
   external LatLng getSouthWest();
@@ -548,7 +693,7 @@ class LatLngBounds {
   external num getSouth();
   external num getEast();
   external num getNorth();
-  external bool contains(dynamic /* LatLngBoundsExpression|LatLngExpression */ otherBoundsOrLatLng);
+  external bool contains(LatLngBoundsExpressionOrLatLngExpression otherBoundsOrLatLng);
   external bool intersects(LatLngBoundsExpression otherBounds);
   external bool overlaps(LatLngBoundsExpression otherBounds);
   external String toBBoxString();
@@ -558,7 +703,8 @@ class LatLngBounds {
 
 typedef LatLngBoundsLiteral = List<LatLngTuple>;
 
-typedef LatLngBoundsExpression = dynamic /* LatLngBounds|LatLngBoundsLiteral */;
+/// A JavaScript union of \`LatLngBounds | LatLngBoundsLiteral\`; Dart has no union types.
+typedef LatLngBoundsExpression = dynamic;
 
 @JS("latLngBounds")
 external LatLngBounds latLngBounds_1(LatLngExpression southWest, LatLngExpression northEast);
@@ -570,7 +716,7 @@ typedef PointTuple = List<num>;
 
 @JS("Point")
 class Point {
-  external factory Point(num x, num y, [bool round]);
+  external Point(num x, num y, [bool round]);
   external num get x;
   external set x(num value);
   external num get y;
@@ -594,21 +740,22 @@ class Point {
 
 @JS()
 @anonymous
-abstract class Coords{}
-extension CoordsExtension on Coords {
+abstract class Coords extends Point {
+  external factory Coords({required num z});
   external num get z;
   external set z(num value);
 }
 
-typedef PointExpression = dynamic /* Point|PointTuple */;
+/// A JavaScript union of \`Point | PointTuple\`; Dart has no union types.
+typedef PointExpression = dynamic;
 
 @JS("point")
 external Point point_1(num x, num y, [bool round]);
 
 @JS()
 @anonymous
-abstract class Anon_point_overload_1_param_0_coords_union_1{}
-extension Anon_point_overload_1_param_0_coords_union_1Extension on Anon_point_overload_1_param_0_coords_union_1 {
+abstract class Anon_point_overload_1_param_0_coords_union_1 {
+  external factory Anon_point_overload_1_param_0_coords_union_1({required num x, required num y});
   external num get x;
   external set x(num value);
   external num get y;
@@ -616,13 +763,14 @@ extension Anon_point_overload_1_param_0_coords_union_1Extension on Anon_point_ov
 }
 
 @JS("point")
-external Point point_2(dynamic /* PointTuple|Anon_point_overload_1_param_0_coords_union_1 */ coords);
+external Point point_2(PointTupleOrAnonPointOverload1Param0CoordsUnion1 coords);
 
 typedef BoundsLiteral = List<PointTuple>;
 
 @JS("Bounds")
 class Bounds {
-  external factory Bounds(PointExpression topLeft, PointExpression bottomRight);
+  external Bounds(PointExpression topLeft, PointExpression bottomRight);
+  external factory Bounds.overload2([ListPointOrBoundsLiteral points]);
   external Point? get min;
   external set min(Point? value);
   external Point? get max;
@@ -633,7 +781,7 @@ class Bounds {
   external Point getTopLeft();
   external Point getTopRight();
   external Point getSize();
-  external bool contains(dynamic /* BoundsExpression|PointExpression */ pointOrBounds);
+  external bool contains(BoundsExpressionOrPointExpression pointOrBounds);
   external bool intersects(BoundsExpression otherBounds);
   external bool overlaps(BoundsExpression otherBounds);
   external bool isValid();
@@ -647,13 +795,14 @@ extension BoundsExtension on Bounds {
   external Bounds extend_2(BoundsExpression otherBounds);
 }
 
-typedef BoundsExpression = dynamic /* Bounds|BoundsLiteral */;
+/// A JavaScript union of \`Bounds | BoundsLiteral\`; Dart has no union types.
+typedef BoundsExpression = dynamic;
 
 @JS("bounds")
 external Bounds bounds_1(PointExpression topLeft, PointExpression bottomRight);
 
 @JS("bounds")
-external Bounds bounds_2(dynamic /* List<Point>|BoundsLiteral */ points);
+external Bounds bounds_2(ListPointOrBoundsLiteral points);
 
 typedef LeafletEventHandlerFn = void Function(LeafletEvent);
 
@@ -685,8 +834,8 @@ typedef TileErrorEventHandlerFn = void Function(TileErrorEvent);
 
 @JS()
 @anonymous
-abstract class LeafletEventHandlerFnMap{}
-extension LeafletEventHandlerFnMapExtension on LeafletEventHandlerFnMap {
+abstract class LeafletEventHandlerFnMap {
+  external factory LeafletEventHandlerFnMap({LayersControlEventHandlerFn? baselayerchange, LayersControlEventHandlerFn? overlayadd, LayersControlEventHandlerFn? overlayremove, LayerEventHandlerFn? layeradd, LayerEventHandlerFn? layerremove, LeafletEventHandlerFn? zoomlevelschange, LeafletEventHandlerFn? unload, LeafletEventHandlerFn? viewreset, LeafletEventHandlerFn? load, LeafletEventHandlerFn? zoomstart, LeafletEventHandlerFn? movestart, LeafletEventHandlerFn? zoom, LeafletEventHandlerFn? move, LeafletEventHandlerFn? zoomend, LeafletEventHandlerFn? moveend, LeafletEventHandlerFn? autopanstart, LeafletEventHandlerFn? dragstart, LeafletEventHandlerFn? drag, LeafletEventHandlerFn? add, LeafletEventHandlerFn? remove, LeafletEventHandlerFn? loading, LeafletEventHandlerFn? error, LeafletEventHandlerFn? update, LeafletEventHandlerFn? down, LeafletEventHandlerFn? predrag, ResizeEventHandlerFn? resize, PopupEventHandlerFn? popupopen, PopupEventHandlerFn? popupclose, TooltipEventHandlerFn? tooltipopen, TooltipEventHandlerFn? tooltipclose, ErrorEventHandlerFn? locationerror, LocationEventHandlerFn? locationfound, LeafletMouseEventHandlerFn? click, LeafletMouseEventHandlerFn? dblclick, LeafletMouseEventHandlerFn? mousedown, LeafletMouseEventHandlerFn? mouseup, LeafletMouseEventHandlerFn? mouseover, LeafletMouseEventHandlerFn? mouseout, LeafletMouseEventHandlerFn? mousemove, LeafletMouseEventHandlerFn? contextmenu, LeafletMouseEventHandlerFn? preclick, LeafletKeyboardEventHandlerFn? keypress, LeafletKeyboardEventHandlerFn? keydown, LeafletKeyboardEventHandlerFn? keyup, ZoomAnimEventHandlerFn? zoomanim, DragEndEventHandlerFn? dragend, TileEventHandlerFn? tileunload, TileEventHandlerFn? tileloadstart, TileEventHandlerFn? tileload, TileEventHandlerFn? tileabort, TileErrorEventHandlerFn? tileerror});
   external LayersControlEventHandlerFn? get baselayerchange;
   external set baselayerchange(LayersControlEventHandlerFn? value);
   external LayersControlEventHandlerFn? get overlayadd;
@@ -791,16 +940,41 @@ extension LeafletEventHandlerFnMapExtension on LeafletEventHandlerFnMap {
   external set tileerror(TileErrorEventHandlerFn? value);
 }
 
+/// A set of methods shared between event-powered classes (like Map and Marker).
+/// Generally, events allow you to execute some function when something happens
+/// with an object (e.g. the user clicks on the map, causing the map to fire
+/// 'click' event).
 @JS("Events")
 class Events {
+  external Events();
+  /// Fires an event of the specified type. You can optionally provide a data
+  /// object — the first argument of the listener function will contain its properties.
+  /// The event might can optionally be propagated to event parents.
   external Events fire(String type, [dynamic data, bool propagate]);
+  /// Adds an event parent - an Evented that will receive propagated events
   external Events addEventParent(Evented obj);
+  /// Removes an event parent, so it will stop receiving propagated events
   external Events removeEventParent(Evented obj);
+  /// Alias for off()
+  ///
+  /// Removes all listeners to all events on the object.
   external Events clearAllEventListeners();
+  /// Alias for fire(...)
+  ///
+  /// Fires an event of the specified type. You can optionally provide a data
+  /// object — the first argument of the listener function will contain its properties.
+  /// The event might can optionally be propagated to event parents.
   external Events fireEvent(String type, [dynamic data, bool propagate]);
+  /// Alias for listens(...)
+  ///
+  /// Returns true if a particular event type has any listeners attached to it.
   external bool hasEventListeners(String type);
 }
 extension EventsExtension on Events {
+  /// Adds a listener function (fn) to a particular event type of the object.
+  /// You can optionally specify the context of the listener (object the this
+  /// keyword will point to). You can also pass several space-separated types
+  /// (e.g. 'click dblclick').
   @JS("on")
   external Events on_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("on")
@@ -831,8 +1005,13 @@ extension EventsExtension on Events {
   external Events on_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("on")
   external Events on_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  /// Adds a set of type/listener pairs, e.g. {click: onClick, mousemove: onMouseMove}
   @JS("on")
   external Events on_16(LeafletEventHandlerFnMap eventMap);
+  /// Removes a previously added listener function. If no function is specified,
+  /// it will remove all the listeners of that particular event from the object.
+  /// Note that if you passed a custom context to on, you must pass the same context
+  /// to off in order to remove the listener.
   @JS("off")
   external Events off_1(String type, [LayersControlEventHandlerFn fn, dynamic context]);
   @JS("off")
@@ -863,10 +1042,13 @@ extension EventsExtension on Events {
   external Events off_14(String type, [TileErrorEventHandlerFn fn, dynamic context]);
   @JS("off")
   external Events off_15(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  /// Removes a set of type/listener pairs.
   @JS("off")
   external Events off_16(LeafletEventHandlerFnMap eventMap);
+  /// Removes all listeners to all events on the object.
   @JS("off")
   external Events off_17();
+  /// Returns true if a particular event type has any listeners attached to it.
   @JS("listens")
   external bool listens_1(String type, [bool propagate]);
   @JS("listens")
@@ -899,6 +1081,7 @@ extension EventsExtension on Events {
   external bool listens_15(String type, TileEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
   external bool listens_16(String type, LeafletEventHandlerFn fn, [dynamic context, bool propagate]);
+  /// Behaves as on(...), except the listener will only get fired once and then removed.
   @JS("once")
   external Events once_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("once")
@@ -929,8 +1112,15 @@ extension EventsExtension on Events {
   external Events once_14(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("once")
   external Events once_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  /// Behaves as on(...), except the listener will only get fired once and then removed.
   @JS("once")
   external Events once_16(LeafletEventHandlerFnMap eventMap);
+  /// Alias for on(...)
+  ///
+  /// Adds a listener function (fn) to a particular event type of the object.
+  /// You can optionally specify the context of the listener (object the this
+  /// keyword will point to). You can also pass several space-separated types
+  /// (e.g. 'click dblclick').
   @JS("addEventListener")
   external Events addEventListener_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
@@ -961,8 +1151,17 @@ extension EventsExtension on Events {
   external Events addEventListener_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
   external Events addEventListener_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  /// Alias for on(...)
+  ///
+  /// Adds a set of type/listener pairs, e.g. {click: onClick, mousemove: onMouseMove}
   @JS("addEventListener")
   external Events addEventListener_16(LeafletEventHandlerFnMap eventMap);
+  /// Alias for off(...)
+  ///
+  /// Removes a previously added listener function. If no function is specified,
+  /// it will remove all the listeners of that particular event from the object.
+  /// Note that if you passed a custom context to on, you must pass the same context
+  /// to off in order to remove the listener.
   @JS("removeEventListener")
   external Events removeEventListener_1(String type, [LayersControlEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
@@ -993,8 +1192,14 @@ extension EventsExtension on Events {
   external Events removeEventListener_14(String type, [TileErrorEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
   external Events removeEventListener_15(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  /// Alias for off(...)
+  ///
+  /// Removes a set of type/listener pairs.
   @JS("removeEventListener")
   external Events removeEventListener_16(LeafletEventHandlerFnMap eventMap);
+  /// Alias for once(...)
+  ///
+  /// Behaves as on(...), except the listener will only get fired once and then removed.
   @JS("addOneTimeEventListener")
   external Events addOneTimeEventListener_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
@@ -1025,29 +1230,55 @@ extension EventsExtension on Events {
   external Events addOneTimeEventListener_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
   external Events addOneTimeEventListener_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  /// Alias for once(...)
+  ///
+  /// Behaves as on(...), except the listener will only get fired once and then removed.
   @JS("addOneTimeEventListener")
   external Events addOneTimeEventListener_16(LeafletEventHandlerFnMap eventMap);
 }
 
 @JS("MixinType")
 class MixinType {
-  external Events get Events;
-  external set Events(Events value);
+  external MixinType();
+  external leaflet.Events get Events;
+  external set Events(leaflet.Events value);
 }
 
 @JS("Mixin")
-external MixinType Mixin;
+external MixinType get Mixin;
 
+/// Base class of Leaflet classes supporting events
 @JS("Evented")
-class Evented {
+abstract class Evented extends Class {
+  external Evented();
+  /// Fires an event of the specified type. You can optionally provide a data
+  /// object — the first argument of the listener function will contain its properties.
+  /// The event might can optionally be propagated to event parents.
   external Evented fire(String type, [dynamic data, bool propagate]);
+  /// Adds an event parent - an Evented that will receive propagated events
   external Evented addEventParent(Evented obj);
+  /// Removes an event parent, so it will stop receiving propagated events
   external Evented removeEventParent(Evented obj);
+  /// Alias for off()
+  ///
+  /// Removes all listeners to all events on the object.
   external Evented clearAllEventListeners();
+  /// Alias for fire(...)
+  ///
+  /// Fires an event of the specified type. You can optionally provide a data
+  /// object — the first argument of the listener function will contain its properties.
+  /// The event might can optionally be propagated to event parents.
   external Evented fireEvent(String type, [dynamic data, bool propagate]);
+  /// Alias for listens(...)
+  ///
+  /// Returns true if a particular event type has any listeners attached to it.
   external bool hasEventListeners(String type);
 }
 extension EventedExtension on Evented {
+  /// Adds a listener function (fn) to a particular event type of the object.
+  /// You can optionally specify the context of the listener (object the this
+  /// keyword will point to). You can also pass several space-separated types
+  /// (e.g. 'click dblclick').
   @JS("on")
   external Evented on_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("on")
@@ -1078,8 +1309,13 @@ extension EventedExtension on Evented {
   external Evented on_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("on")
   external Evented on_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  /// Adds a set of type/listener pairs, e.g. {click: onClick, mousemove: onMouseMove}
   @JS("on")
   external Evented on_16(LeafletEventHandlerFnMap eventMap);
+  /// Removes a previously added listener function. If no function is specified,
+  /// it will remove all the listeners of that particular event from the object.
+  /// Note that if you passed a custom context to on, you must pass the same context
+  /// to off in order to remove the listener.
   @JS("off")
   external Evented off_1(String type, [LayersControlEventHandlerFn fn, dynamic context]);
   @JS("off")
@@ -1110,10 +1346,13 @@ extension EventedExtension on Evented {
   external Evented off_14(String type, [TileErrorEventHandlerFn fn, dynamic context]);
   @JS("off")
   external Evented off_15(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  /// Removes a set of type/listener pairs.
   @JS("off")
   external Evented off_16(LeafletEventHandlerFnMap eventMap);
+  /// Removes all listeners to all events on the object.
   @JS("off")
   external Evented off_17();
+  /// Returns true if a particular event type has any listeners attached to it.
   @JS("listens")
   external bool listens_1(String type, [bool propagate]);
   @JS("listens")
@@ -1146,6 +1385,7 @@ extension EventedExtension on Evented {
   external bool listens_15(String type, TileEventHandlerFn fn, [dynamic context, bool propagate]);
   @JS("listens")
   external bool listens_16(String type, LeafletEventHandlerFn fn, [dynamic context, bool propagate]);
+  /// Behaves as on(...), except the listener will only get fired once and then removed.
   @JS("once")
   external Evented once_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("once")
@@ -1176,8 +1416,15 @@ extension EventedExtension on Evented {
   external Evented once_14(String type, TileEventHandlerFn fn, [dynamic context]);
   @JS("once")
   external Evented once_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  /// Behaves as on(...), except the listener will only get fired once and then removed.
   @JS("once")
   external Evented once_16(LeafletEventHandlerFnMap eventMap);
+  /// Alias for on(...)
+  ///
+  /// Adds a listener function (fn) to a particular event type of the object.
+  /// You can optionally specify the context of the listener (object the this
+  /// keyword will point to). You can also pass several space-separated types
+  /// (e.g. 'click dblclick').
   @JS("addEventListener")
   external Evented addEventListener_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
@@ -1208,8 +1455,17 @@ extension EventedExtension on Evented {
   external Evented addEventListener_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("addEventListener")
   external Evented addEventListener_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  /// Alias for on(...)
+  ///
+  /// Adds a set of type/listener pairs, e.g. {click: onClick, mousemove: onMouseMove}
   @JS("addEventListener")
   external Evented addEventListener_16(LeafletEventHandlerFnMap eventMap);
+  /// Alias for off(...)
+  ///
+  /// Removes a previously added listener function. If no function is specified,
+  /// it will remove all the listeners of that particular event from the object.
+  /// Note that if you passed a custom context to on, you must pass the same context
+  /// to off in order to remove the listener.
   @JS("removeEventListener")
   external Evented removeEventListener_1(String type, [LayersControlEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
@@ -1240,8 +1496,14 @@ extension EventedExtension on Evented {
   external Evented removeEventListener_14(String type, [TileErrorEventHandlerFn fn, dynamic context]);
   @JS("removeEventListener")
   external Evented removeEventListener_15(String type, [LeafletEventHandlerFn fn, dynamic context]);
+  /// Alias for off(...)
+  ///
+  /// Removes a set of type/listener pairs.
   @JS("removeEventListener")
   external Evented removeEventListener_16(LeafletEventHandlerFnMap eventMap);
+  /// Alias for once(...)
+  ///
+  /// Behaves as on(...), except the listener will only get fired once and then removed.
   @JS("addOneTimeEventListener")
   external Evented addOneTimeEventListener_1(String type, LayersControlEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
@@ -1272,21 +1534,29 @@ extension EventedExtension on Evented {
   external Evented addOneTimeEventListener_14(String type, TileErrorEventHandlerFn fn, [dynamic context]);
   @JS("addOneTimeEventListener")
   external Evented addOneTimeEventListener_15(String type, LeafletEventHandlerFn fn, [dynamic context]);
+  /// Alias for once(...)
+  ///
+  /// Behaves as on(...), except the listener will only get fired once and then removed.
   @JS("addOneTimeEventListener")
   external Evented addOneTimeEventListener_16(LeafletEventHandlerFnMap eventMap);
 }
 
 @JS()
 @anonymous
-abstract class DraggableOptions{}
-extension DraggableOptionsExtension on DraggableOptions {
+abstract class DraggableOptions {
+  external factory DraggableOptions({required num clickTolerance});
+  /// The max number of pixels a user can shift the mouse pointer during a click
+  /// for it to be considered a valid click (as opposed to a mouse drag).
   external num get clickTolerance;
   external set clickTolerance(num value);
 }
 
+/// A class for making DOM elements draggable (including touch support).
+/// Used internally for map and marker dragging. Only works for elements
+/// that were positioned with [\`L.DomUtil.setPosition\`](#domutil-setposition).
 @JS("Draggable")
-class Draggable {
-  external factory Draggable(HTMLElement element, [HTMLElement dragStartTarget, bool preventOutline, DraggableOptions options]);
+class Draggable extends Evented {
+  external Draggable(HtmlElement element, [HtmlElement dragStartTarget, bool preventOutline, DraggableOptions options]);
   external void enable();
   external void disable();
   external void finishDrag();
@@ -1294,8 +1564,8 @@ class Draggable {
 
 @JS()
 @anonymous
-abstract class LayerOptions{}
-extension LayerOptionsExtension on LayerOptions {
+abstract class LayerOptions {
+  external factory LayerOptions({String? pane, String? attribution});
   external String? get pane;
   external set pane(String? value);
   external String? get attribution;
@@ -1304,8 +1574,8 @@ extension LayerOptionsExtension on LayerOptions {
 
 @JS()
 @anonymous
-abstract class InteractiveLayerOptions{}
-extension InteractiveLayerOptionsExtension on InteractiveLayerOptions {
+abstract class InteractiveLayerOptions implements LayerOptions {
+  external factory InteractiveLayerOptions({bool? interactive, bool? bubblingMouseEvents, String? pane, String? attribution});
   external bool? get interactive;
   external set interactive(bool? value);
   external bool? get bubblingMouseEvents;
@@ -1314,38 +1584,40 @@ extension InteractiveLayerOptionsExtension on InteractiveLayerOptions {
 
 @JS()
 @anonymous
-abstract class Anon_Layer_method_24_getEvents_return{}
+abstract class Anon_Layer_method_24_getEvents_return {
+  external factory Anon_Layer_method_24_getEvents_return();
+}
 extension Anon_Layer_method_24_getEvents_returnExtension on Anon_Layer_method_24_getEvents_return {
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
+  external LeafletEventHandlerFn operator [](String key);
+  external void operator []=(String key, LeafletEventHandlerFn value);
 }
 
 @JS("Layer")
-class Layer {
-  external factory Layer([LayerOptions options]);
+class Layer extends Evented {
+  external Layer([LayerOptions options]);
   external LayerOptions get options;
   external set options(LayerOptions value);
-  external Layer addTo(dynamic /* JS$Map|LayerGroup */ map);
+  external Layer addTo(JSMapOrLayerGroup map);
   external Layer remove();
   external Layer removeFrom(JS$Map map);
-  external HTMLElement? getPane([String name]);
-  external Layer addInteractiveTarget(HTMLElement targetEl);
-  external Layer removeInteractiveTarget(HTMLElement targetEl);
-  external Layer bindPopup(dynamic /* Content Function(Layer)|Content|Popup */ content, [PopupOptions options]);
+  external HtmlElement? getPane([String name]);
+  external Layer addInteractiveTarget(HtmlElement targetEl);
+  external Layer removeInteractiveTarget(HtmlElement targetEl);
+  external Layer bindPopup(ContentFunctionLayerOrContentOrPopup content, [PopupOptions options]);
   external Layer unbindPopup();
   external Layer openPopup([LatLngExpression latlng]);
   external Layer closePopup();
   external Layer togglePopup();
   external bool isPopupOpen();
-  external Layer setPopupContent(dynamic /* Content|Popup */ content);
+  external Layer setPopupContent(ContentOrPopup content);
   external Popup? getPopup();
-  external Layer bindTooltip(dynamic /* Content Function(Layer)|Tooltip|Content */ content, [TooltipOptions options]);
+  external Layer bindTooltip(ContentFunctionLayerOrTooltipOrContent content, [TooltipOptions options]);
   external Layer unbindTooltip();
   external Layer openTooltip([LatLngExpression latlng]);
   external Layer closeTooltip();
   external Layer toggleTooltip();
   external bool isTooltipOpen();
-  external Layer setTooltipContent(dynamic /* Content|Tooltip */ content);
+  external Layer setTooltipContent(ContentOrTooltip content);
   external Tooltip? getTooltip();
   external Layer onAdd(JS$Map map);
   external Layer onRemove(JS$Map map);
@@ -1362,10 +1634,10 @@ extension LayerExtension on Layer {
 
 @JS()
 @anonymous
-abstract class GridLayerOptions{}
-extension GridLayerOptionsExtension on GridLayerOptions {
-  external dynamic /* num|Point */ get tileSize;
-  external set tileSize(dynamic /* num|Point */ value);
+abstract class GridLayerOptions implements LayerOptions {
+  external factory GridLayerOptions({NumOrPoint tileSize, num? opacity, bool? updateWhenIdle, bool? updateWhenZooming, num? updateInterval, num? zIndex, LatLngBoundsExpression bounds, num? minZoom, num? maxZoom, num? maxNativeZoom, num? minNativeZoom, bool? noWrap, String? pane, String? className, num? keepBuffer, String? attribution});
+  external NumOrPoint get tileSize;
+  external set tileSize(NumOrPoint value);
   external num? get opacity;
   external set opacity(num? value);
   external bool? get updateWhenIdle;
@@ -1376,40 +1648,44 @@ extension GridLayerOptionsExtension on GridLayerOptions {
   external set updateInterval(num? value);
   external num? get zIndex;
   external set zIndex(num? value);
-  external LatLngBoundsExpression? get bounds;
-  external set bounds(LatLngBoundsExpression? value);
+  external LatLngBoundsExpression get bounds;
+  external set bounds(LatLngBoundsExpression value);
   external num? get minZoom;
   external set minZoom(num? value);
   external num? get maxZoom;
   external set maxZoom(num? value);
+  /// Maximum zoom number the tile source has available. If it is specified, the tiles on all zoom levels higher than
+  /// \`maxNativeZoom\` will be loaded from \`maxNativeZoom\` level and auto-scaled.
   external num? get maxNativeZoom;
   external set maxNativeZoom(num? value);
+  /// Minimum zoom number the tile source has available. If it is specified, the tiles on all zoom levels lower than
+  /// \`minNativeZoom\` will be loaded from \`minNativeZoom\` level and auto-scaled.
   external num? get minNativeZoom;
   external set minNativeZoom(num? value);
   external bool? get noWrap;
   external set noWrap(bool? value);
   external String? get pane;
-  external set pane(String? value);
+  external set pane(covariant String? value);
   external String? get className;
   external set className(String? value);
   external num? get keepBuffer;
   external set keepBuffer(num? value);
 }
 
-typedef DoneCallback = void Function([Error, HTMLElement]);
+typedef DoneCallback = void Function([Error_6a2353, HtmlElement]);
 
 @JS()
 @anonymous
-abstract class Anon_InternalTiles_indexSig_0_value{}
-extension Anon_InternalTiles_indexSig_0_valueExtension on Anon_InternalTiles_indexSig_0_value {
+abstract class Anon_InternalTiles_indexSig_0_value {
+  external factory Anon_InternalTiles_indexSig_0_value({bool? active, required Coords coords, required bool current, required HtmlElement el, DateTime? loaded, bool? retain});
   external bool? get active;
   external set active(bool? value);
   external Coords get coords;
   external set coords(Coords value);
   external bool get current;
   external set current(bool value);
-  external HTMLElement get el;
-  external set el(HTMLElement value);
+  external HtmlElement get el;
+  external set el(HtmlElement value);
   external DateTime? get loaded;
   external set loaded(DateTime? value);
   external bool? get retain;
@@ -1418,24 +1694,26 @@ extension Anon_InternalTiles_indexSig_0_valueExtension on Anon_InternalTiles_ind
 
 @JS()
 @anonymous
-abstract class InternalTiles{}
+abstract class InternalTiles {
+  external factory InternalTiles();
+}
 extension InternalTilesExtension on InternalTiles {
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
+  external Anon_InternalTiles_indexSig_0_value operator [](String key);
+  external void operator []=(String key, Anon_InternalTiles_indexSig_0_value value);
 }
 
 @JS("GridLayer")
-class GridLayer {
-  external factory GridLayer([GridLayerOptions options]);
+class GridLayer extends Layer {
+  external GridLayer([GridLayerOptions options]);
   external GridLayer bringToFront();
   external GridLayer bringToBack();
-  external HTMLElement? getContainer();
+  external HtmlElement? getContainer();
   external GridLayer setOpacity(num opacity);
   external GridLayer setZIndex(num zIndex);
   external bool isLoading();
   external GridLayer redraw();
   external Point getTileSize();
-  external HTMLElement createTile(Coords coords, DoneCallback done);
+  external HtmlElement createTile(Coords coords, DoneCallback done);
 }
 extension GridLayerExtension on GridLayer {
   @JS("_tiles")
@@ -1457,12 +1735,12 @@ external GridLayer gridLayer([GridLayerOptions options]);
 
 @JS()
 @anonymous
-abstract class TileLayerOptions{}
-extension TileLayerOptionsExtension on TileLayerOptions {
+abstract class TileLayerOptions implements GridLayerOptions {
+  external factory TileLayerOptions({String? id, StringOrListString subdomains, String? errorTileUrl, num? zoomOffset, bool? tms, bool? zoomReverse, bool? detectRetina, CrossOriginOrBool crossOrigin, ReferrerPolicyOrBool referrerPolicy, NumOrPoint tileSize, num? opacity, bool? updateWhenIdle, bool? updateWhenZooming, num? updateInterval, num? zIndex, LatLngBoundsExpression bounds, num? minZoom, num? maxZoom, num? maxNativeZoom, num? minNativeZoom, bool? noWrap, String? pane, String? className, num? keepBuffer, String? attribution});
   external String? get id;
   external set id(String? value);
-  external dynamic /* String|List<String> */ get subdomains;
-  external set subdomains(dynamic /* String|List<String> */ value);
+  external StringOrListString get subdomains;
+  external set subdomains(StringOrListString value);
   external String? get errorTileUrl;
   external set errorTileUrl(String? value);
   external num? get zoomOffset;
@@ -1473,25 +1751,25 @@ extension TileLayerOptionsExtension on TileLayerOptions {
   external set zoomReverse(bool? value);
   external bool? get detectRetina;
   external set detectRetina(bool? value);
-  external dynamic /* CrossOrigin|bool */ get crossOrigin;
-  external set crossOrigin(dynamic /* CrossOrigin|bool */ value);
-  external dynamic /* ReferrerPolicy|bool */ get referrerPolicy;
-  external set referrerPolicy(dynamic /* ReferrerPolicy|bool */ value);
+  external CrossOriginOrBool get crossOrigin;
+  external set crossOrigin(CrossOriginOrBool value);
+  external ReferrerPolicyOrBool get referrerPolicy;
+  external set referrerPolicy(ReferrerPolicyOrBool value);
 }
 
 @JS("TileLayer")
-class TileLayer {
-  external factory TileLayer(String urlTemplate, [TileLayerOptions options]);
+class TileLayer extends GridLayer {
+  external TileLayer(String urlTemplate, [TileLayerOptions options]);
   external TileLayerOptions get options;
-  external set options(TileLayerOptions value);
+  external set options(covariant TileLayerOptions value);
   external TileLayer setUrl(String url, [bool noRedraw]);
   external String getTileUrl(Coords coords);
 }
 extension TileLayerExtension on TileLayer {
   @JS("_tileOnLoad")
-  external void JS$_tileOnLoad(DoneCallback done, HTMLElement tile);
+  external void JS$_tileOnLoad(DoneCallback done, HtmlElement tile);
   @JS("_tileOnError")
-  external void JS$_tileOnError(DoneCallback done, HTMLElement tile, Error e);
+  external void JS$_tileOnError(DoneCallback done, HtmlElement tile, Error_6a2353 e);
   @JS("_abortLoading")
   external void JS$_abortLoading();
   @JS("_getZoomForUrl")
@@ -1502,19 +1780,19 @@ extension TileLayerExtension on TileLayer {
 external TileLayer tileLayer(String urlTemplate, [TileLayerOptions options]);
 
 @JS("TileLayer.WMS")
-class WMS {
-  external factory WMS(String baseUrl, WMSOptions options);
+class WMS extends TileLayer {
+  external WMS(String baseUrl, WMSOptions options);
   external WMSParams get wmsParams;
   external set wmsParams(WMSParams value);
   external WMSOptions get options;
-  external set options(WMSOptions value);
+  external set options(covariant WMSOptions value);
   external WMS setParams(WMSParams params, [bool noRedraw]);
 }
 
 @JS()
 @anonymous
-abstract class WMSOptions{}
-extension WMSOptionsExtension on WMSOptions {
+abstract class WMSOptions implements TileLayerOptions {
+  external factory WMSOptions({String? layers, String? styles, String? format, bool? transparent, String? version, CRS? crs, bool? uppercase, String? id, StringOrListString subdomains, String? errorTileUrl, num? zoomOffset, bool? tms, bool? zoomReverse, bool? detectRetina, CrossOriginOrBool crossOrigin, ReferrerPolicyOrBool referrerPolicy, NumOrPoint tileSize, num? opacity, bool? updateWhenIdle, bool? updateWhenZooming, num? updateInterval, num? zIndex, LatLngBoundsExpression bounds, num? minZoom, num? maxZoom, num? maxNativeZoom, num? minNativeZoom, bool? noWrap, String? pane, String? className, num? keepBuffer, String? attribution});
   external String? get layers;
   external set layers(String? value);
   external String? get styles;
@@ -1533,8 +1811,8 @@ extension WMSOptionsExtension on WMSOptions {
 
 @JS()
 @anonymous
-abstract class WMSParams{}
-extension WMSParamsExtension on WMSParams {
+abstract class WMSParams {
+  external factory WMSParams({String? format, required String layers, String? request, String? service, String? styles, String? version, bool? transparent, num? width, num? height});
   external String? get format;
   external set format(String? value);
   external String get layers;
@@ -1564,16 +1842,16 @@ typedef ReferrerPolicy = String;
 
 @JS()
 @anonymous
-abstract class ImageOverlayOptions{}
-extension ImageOverlayOptionsExtension on ImageOverlayOptions {
+abstract class ImageOverlayOptions implements InteractiveLayerOptions {
+  external factory ImageOverlayOptions({num? opacity, String? alt, bool? interactive, CrossOriginOrBool crossOrigin, String? errorOverlayUrl, num? zIndex, String? className, bool? bubblingMouseEvents, String? pane, String? attribution});
   external num? get opacity;
   external set opacity(num? value);
   external String? get alt;
   external set alt(String? value);
   external bool? get interactive;
-  external set interactive(bool? value);
-  external dynamic /* CrossOrigin|bool */ get crossOrigin;
-  external set crossOrigin(dynamic /* CrossOrigin|bool */ value);
+  external set interactive(covariant bool? value);
+  external CrossOriginOrBool get crossOrigin;
+  external set crossOrigin(CrossOriginOrBool value);
   external String? get errorOverlayUrl;
   external set errorOverlayUrl(String? value);
   external num? get zIndex;
@@ -1584,29 +1862,38 @@ extension ImageOverlayOptionsExtension on ImageOverlayOptions {
 
 @JS()
 @anonymous
-abstract class ImageOverlayStyleOptions{}
+abstract class ImageOverlayStyleOptions {
+  external factory ImageOverlayStyleOptions({num? opacity});
+  external num? get opacity;
+  external set opacity(num? value);
+}
 extension ImageOverlayStyleOptionsExtension on ImageOverlayStyleOptions {
-  external num get opacity;
-  external set opacity(num value);
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
+  external dynamic operator [](String key);
+  external void operator []=(String key, dynamic value);
 }
 
 @JS("ImageOverlay")
-class ImageOverlay {
-  external factory ImageOverlay(String imageUrl, LatLngBoundsExpression bounds, [ImageOverlayOptions options]);
+class ImageOverlay extends Layer {
+  external ImageOverlay(String imageUrl, LatLngBoundsExpression bounds, [ImageOverlayOptions options]);
   external ImageOverlayOptions get options;
-  external set options(ImageOverlayOptions value);
+  external set options(covariant ImageOverlayOptions value);
   external ImageOverlay bringToFront();
   external ImageOverlay bringToBack();
   external ImageOverlay setUrl(String url);
+  /// Update the bounds that this ImageOverlay covers
   external ImageOverlay setBounds(LatLngBounds bounds);
+  /// Changes the zIndex of the image overlay
   external ImageOverlay setZIndex(num value);
+  /// Changes the opacity of the image element
   external ImageOverlay setOpacity(num opacity);
+  /// Changes the style of the image element. As of 1.8, only the opacity is changed
   external ImageOverlay setStyle(ImageOverlayStyleOptions styleOpts);
+  /// Get the bounds that this ImageOverlay covers
   external LatLngBounds getBounds();
+  /// Get the center of the bounds this ImageOverlay covers
   external LatLng getCenter();
-  external HTMLImageElement? getElement();
+  /// Get the img element that represents the ImageOverlay on the map
+  external ImageElement? getElement();
 }
 
 @JS("imageOverlay")
@@ -1615,35 +1902,48 @@ external ImageOverlay imageOverlay(String imageUrl, LatLngBoundsExpression bound
 typedef SVGOverlayStyleOptions = ImageOverlayStyleOptions;
 
 @JS("SVGOverlay")
-class SVGOverlay {
-  external factory SVGOverlay(dynamic /* String|SVGElement */ svgImage, LatLngBoundsExpression bounds, [ImageOverlayOptions options]);
+class SVGOverlay extends Layer {
+  /// SVGOverlay doesn't extend ImageOverlay because SVGOverlay.getElement returns SVGElement
+  external SVGOverlay(StringOrSvgElement svgImage, LatLngBoundsExpression bounds, [ImageOverlayOptions options]);
   external ImageOverlayOptions get options;
-  external set options(ImageOverlayOptions value);
+  external set options(covariant ImageOverlayOptions value);
   external SVGOverlay bringToFront();
   external SVGOverlay bringToBack();
   external SVGOverlay setUrl(String url);
+  /// Update the bounds that this SVGOverlay covers
   external SVGOverlay setBounds(LatLngBounds bounds);
+  /// Changes the zIndex of the image overlay
   external SVGOverlay setZIndex(num value);
+  /// Changes the opacity of the image element
   external SVGOverlay setOpacity(num opacity);
+  /// Changes the style of the image element. As of 1.8, only the opacity is changed
   external SVGOverlay setStyle(SVGOverlayStyleOptions styleOpts);
+  /// Get the bounds that this SVGOverlay covers
   external LatLngBounds getBounds();
+  /// Get the center of the bounds this ImageOverlay covers
   external LatLng getCenter();
-  external SVGElement? getElement();
+  /// Get the img element that represents the SVGOverlay on the map
+  external SvgElement? getElement();
 }
 
 @JS("svgOverlay")
-external SVGOverlay svgOverlay(dynamic /* String|SVGElement */ svgImage, LatLngBoundsExpression bounds, [ImageOverlayOptions options]);
+external SVGOverlay svgOverlay(StringOrSvgElement svgImage, LatLngBoundsExpression bounds, [ImageOverlayOptions options]);
 
 @JS()
 @anonymous
-abstract class VideoOverlayOptions{}
-extension VideoOverlayOptionsExtension on VideoOverlayOptions {
+abstract class VideoOverlayOptions implements ImageOverlayOptions {
+  external factory VideoOverlayOptions({bool? autoplay, bool? loop, bool? keepAspectRatio, bool? muted, bool? playsInline, num? opacity, String? alt, bool? interactive, CrossOriginOrBool crossOrigin, String? errorOverlayUrl, num? zIndex, String? className, bool? bubblingMouseEvents, String? pane, String? attribution});
+  /// Whether the video starts playing automatically when loaded.
   external bool? get autoplay;
   external set autoplay(bool? value);
+  /// Whether the video will loop back to the beginning when played.
   external bool? get loop;
   external set loop(bool? value);
+  /// Whether the video will save aspect ratio after the projection. Relevant for supported browsers. See
+  /// [browser compatibility](https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit)
   external bool? get keepAspectRatio;
   external set keepAspectRatio(bool? value);
+  /// Whether the video starts on mute when loaded.
   external bool? get muted;
   external set muted(bool? value);
   external bool? get playsInline;
@@ -1651,24 +1951,32 @@ extension VideoOverlayOptionsExtension on VideoOverlayOptions {
 }
 
 @JS("VideoOverlay")
-class VideoOverlay {
-  external factory VideoOverlay(dynamic /* String|List<String>|HTMLVideoElement */ video, LatLngBoundsExpression bounds, [VideoOverlayOptions options]);
+class VideoOverlay extends Layer {
+  /// VideoOverlay doesn't extend ImageOverlay because VideoOverlay.getElement returns HTMLImageElement
+  external VideoOverlay(StringOrListStringOrVideoElement video, LatLngBoundsExpression bounds, [VideoOverlayOptions options]);
   external VideoOverlayOptions get options;
-  external set options(VideoOverlayOptions value);
+  external set options(covariant VideoOverlayOptions value);
   external VideoOverlay bringToFront();
   external VideoOverlay bringToBack();
   external VideoOverlay setUrl(String url);
+  /// Update the bounds that this VideoOverlay covers
   external VideoOverlay setBounds(LatLngBounds bounds);
+  /// Changes the zIndex of the image overlay
   external VideoOverlay setZIndex(num value);
+  /// Changes the opacity of the image element
   external VideoOverlay setOpacity(num opacity);
+  /// Changes the style of the image element. As of 1.8, only the opacity is changed
   external VideoOverlay setStyle(SVGOverlayStyleOptions styleOpts);
+  /// Get the bounds that this VideoOverlay covers
   external LatLngBounds getBounds();
+  /// Get the center of the bounds this ImageOverlay covers
   external LatLng getCenter();
-  external HTMLVideoElement? getElement();
+  /// Get the video element that represents the VideoOverlay on the map
+  external VideoElement? getElement();
 }
 
 @JS("videoOverlay")
-external VideoOverlay videoOverlay(dynamic /* String|List<String>|HTMLVideoElement */ video, LatLngBoundsExpression bounds, [VideoOverlayOptions options]);
+external VideoOverlay videoOverlay(StringOrListStringOrVideoElement video, LatLngBoundsExpression bounds, [VideoOverlayOptions options]);
 
 typedef LineCapShape = String;
 
@@ -1678,8 +1986,8 @@ typedef FillRule = String;
 
 @JS()
 @anonymous
-abstract class PathOptions{}
-extension PathOptionsExtension on PathOptions {
+abstract class PathOptions implements InteractiveLayerOptions {
+  external factory PathOptions({bool? stroke, String? color, num? weight, num? opacity, LineCapShape? lineCap, LineJoinShape? lineJoin, StringOrListNum dashArray, String? dashOffset, bool? fill, String? fillColor, num? fillOpacity, FillRule? fillRule, Renderer? renderer, String? className, bool? interactive, bool? bubblingMouseEvents, String? pane, String? attribution});
   external bool? get stroke;
   external set stroke(bool? value);
   external String? get color;
@@ -1692,8 +2000,8 @@ extension PathOptionsExtension on PathOptions {
   external set lineCap(LineCapShape? value);
   external LineJoinShape? get lineJoin;
   external set lineJoin(LineJoinShape? value);
-  external dynamic /* String|List<num> */ get dashArray;
-  external set dashArray(dynamic /* String|List<num> */ value);
+  external StringOrListNum get dashArray;
+  external set dashArray(StringOrListNum value);
   external String? get dashOffset;
   external set dashOffset(String? value);
   external bool? get fill;
@@ -1711,9 +2019,10 @@ extension PathOptionsExtension on PathOptions {
 }
 
 @JS("Path")
-class Path {
+abstract class Path extends Layer {
+  external Path([LayerOptions options]);
   external PathOptions get options;
-  external set options(PathOptions value);
+  external set options(covariant PathOptions value);
   external Path redraw();
   external Path setStyle(PathOptions style);
   external Path bringToFront();
@@ -1723,8 +2032,8 @@ class Path {
 
 @JS()
 @anonymous
-abstract class PolylineOptions{}
-extension PolylineOptionsExtension on PolylineOptions {
+abstract class PolylineOptions implements PathOptions {
+  external factory PolylineOptions({num? smoothFactor, bool? noClip, bool? stroke, String? color, num? weight, num? opacity, LineCapShape? lineCap, LineJoinShape? lineJoin, StringOrListNum dashArray, String? dashOffset, bool? fill, String? fillColor, num? fillOpacity, FillRule? fillRule, Renderer? renderer, String? className, bool? interactive, bool? bubblingMouseEvents, String? pane, String? attribution});
   external num? get smoothFactor;
   external set smoothFactor(num? value);
   external bool? get noClip;
@@ -1732,90 +2041,92 @@ extension PolylineOptionsExtension on PolylineOptions {
 }
 
 @JS("Polyline")
-class Polyline {
-  external factory Polyline(dynamic /* List<LatLngExpression>|List<List<LatLngExpression>> */ latlngs, [PolylineOptions options]);
-  external geojson.Feature<T, P>? get feature;
-  external set feature(geojson.Feature<T, P>? value);
+class Polyline<T /* extends geojson.GeometryObject */, P> extends Path {
+  external Polyline(ListLatLngExpressionOrListListLatLngExpression latlngs, [PolylineOptions options]);
+  external GeojsonFeature get feature;
+  external set feature(GeojsonFeature value);
   external PolylineOptions get options;
-  external set options(PolylineOptions value);
-  external geojson.Feature<T, P> toGeoJSON([dynamic /* num|bool */ precision]);
-  external dynamic /* List<LatLng>|List<List<LatLng>>|List<List<List<LatLng>>> */ getLatLngs();
-  external Polyline setLatLngs(dynamic /* List<LatLngExpression>|List<List<LatLngExpression>>|List<List<List<LatLngExpression>>> */ latlngs);
+  external set options(covariant PolylineOptions value);
+  external GeojsonFeature toGeoJSON([NumOrBool precision]);
+  external ListLatLngOrListListLatLngOrListListListLatLng getLatLngs();
+  external Polyline setLatLngs(ListLatLngExpressionOrOther latlngs);
   external bool isEmpty();
   external LatLng getCenter();
   external LatLngBounds getBounds();
-  external Polyline addLatLng(dynamic /* LatLngExpression|List<LatLngExpression> */ latlng, [List<LatLng> latlngs]);
+  external Polyline addLatLng(LatLngExpressionOrListLatLngExpression latlng, [List<LatLng> latlngs]);
   external Point closestLayerPoint(Point p);
 }
 
 @JS("polyline")
-external Polyline<T, P> polyline(dynamic /* List<LatLngExpression>|List<List<LatLngExpression>> */ latlngs, [PolylineOptions options]);
+external Polyline<T, P> polyline<T /* extends geojson.GeometryObject */, P>(ListLatLngExpressionOrListListLatLngExpression latlngs, [PolylineOptions options]);
 
 @JS("Polygon")
-class Polygon {
-  external factory Polygon(dynamic /* List<LatLngExpression>|List<List<LatLngExpression>>|List<List<List<LatLngExpression>>> */ latlngs, [PolylineOptions options]);
+class Polygon<P> extends Polyline<GeojsonPolygonOrGeojsonMultiPolygon, P> {
+  external Polygon(ListLatLngExpressionOrOther latlngs, [PolylineOptions options]);
 }
 
 @JS("polygon")
-external Polygon<P> polygon(dynamic /* List<LatLngExpression>|List<List<LatLngExpression>>|List<List<List<LatLngExpression>>> */ latlngs, [PolylineOptions options]);
+external Polygon<P> polygon<P>(ListLatLngExpressionOrOther latlngs, [PolylineOptions options]);
 
 @JS("Rectangle")
-class Rectangle {
-  external factory Rectangle(LatLngBoundsExpression latLngBounds, [PolylineOptions options]);
+class Rectangle<P> extends Polygon<P> {
+  external Rectangle(LatLngBoundsExpression latLngBounds, [PolylineOptions options]);
   external Rectangle setBounds(LatLngBoundsExpression latLngBounds);
 }
 
 @JS("rectangle")
-external Rectangle<P> rectangle(LatLngBoundsExpression latLngBounds, [PolylineOptions options]);
+external Rectangle<P> rectangle<P>(LatLngBoundsExpression latLngBounds, [PolylineOptions options]);
 
 @JS()
 @anonymous
-abstract class CircleMarkerOptions{}
-extension CircleMarkerOptionsExtension on CircleMarkerOptions {
+abstract class CircleMarkerOptions implements PathOptions {
+  external factory CircleMarkerOptions({num? radius, bool? stroke, String? color, num? weight, num? opacity, LineCapShape? lineCap, LineJoinShape? lineJoin, StringOrListNum dashArray, String? dashOffset, bool? fill, String? fillColor, num? fillOpacity, FillRule? fillRule, Renderer? renderer, String? className, bool? interactive, bool? bubblingMouseEvents, String? pane, String? attribution});
   external num? get radius;
   external set radius(num? value);
 }
 
 @JS("CircleMarker")
-class CircleMarker {
-  external factory CircleMarker(LatLngExpression latlng, CircleMarkerOptions options);
+class CircleMarker<P> extends Path {
+  external CircleMarker(LatLngExpression latlng, CircleMarkerOptions options);
   external CircleMarkerOptions get options;
-  external set options(CircleMarkerOptions value);
-  external geojson.Feature<geojson.Point, P>? get feature;
-  external set feature(geojson.Feature<geojson.Point, P>? value);
-  external geojson.Feature<geojson.Point, P> toGeoJSON([dynamic /* num|bool */ precision]);
+  external set options(covariant CircleMarkerOptions value);
+  external GeojsonFeature get feature;
+  external set feature(GeojsonFeature value);
+  external GeojsonFeature toGeoJSON([NumOrBool precision]);
   external CircleMarker setLatLng(LatLngExpression latLng);
   external LatLng getLatLng();
   external CircleMarker setRadius(num radius);
   external num getRadius();
-  external CircleMarker setStyle(Partial<CircleMarkerOptions> options);
+  external CircleMarker setStyle(covariant PathOptions options);
 }
 
 @JS("circleMarker")
-external CircleMarker<P> circleMarker(LatLngExpression latlng, [CircleMarkerOptions options]);
+external CircleMarker<P> circleMarker<P>(LatLngExpression latlng, [CircleMarkerOptions options]);
 
 typedef CircleOptions = CircleMarkerOptions;
 
 @JS("Circle")
-class Circle {
-  external factory Circle(LatLngExpression latlng, CircleOptions options);
-  external dynamic toGeoJSON([dynamic /* num|bool */ precision]);
+class Circle<P> extends CircleMarker<P> {
+  external Circle(LatLngExpression latlng, CircleOptions options);
+  external factory Circle.overload2(LatLngExpression latlng, num radius, [CircleOptions options]);
+  external dynamic toGeoJSON([covariant NumOrBool precision]);
   external LatLngBounds getBounds();
-  external Circle setRadius(num radius);
+  external Circle setRadius(covariant num radius);
   external num getRadius();
-  external Circle setStyle(PathOptions style);
+  external Circle setStyle(covariant PathOptions style);
 }
 
 @JS("circle")
-external Circle<P> circle_1(LatLngExpression latlng, CircleMarkerOptions options);
+external Circle<P> circle_1<P>(LatLngExpression latlng, CircleMarkerOptions options);
 
+/// @deprecated Passing the radius outside the options is deperecated. Use [circle:1] instead.
 @JS("circle")
-external Circle<P> circle_2(LatLngExpression latlng, num radius, [CircleMarkerOptions options]);
+external Circle<P> circle_2<P>(LatLngExpression latlng, num radius, [CircleMarkerOptions options]);
 
 @JS()
 @anonymous
-abstract class RendererOptions{}
-extension RendererOptionsExtension on RendererOptions {
+abstract class RendererOptions implements LayerOptions {
+  external factory RendererOptions({num? padding, num? tolerance, String? pane, String? attribution});
   external num? get padding;
   external set padding(num? value);
   external num? get tolerance;
@@ -1823,21 +2134,22 @@ extension RendererOptionsExtension on RendererOptions {
 }
 
 @JS("Renderer")
-class Renderer {
-  external factory Renderer([RendererOptions options]);
+class Renderer extends Layer {
+  external Renderer([RendererOptions options]);
   external RendererOptions get options;
-  external set options(RendererOptions value);
+  external set options(covariant RendererOptions value);
 }
 
 @JS("SVG")
-class SVG {
+class SVG extends Renderer {
+  external SVG([RendererOptions options]);
 }
 
 @JS("SVG.create")
-external IndexedSVGElementTagNameMapK SVG_create_1(K name);
+external IndexedSVGElementTagNameMapK SVG_create_1<K /* extends keyof SVGElementTagNameMap */>(K name);
 
 @JS("SVG.create")
-external SVGElement SVG_create_2(String name);
+external SvgElement SVG_create_2(String name);
 
 @JS("SVG.pointsToPath")
 external String pointsToPath(List<PointExpression> rings, bool closed);
@@ -1846,96 +2158,188 @@ external String pointsToPath(List<PointExpression> rings, bool closed);
 external SVG svg([RendererOptions options]);
 
 @JS("Canvas")
-class Canvas {
+class Canvas extends Renderer {
+  external Canvas([RendererOptions options]);
 }
 
 @JS("canvas")
 external Canvas canvas([RendererOptions options]);
 
+/// Used to group several layers and handle them as one.
+/// If you add it to the map, any layers added or removed from the group will be
+/// added/removed on the map as well. Extends Layer.
 @JS("LayerGroup")
-class LayerGroup {
-  external factory LayerGroup([List<Layer> layers, LayerOptions options]);
-  external dynamic /* geojson.FeatureCollection<geojson.GeometryObject, P>|geojson.Feature<geojson.MultiPoint, P>|geojson.GeometryCollection */ get feature;
-  external set feature(dynamic /* geojson.FeatureCollection<geojson.GeometryObject, P>|geojson.Feature<geojson.MultiPoint, P>|geojson.GeometryCollection */ value);
-  external geojson.Feature<geojson.MultiPoint, P> toMultiPoint([num precision]);
-  external dynamic /* geojson.FeatureCollection<geojson.GeometryObject, P>|geojson.Feature<geojson.MultiPoint, P>|geojson.GeometryCollection */ toGeoJSON([dynamic /* num|bool */ precision]);
+class LayerGroup<P> extends Layer {
+  external LayerGroup([List<Layer> layers, LayerOptions options]);
+  external GeojsonFeatureCollectionGeojsonGeometryObjectPOrOther get feature;
+  external set feature(GeojsonFeatureCollectionGeojsonGeometryObjectPOrOther value);
+  external GeojsonFeature toMultiPoint([num precision]);
+  /// Returns a GeoJSON representation of the layer group (as a GeoJSON GeometryCollection, GeoJSONFeatureCollection or Multipoint).
+  external GeojsonFeatureCollectionGeojsonGeometryObjectPOrOther toGeoJSON([NumOrBool precision]);
+  /// Adds the given layer to the group.
   external LayerGroup addLayer(Layer layer);
-  external LayerGroup removeLayer(dynamic /* num|Layer */ layer);
+  /// Removes the layer with the given internal ID or the given layer from the group.
+  external LayerGroup removeLayer(NumOrLayer layer);
+  /// Returns true if the given layer is currently added to the group.
   external bool hasLayer(Layer layer);
+  /// Removes all the layers from the group.
   external LayerGroup clearLayers();
-  external LayerGroup invoke(String methodName, [/* rest */ List<dynamic> params]);
+  /// Calls methodName on every layer contained in this group, passing any additional parameters.
+  /// Has no effect if the layers contained do not implement methodName.
+  external LayerGroup invoke(String methodName, [dynamic params1, dynamic params2, dynamic params3, dynamic params4, dynamic params5]);
+  /// Iterates over the layers of the group,
+  /// optionally specifying context of the iterator function.
   external LayerGroup eachLayer(void Function(Layer) fn, [dynamic context]);
+  /// Returns the layer with the given internal ID.
   external Layer? getLayer(num id);
+  /// Returns an array of all the layers added to the group.
   external List<Layer> getLayers();
+  /// Calls setZIndex on every layer contained in this group, passing the z-index.
   external LayerGroup setZIndex(num zIndex);
+  /// Returns the internal ID for a layer
   external num getLayerId(Layer layer);
 }
 
+/// Create a layer group, optionally given an initial set of layers and an \`options\` object.
 @JS("layerGroup")
-external LayerGroup<P> layerGroup([List<Layer> layers, LayerOptions options]);
+external LayerGroup<P> layerGroup<P>([List<Layer> layers, LayerOptions options]);
 
+/// Extended LayerGroup that also has mouse events (propagated from
+/// members of the group) and a shared bindPopup method.
 @JS("FeatureGroup")
-class FeatureGroup {
-  external FeatureGroup addLayer(Layer layer);
-  external FeatureGroup removeLayer(dynamic /* num|Layer */ layer);
+class FeatureGroup<P> extends LayerGroup<P> {
+  external FeatureGroup([List<Layer> layers, LayerOptions options]);
+  /// Adds the given layer to the group.
+  external FeatureGroup addLayer(covariant Layer layer);
+  /// Removes the layer with the given internal ID or the given layer from the group.
+  external FeatureGroup removeLayer(covariant NumOrLayer layer);
+  /// Sets the given path options to each layer of the group that has a setStyle method.
   external FeatureGroup setStyle(PathOptions style);
+  /// Brings the layer group to the top of all other layers
   external FeatureGroup bringToFront();
+  /// Brings the layer group to the top [sic] of all other layers
   external FeatureGroup bringToBack();
+  /// Returns the LatLngBounds of the Feature Group (created from
+  /// bounds and coordinates of its children).
   external LatLngBounds getBounds();
 }
 
+/// Create a feature group, optionally given an initial set of layers.
 @JS("featureGroup")
-external FeatureGroup<P> featureGroup([List<Layer> layers, LayerOptions options]);
+external FeatureGroup<P> featureGroup<P>([List<Layer> layers, LayerOptions options]);
 
-typedef StyleFunction = PathOptions Function([geojson.Feature<geojson.GeometryObject, P>]);
+typedef StyleFunction<P> = PathOptions Function([GeojsonFeature]);
 
 @JS()
 @anonymous
-abstract class GeoJSONOptions{}
-extension GeoJSONOptionsExtension on GeoJSONOptions {
-  external dynamic /* PathOptions|StyleFunction<P> */ get style;
-  external set style(dynamic /* PathOptions|StyleFunction<P> */ value);
+abstract class GeoJSONOptions<P, G /* extends geojson.GeometryObject */> implements InteractiveLayerOptions {
+  /// PathOptions or a Function defining the Path options for styling GeoJSON lines and polygons,
+  /// called internally when data is added.
+  ///
+  /// The default value is to not override any defaults:
+  ///
+  /// \`\`\`
+  /// function (geoJsonFeature) {
+  ///     return {}
+  /// }
+  /// \`\`\`
+  external PathOptionsOrStyleFunctionP get style;
+  external set style(PathOptionsOrStyleFunctionP value);
+  /// Whether default Markers for "Point" type Features inherit from group options.
   external bool? get markersInheritOptions;
   external set markersInheritOptions(bool? value);
-  @JS("pointToLayer")
-  external Layer pointToLayer(geojson.Feature<geojson.Point, P> geoJsonPoint, LatLng latlng);
-  @JS("onEachFeature")
-  external void onEachFeature(geojson.Feature<G, P> feature, Layer layer);
-  @JS("filter")
-  external bool filter(geojson.Feature<G, P> geoJsonFeature);
-  @JS("coordsToLatLng")
+  /// A Function defining how GeoJSON points spawn Leaflet layers.
+  /// It is internally called when data is added, passing the GeoJSON point
+  /// feature and its LatLng.
+  ///
+  /// The default is to spawn a default Marker:
+  ///
+  /// \`\`\`
+  /// function(geoJsonPoint, latlng) {
+  ///     return L.marker(latlng);
+  /// }
+  /// \`\`\`
+  external Layer pointToLayer(GeojsonFeature geoJsonPoint, LatLng latlng);
+  /// A Function that will be called once for each created Feature, after it
+  /// has been created and styled. Useful for attaching events and popups to features.
+  ///
+  /// The default is to do nothing with the newly created layers:
+  ///
+  /// \`\`\`
+  /// function (feature, layer) {}
+  /// \`\`\`
+  external void onEachFeature(GeojsonFeature feature, Layer layer);
+  /// A Function that will be used to decide whether to show a feature or not.
+  ///
+  /// The default is to show all features:
+  ///
+  /// \`\`\`
+  /// function (geoJsonFeature) {
+  ///     return true;
+  /// }
+  /// \`\`\`
+  external bool filter(GeojsonFeature geoJsonFeature);
+  /// A Function that will be used for converting GeoJSON coordinates to LatLngs.
+  /// The default is the coordsToLatLng static method.
   external LatLng coordsToLatLng(List<num> coords);
 }
 
+/// Represents a GeoJSON object or an array of GeoJSON objects.
+/// Allows you to parse GeoJSON data and display it on the map. Extends FeatureGroup.
 @JS("GeoJSON")
-class GeoJSON {
-  external factory GeoJSON([geojson.GeoJsonObject? geojson, GeoJSONOptions<P, G>? options]);
+class GeoJSON<P, G /* extends geojson.GeometryObject */> extends FeatureGroup<P> {
+  external GeoJSON([GeojsonGeoJsonObject geojson, GeoJSONOptions<P, G>? options]);
   external GeoJSONOptions<P, G> get options;
-  external set options(GeoJSONOptions<P, G> value);
-  external static geojson.Feature<G, P> getFeature(Layer layer, dynamic /* geojson.Feature<G, P>|G */ newGeometry);
-  external static Layer geometryToLayer(geojson.Feature<G, P> featureData, [GeoJSONOptions<P, G> options]);
+  external set options(covariant GeoJSONOptions<P, G> value);
+  /// Convert layer into GeoJSON feature
+  external static GeojsonFeature getFeature<P, G /* extends geojson.GeometryObject */>(Layer layer, GeojsonFeatureGPOrG newGeometry);
+  /// Creates a Layer from a given GeoJSON feature. Can use a custom pointToLayer
+  /// and/or coordsToLatLng functions if provided as options.
+  external static Layer geometryToLayer<P, G /* extends geojson.GeometryObject */>(GeojsonFeature featureData, [GeoJSONOptions<P, G> options]);
+  /// Creates a LatLng object from an array of 2 numbers (longitude, latitude) or
+  /// 3 numbers (longitude, latitude, altitude) used in GeoJSON for points.
   external static LatLng coordsToLatLng(List<num> coords);
+  /// Creates a multidimensional array of LatLngs from a GeoJSON coordinates array.
+  /// levelsDeep specifies the nesting level (0 is for an array of points, 1 for an array of
+  /// arrays of points, etc., 0 by default).
+  /// Can use a custom coordsToLatLng function.
   external static List<dynamic> coordsToLatLngs(List<dynamic> coords, [num levelsDeep, LatLng Function(List<num>) coordsToLatLng]);
+  /// Reverse of coordsToLatLng
   external static List<num> latLngToCoords(LatLng latlng);
+  /// Reverse of coordsToLatLngs closed determines whether the first point should be
+  /// appended to the end of the array to close the feature, only used when levelsDeep is 0.
+  /// False by default.
   external static List<dynamic> latLngsToCoords(List<dynamic> latlngs, [num levelsDeep, bool closed]);
-  external static geojson.Feature<G, P> asFeature(dynamic /* geojson.Feature<G, P>|G */ geojson);
-  external GeoJSON addData(geojson.GeoJsonObject data);
+  /// Normalize GeoJSON geometries/features into GeoJSON features.
+  external static GeojsonFeature asFeature<P, G /* extends geojson.GeometryObject */>(GeojsonFeatureGPOrG geojson);
+  /// Adds a GeoJSON object to the layer.
+  external GeoJSON addData(GeojsonGeoJsonObject data);
+  /// Resets the given vector layer's style to the original GeoJSON style,
+  /// useful for resetting style after hover events.
   external GeoJSON resetStyle([Layer layer]);
-  external GeoJSON setStyle(dynamic /* PathOptions|StyleFunction<P> */ style);
+  /// Same as FeatureGroup's setStyle method, but style-functions are also
+  /// allowed here to set the style according to the feature.
+  external GeoJSON setStyle(covariant PathOptionsOrStyleFunctionP style);
 }
 
+/// Creates a GeoJSON layer.
+///
+/// Optionally accepts an object in GeoJSON format to display on the
+/// map (you can alternatively add it later with addData method) and
+/// an options object.
 @JS("geoJSON")
-external GeoJSON<P, G> geoJSON([dynamic /* geojson.GeoJsonObject|List<geojson.GeoJsonObject> */ geojson, GeoJSONOptions<P, G>? options]);
+external GeoJSON<P, G> geoJSON<P, G /* extends geojson.GeometryObject */>([GeojsonGeoJsonObjectOrGeojsonGeoJsonObject geojson, GeoJSONOptions<P, G>? options]);
 
 @JS("geoJson")
-external GeoJSON<P, G> geoJson([dynamic /* geojson.GeoJsonObject|List<geojson.GeoJsonObject> */ geojson, GeoJSONOptions<P, G>? options]);
+external GeoJSON<P, G> geoJson<P, G /* extends geojson.GeometryObject */>([GeojsonGeoJsonObjectOrGeojsonGeoJsonObject geojson, GeoJSONOptions<P, G>? options]);
 
-typedef Zoom = dynamic /* bool|String */;
+/// A JavaScript union of \`bool | String\`; Dart has no union types.
+typedef Zoom = dynamic;
 
 @JS()
 @anonymous
-abstract class MapOptions{}
-extension MapOptionsExtension on MapOptions {
+abstract class MapOptions {
+  external factory MapOptions({bool? preferCanvas, bool? attributionControl, bool? zoomControl, bool? closePopupOnClick, num? zoomSnap, num? zoomDelta, bool? trackResize, bool? boxZoom, Zoom doubleClickZoom, bool? dragging, CRS? crs, LatLngExpression center, num? zoom, num? minZoom, num? maxZoom, List<Layer>? layers, LatLngBoundsExpression maxBounds, Renderer? renderer, bool? fadeAnimation, bool? markerZoomAnimation, num? transform3DLimit, bool? zoomAnimation, num? zoomAnimationThreshold, bool? inertia, num? inertiaDeceleration, num? inertiaMaxSpeed, num? easeLinearity, bool? worldCopyJump, num? maxBoundsViscosity, bool? keyboard, num? keyboardPanDelta, Zoom scrollWheelZoom, num? wheelDebounceTime, num? wheelPxPerZoomLevel, bool? tapHold, num? tapTolerance, Zoom touchZoom, bool? bounceAtZoomLimits});
   external bool? get preferCanvas;
   external set preferCanvas(bool? value);
   external bool? get attributionControl;
@@ -1952,14 +2356,14 @@ extension MapOptionsExtension on MapOptions {
   external set trackResize(bool? value);
   external bool? get boxZoom;
   external set boxZoom(bool? value);
-  external Zoom? get doubleClickZoom;
-  external set doubleClickZoom(Zoom? value);
+  external Zoom get doubleClickZoom;
+  external set doubleClickZoom(Zoom value);
   external bool? get dragging;
   external set dragging(bool? value);
   external CRS? get crs;
   external set crs(CRS? value);
-  external LatLngExpression? get center;
-  external set center(LatLngExpression? value);
+  external LatLngExpression get center;
+  external set center(LatLngExpression value);
   external num? get zoom;
   external set zoom(num? value);
   external num? get minZoom;
@@ -1968,8 +2372,8 @@ extension MapOptionsExtension on MapOptions {
   external set maxZoom(num? value);
   external List<Layer>? get layers;
   external set layers(List<Layer>? value);
-  external LatLngBoundsExpression? get maxBounds;
-  external set maxBounds(LatLngBoundsExpression? value);
+  external LatLngBoundsExpression get maxBounds;
+  external set maxBounds(LatLngBoundsExpression value);
   external Renderer? get renderer;
   external set renderer(Renderer? value);
   external bool? get fadeAnimation;
@@ -1998,8 +2402,8 @@ extension MapOptionsExtension on MapOptions {
   external set keyboard(bool? value);
   external num? get keyboardPanDelta;
   external set keyboardPanDelta(num? value);
-  external Zoom? get scrollWheelZoom;
-  external set scrollWheelZoom(Zoom? value);
+  external Zoom get scrollWheelZoom;
+  external set scrollWheelZoom(Zoom value);
   external num? get wheelDebounceTime;
   external set wheelDebounceTime(num? value);
   external num? get wheelPxPerZoomLevel;
@@ -2008,8 +2412,8 @@ extension MapOptionsExtension on MapOptions {
   external set tapHold(bool? value);
   external num? get tapTolerance;
   external set tapTolerance(num? value);
-  external Zoom? get touchZoom;
-  external set touchZoom(Zoom? value);
+  external Zoom get touchZoom;
+  external set touchZoom(Zoom value);
   external bool? get bounceAtZoomLimits;
   external set bounceAtZoomLimits(bool? value);
 }
@@ -2018,39 +2422,35 @@ typedef ControlPosition = String;
 
 @JS()
 @anonymous
-abstract class ControlOptions{}
-extension ControlOptionsExtension on ControlOptions {
+abstract class ControlOptions {
+  external factory ControlOptions({ControlPosition? position});
   external ControlPosition? get position;
   external set position(ControlPosition? value);
 }
 
 @JS()
 @anonymous
-class Anon_Control_method_0_extend_return_intersection_0{
-  external factory Anon_Control_method_0_extend_return_intersection_0({List<dynamic> args});
-}
-extension Anon_Control_method_0_extend_return_intersection_0Extension on Anon_Control_method_0_extend_return_intersection_0 {
-}
+abstract class Anon_Control_method_0_extend_return_intersection_0 {}
 
 @JS("Control")
-class Control {
-  external factory Control([Options options]);
+class Control<Options extends ControlOptions> extends Class {
+  external Control([Options options]);
   external Options get options;
   external set options(Options value);
-  external static Anon_Control_method_0_extend_return_intersection_0 /* Anon_Control_method_0_extend_return_intersection_0&TypeOfControlOptions */ extend(T props);
+  external static Anon_Control_method_0_extend_return_intersection_0 /* Anon_Control_method_0_extend_return_intersection_0&TypeOfControlOptions */ extend<T /* extends object */, Options extends ControlOptions>(T props);
   external ControlPosition getPosition();
   external Control setPosition(ControlPosition position);
-  external HTMLElement? getContainer();
+  external HtmlElement? getContainer();
   external Control addTo(JS$Map map);
   external Control remove();
-  external HTMLElement onAdd(JS$Map map);
+  external HtmlElement onAdd(JS$Map map);
   external void onRemove(JS$Map map);
 }
 
 @JS()
 @anonymous
-abstract class Control_ZoomOptions{}
-extension Control_ZoomOptionsExtension on Control_ZoomOptions {
+abstract class Control_ZoomOptions implements ControlOptions {
+  external factory Control_ZoomOptions({String? zoomInText, String? zoomInTitle, String? zoomOutText, String? zoomOutTitle, ControlPosition? position});
   external String? get zoomInText;
   external set zoomInText(String? value);
   external String? get zoomInTitle;
@@ -2062,59 +2462,66 @@ extension Control_ZoomOptionsExtension on Control_ZoomOptions {
 }
 
 @JS("Control.Zoom")
-class Control_Zoom {
-  external factory Control_Zoom([Control_ZoomOptions options]);
-  external Control_ZoomOptions get options;
-  external set options(Control_ZoomOptions value);
+class Control_Zoom extends Control {
+  external Control_Zoom([Control_ZoomOptions options]);
+  external ControlOptions get options;
+  external set options(covariant ControlOptions value);
 }
 
 @JS()
 @anonymous
-abstract class AttributionOptions{}
-extension AttributionOptionsExtension on AttributionOptions {
-  external dynamic /* String|bool */ get prefix;
-  external set prefix(dynamic /* String|bool */ value);
+abstract class AttributionOptions implements ControlOptions {
+  external factory AttributionOptions({StringOrBool prefix, ControlPosition? position});
+  external StringOrBool get prefix;
+  external set prefix(StringOrBool value);
 }
 
 @JS("Control.Attribution")
-class Attribution {
-  external factory Attribution([AttributionOptions options]);
-  external AttributionOptions get options;
-  external set options(AttributionOptions value);
-  external Attribution setPrefix(dynamic /* String|bool */ prefix);
+class Attribution extends Control {
+  external Attribution([AttributionOptions options]);
+  external ControlOptions get options;
+  external set options(covariant ControlOptions value);
+  external Attribution setPrefix(StringOrBool prefix);
   external Attribution addAttribution(String text);
   external Attribution removeAttribution(String text);
 }
 
 @JS()
 @anonymous
-abstract class LayersOptions{}
-extension LayersOptionsExtension on LayersOptions {
+abstract class LayersOptions implements ControlOptions {
+  external factory LayersOptions({bool? collapsed, bool? autoZIndex, bool? hideSingleBase, bool? sortLayers, num Function(Layer, Layer, String, String)? sortFunction, ControlPosition? position});
   external bool? get collapsed;
   external set collapsed(bool? value);
   external bool? get autoZIndex;
   external set autoZIndex(bool? value);
   external bool? get hideSingleBase;
   external set hideSingleBase(bool? value);
+  /// Whether to sort the layers. When \`false\`, layers will keep the order in which they were added to the control.
   external bool? get sortLayers;
   external set sortLayers(bool? value);
+  /// A [compare function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array/sort)
+  /// that will be used for sorting the layers, when \`sortLayers\` is \`true\`. The function receives both the
+  /// [\`L.Layer\`](https://leafletjs.com/reference.html#layer) instances and their names, as in
+  /// \`sortFunction(layerA, layerB, nameA, nameB)\`. By default, it sorts layers alphabetically by their name.
   external num Function(Layer, Layer, String, String)? get sortFunction;
   external set sortFunction(num Function(Layer, Layer, String, String)? value);
 }
 
 @JS()
 @anonymous
-abstract class LayersObject{}
+abstract class LayersObject {
+  external factory LayersObject();
+}
 extension LayersObjectExtension on LayersObject {
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
+  external Layer operator [](String key);
+  external void operator []=(String key, Layer value);
 }
 
 @JS("Control.Layers")
-class Layers {
-  external factory Layers([LayersObject baseLayers, LayersObject overlays, LayersOptions options]);
-  external LayersOptions get options;
-  external set options(LayersOptions value);
+class Layers extends Control {
+  external Layers([LayersObject baseLayers, LayersObject overlays, LayersOptions options]);
+  external ControlOptions get options;
+  external set options(covariant ControlOptions value);
   external Layers addBaseLayer(Layer layer, String name);
   external Layers addOverlay(Layer layer, String name);
   external Layers removeLayer(Layer layer);
@@ -2124,8 +2531,8 @@ class Layers {
 
 @JS()
 @anonymous
-abstract class ScaleOptions{}
-extension ScaleOptionsExtension on ScaleOptions {
+abstract class ScaleOptions implements ControlOptions {
+  external factory ScaleOptions({num? maxWidth, bool? metric, bool? imperial, bool? updateWhenIdle, ControlPosition? position});
   external num? get maxWidth;
   external set maxWidth(num? value);
   external bool? get metric;
@@ -2137,10 +2544,10 @@ extension ScaleOptionsExtension on ScaleOptions {
 }
 
 @JS("Control.Scale")
-class Scale {
-  external factory Scale([ScaleOptions options]);
-  external ScaleOptions get options;
-  external set options(ScaleOptions value);
+class Scale extends Control {
+  external Scale([ScaleOptions options]);
+  external ControlOptions get options;
+  external set options(covariant ControlOptions value);
 }
 
 @JS("control.zoom")
@@ -2157,30 +2564,31 @@ external Scale scale([ScaleOptions options]);
 
 @JS()
 @anonymous
-abstract class DivOverlayOptions{}
-extension DivOverlayOptionsExtension on DivOverlayOptions {
-  external PointExpression? get offset;
-  external set offset(PointExpression? value);
+abstract class DivOverlayOptions {
+  external factory DivOverlayOptions({PointExpression offset, String? className, String? pane, bool? interactive, StringOrOther content});
+  external PointExpression get offset;
+  external set offset(PointExpression value);
   external String? get className;
   external set className(String? value);
   external String? get pane;
   external set pane(String? value);
   external bool? get interactive;
   external set interactive(bool? value);
-  external dynamic /* String|HTMLElement|String Function(Layer)|HTMLElement Function(Layer) */ get content;
-  external set content(dynamic /* String|HTMLElement|String Function(Layer)|HTMLElement Function(Layer) */ value);
+  external StringOrOther get content;
+  external set content(StringOrOther value);
 }
 
 @JS("DivOverlay")
-class DivOverlay {
-  external factory DivOverlay(LatLngExpression latlng, [TooltipOptions options]);
-  external DivOverlayOptions get options;
-  external set options(DivOverlayOptions value);
+abstract class DivOverlay extends Layer {
+  external DivOverlay(LatLngExpression latlng, [TooltipOptions options]);
+  external factory DivOverlay.overload2([DivOverlayOptions options, Layer source]);
+  external LayerOptions get options;
+  external set options(covariant LayerOptions value);
   external LatLng? getLatLng();
   external DivOverlay setLatLng(LatLngExpression latlng);
-  external dynamic /* Content|Content Function(Layer) */ getContent();
-  external DivOverlay setContent(dynamic /* Content Function(Layer)|Content */ htmlContent);
-  external HTMLElement? getElement();
+  external ContentOrContentFunctionLayer getContent();
+  external DivOverlay setContent(ContentFunctionLayerOrContent htmlContent);
+  external HtmlElement? getElement();
   external void update();
   external bool isOpen();
   external DivOverlay bringToFront();
@@ -2192,8 +2600,8 @@ class DivOverlay {
 
 @JS()
 @anonymous
-abstract class PopupOptions{}
-extension PopupOptionsExtension on PopupOptions {
+abstract class PopupOptions implements DivOverlayOptions {
+  external factory PopupOptions({num? maxWidth, num? minWidth, num? maxHeight, bool? keepInView, bool? closeButton, bool? autoPan, PointExpression autoPanPaddingTopLeft, PointExpression autoPanPaddingBottomRight, PointExpression autoPanPadding, bool? autoClose, bool? closeOnClick, bool? closeOnEscapeKey, PointExpression offset, String? className, String? pane, bool? interactive, StringOrOther content});
   external num? get maxWidth;
   external set maxWidth(num? value);
   external num? get minWidth;
@@ -2206,12 +2614,12 @@ extension PopupOptionsExtension on PopupOptions {
   external set closeButton(bool? value);
   external bool? get autoPan;
   external set autoPan(bool? value);
-  external PointExpression? get autoPanPaddingTopLeft;
-  external set autoPanPaddingTopLeft(PointExpression? value);
-  external PointExpression? get autoPanPaddingBottomRight;
-  external set autoPanPaddingBottomRight(PointExpression? value);
-  external PointExpression? get autoPanPadding;
-  external set autoPanPadding(PointExpression? value);
+  external PointExpression get autoPanPaddingTopLeft;
+  external set autoPanPaddingTopLeft(PointExpression value);
+  external PointExpression get autoPanPaddingBottomRight;
+  external set autoPanPaddingBottomRight(PointExpression value);
+  external PointExpression get autoPanPadding;
+  external set autoPanPadding(PointExpression value);
   external bool? get autoClose;
   external set autoClose(bool? value);
   external bool? get closeOnClick;
@@ -2220,14 +2628,16 @@ extension PopupOptionsExtension on PopupOptions {
   external set closeOnEscapeKey(bool? value);
 }
 
-typedef Content = dynamic /* String|HTMLElement */;
+/// A JavaScript union of \`String | HtmlElement\`; Dart has no union types.
+typedef Content = dynamic;
 
 @JS("Popup")
-class Popup {
-  external factory Popup(LatLngExpression latlng, [TooltipOptions options]);
-  external PopupOptions get options;
-  external set options(PopupOptions value);
-  external Popup openOn(JS$Map map);
+class Popup extends DivOverlay {
+  external Popup(LatLngExpression latlng, [TooltipOptions options]);
+  external factory Popup.overload2([PopupOptions options, Layer source]);
+  external LayerOptions get options;
+  external set options(covariant LayerOptions value);
+  external Popup openOn(covariant JS$Map map);
 }
 
 @JS("popup")
@@ -2240,12 +2650,12 @@ typedef Direction = String;
 
 @JS()
 @anonymous
-abstract class TooltipOptions{}
-extension TooltipOptionsExtension on TooltipOptions {
+abstract class TooltipOptions implements DivOverlayOptions {
+  external factory TooltipOptions({String? pane, PointExpression offset, Direction? direction, bool? permanent, bool? sticky, num? opacity, String? className, bool? interactive, StringOrOther content});
   external String? get pane;
-  external set pane(String? value);
-  external PointExpression? get offset;
-  external set offset(PointExpression? value);
+  external set pane(covariant String? value);
+  external PointExpression get offset;
+  external set offset(covariant PointExpression value);
   external Direction? get direction;
   external set direction(Direction? value);
   external bool? get permanent;
@@ -2257,10 +2667,11 @@ extension TooltipOptionsExtension on TooltipOptions {
 }
 
 @JS("Tooltip")
-class Tooltip {
-  external factory Tooltip(LatLngExpression latlng, [TooltipOptions options]);
-  external TooltipOptions get options;
-  external set options(TooltipOptions value);
+class Tooltip extends DivOverlay {
+  external Tooltip(LatLngExpression latlng, [TooltipOptions options]);
+  external factory Tooltip.overload2([TooltipOptions options, Layer source]);
+  external LayerOptions get options;
+  external set options(covariant LayerOptions value);
   external void setOpacity(num val);
 }
 
@@ -2272,16 +2683,16 @@ external Tooltip tooltip_2([TooltipOptions options, Layer source]);
 
 @JS()
 @anonymous
-abstract class ZoomOptions{}
-extension ZoomOptionsExtension on ZoomOptions {
+abstract class ZoomOptions {
+  external factory ZoomOptions({bool? animate});
   external bool? get animate;
   external set animate(bool? value);
 }
 
 @JS()
 @anonymous
-abstract class PanOptions{}
-extension PanOptionsExtension on PanOptions {
+abstract class PanOptions {
+  external factory PanOptions({bool? animate, num? duration, num? easeLinearity, bool? noMoveStart});
   external bool? get animate;
   external set animate(bool? value);
   external num? get duration;
@@ -2294,14 +2705,14 @@ extension PanOptionsExtension on PanOptions {
 
 @JS()
 @anonymous
-abstract class ZoomPanOptions{}
-extension ZoomPanOptionsExtension on ZoomPanOptions {
+abstract class ZoomPanOptions implements ZoomOptions, PanOptions {
+  external factory ZoomPanOptions({bool? animate, num? duration, num? easeLinearity, bool? noMoveStart});
 }
 
 @JS()
 @anonymous
-abstract class InvalidateSizeOptions{}
-extension InvalidateSizeOptionsExtension on InvalidateSizeOptions {
+abstract class InvalidateSizeOptions implements ZoomPanOptions {
+  external factory InvalidateSizeOptions({bool? debounceMoveend, bool? pan, bool? animate, num? duration, num? easeLinearity, bool? noMoveStart});
   external bool? get debounceMoveend;
   external set debounceMoveend(bool? value);
   external bool? get pan;
@@ -2310,34 +2721,34 @@ extension InvalidateSizeOptionsExtension on InvalidateSizeOptions {
 
 @JS()
 @anonymous
-abstract class FitBoundsOptions{}
-extension FitBoundsOptionsExtension on FitBoundsOptions {
-  external PointExpression? get paddingTopLeft;
-  external set paddingTopLeft(PointExpression? value);
-  external PointExpression? get paddingBottomRight;
-  external set paddingBottomRight(PointExpression? value);
-  external PointExpression? get padding;
-  external set padding(PointExpression? value);
+abstract class FitBoundsOptions implements ZoomOptions, PanOptions {
+  external factory FitBoundsOptions({PointExpression paddingTopLeft, PointExpression paddingBottomRight, PointExpression padding, num? maxZoom, bool? animate, num? duration, num? easeLinearity, bool? noMoveStart});
+  external PointExpression get paddingTopLeft;
+  external set paddingTopLeft(PointExpression value);
+  external PointExpression get paddingBottomRight;
+  external set paddingBottomRight(PointExpression value);
+  external PointExpression get padding;
+  external set padding(PointExpression value);
   external num? get maxZoom;
   external set maxZoom(num? value);
 }
 
 @JS()
 @anonymous
-abstract class PanInsideOptions{}
-extension PanInsideOptionsExtension on PanInsideOptions {
-  external PointExpression? get paddingTopLeft;
-  external set paddingTopLeft(PointExpression? value);
-  external PointExpression? get paddingBottomRight;
-  external set paddingBottomRight(PointExpression? value);
-  external PointExpression? get padding;
-  external set padding(PointExpression? value);
+abstract class PanInsideOptions implements PanOptions {
+  external factory PanInsideOptions({PointExpression paddingTopLeft, PointExpression paddingBottomRight, PointExpression padding, bool? animate, num? duration, num? easeLinearity, bool? noMoveStart});
+  external PointExpression get paddingTopLeft;
+  external set paddingTopLeft(PointExpression value);
+  external PointExpression get paddingBottomRight;
+  external set paddingBottomRight(PointExpression value);
+  external PointExpression get padding;
+  external set padding(PointExpression value);
 }
 
 @JS()
 @anonymous
-abstract class LocateOptions{}
-extension LocateOptionsExtension on LocateOptions {
+abstract class LocateOptions {
+  external factory LocateOptions({bool? watch, bool? setView, num? maxZoom, num? timeout, num? maximumAge, bool? enableHighAccuracy});
   external bool? get watch;
   external set watch(bool? value);
   external bool? get setView;
@@ -2353,8 +2764,8 @@ extension LocateOptionsExtension on LocateOptions {
 }
 
 @JS("Handler")
-class Handler {
-  external factory Handler(JS$Map map);
+class Handler extends Class {
+  external Handler(JS$Map map);
   external Handler enable();
   external Handler disable();
   external bool enabled();
@@ -2364,8 +2775,8 @@ class Handler {
 
 @JS()
 @anonymous
-abstract class LeafletEvent{}
-extension LeafletEventExtension on LeafletEvent {
+abstract class LeafletEvent {
+  external factory LeafletEvent({required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
   external String get type;
   external set type(String value);
   external dynamic get popup;
@@ -2376,14 +2787,15 @@ extension LeafletEventExtension on LeafletEvent {
   external set sourceTarget(dynamic value);
   external dynamic get propagatedFrom;
   external set propagatedFrom(dynamic value);
+  /// @deprecated The same as [LeafletEvent.propagatedFrom].
   external dynamic get layer;
   external set layer(dynamic value);
 }
 
 @JS()
 @anonymous
-abstract class LeafletMouseEvent{}
-extension LeafletMouseEventExtension on LeafletMouseEvent {
+abstract class LeafletMouseEvent implements LeafletEvent {
+  external factory LeafletMouseEvent({required LatLng latlng, required Point layerPoint, required Point containerPoint, required MouseEvent originalEvent, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
   external LatLng get latlng;
   external set latlng(LatLng value);
   external Point get layerPoint;
@@ -2396,16 +2808,16 @@ extension LeafletMouseEventExtension on LeafletMouseEvent {
 
 @JS()
 @anonymous
-abstract class LeafletKeyboardEvent{}
-extension LeafletKeyboardEventExtension on LeafletKeyboardEvent {
+abstract class LeafletKeyboardEvent implements LeafletEvent {
+  external factory LeafletKeyboardEvent({required KeyboardEvent originalEvent, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
   external KeyboardEvent get originalEvent;
   external set originalEvent(KeyboardEvent value);
 }
 
 @JS()
 @anonymous
-abstract class LocationEvent{}
-extension LocationEventExtension on LocationEvent {
+abstract class LocationEvent implements LeafletEvent {
+  external factory LocationEvent({required LatLng latlng, required LatLngBounds bounds, required num accuracy, required num altitude, required num altitudeAccuracy, required num heading, required num speed, required num timestamp, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
   external LatLng get latlng;
   external set latlng(LatLng value);
   external LatLngBounds get bounds;
@@ -2426,8 +2838,8 @@ extension LocationEventExtension on LocationEvent {
 
 @JS()
 @anonymous
-abstract class ErrorEvent{}
-extension ErrorEventExtension on ErrorEvent {
+abstract class ErrorEvent implements LeafletEvent {
+  external factory ErrorEvent({required String message, required num code, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
   external String get message;
   external set message(String value);
   external num get code;
@@ -2436,42 +2848,42 @@ extension ErrorEventExtension on ErrorEvent {
 
 @JS()
 @anonymous
-abstract class LayerEvent{}
-extension LayerEventExtension on LayerEvent {
+abstract class LayerEvent implements LeafletEvent {
+  external factory LayerEvent({required Layer layer, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom});
   external Layer get layer;
-  external set layer(Layer value);
+  external set layer(covariant Layer value);
 }
 
 @JS()
 @anonymous
-abstract class LayersControlEvent{}
-extension LayersControlEventExtension on LayersControlEvent {
+abstract class LayersControlEvent implements LayerEvent {
+  external factory LayersControlEvent({required String name, required Layer layer, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom});
   external String get name;
   external set name(String value);
 }
 
 @JS()
 @anonymous
-abstract class TileEvent{}
-extension TileEventExtension on TileEvent {
-  external HTMLImageElement get tile;
-  external set tile(HTMLImageElement value);
+abstract class TileEvent implements LeafletEvent {
+  external factory TileEvent({required ImageElement tile, required Coords coords, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
+  external ImageElement get tile;
+  external set tile(ImageElement value);
   external Coords get coords;
   external set coords(Coords value);
 }
 
 @JS()
 @anonymous
-abstract class TileErrorEvent{}
-extension TileErrorEventExtension on TileErrorEvent {
-  external Error get error;
-  external set error(Error value);
+abstract class TileErrorEvent implements TileEvent {
+  external factory TileErrorEvent({required Error_6a2353 error, required ImageElement tile, required Coords coords, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
+  external Error_6a2353 get error;
+  external set error(Error_6a2353 value);
 }
 
 @JS()
 @anonymous
-abstract class ResizeEvent{}
-extension ResizeEventExtension on ResizeEvent {
+abstract class ResizeEvent implements LeafletEvent {
+  external factory ResizeEvent({required Point oldSize, required Point newSize, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
   external Point get oldSize;
   external set oldSize(Point value);
   external Point get newSize;
@@ -2480,10 +2892,10 @@ extension ResizeEventExtension on ResizeEvent {
 
 @JS()
 @anonymous
-abstract class GeoJSONEvent{}
-extension GeoJSONEventExtension on GeoJSONEvent {
+abstract class GeoJSONEvent implements LeafletEvent {
+  external factory GeoJSONEvent({required Layer layer, required dynamic properties, required String geometryType, required String id, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom});
   external Layer get layer;
-  external set layer(Layer value);
+  external set layer(covariant Layer value);
   external dynamic get properties;
   external set properties(dynamic value);
   external String get geometryType;
@@ -2494,32 +2906,32 @@ extension GeoJSONEventExtension on GeoJSONEvent {
 
 @JS()
 @anonymous
-abstract class PopupEvent{}
-extension PopupEventExtension on PopupEvent {
+abstract class PopupEvent implements LeafletEvent {
+  external factory PopupEvent({required Popup popup, required String type, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
   external Popup get popup;
-  external set popup(Popup value);
+  external set popup(covariant Popup value);
 }
 
 @JS()
 @anonymous
-abstract class TooltipEvent{}
-extension TooltipEventExtension on TooltipEvent {
+abstract class TooltipEvent implements LeafletEvent {
+  external factory TooltipEvent({required Tooltip tooltip, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
   external Tooltip get tooltip;
   external set tooltip(Tooltip value);
 }
 
 @JS()
 @anonymous
-abstract class DragEndEvent{}
-extension DragEndEventExtension on DragEndEvent {
+abstract class DragEndEvent implements LeafletEvent {
+  external factory DragEndEvent({required num distance, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
   external num get distance;
   external set distance(num value);
 }
 
 @JS()
 @anonymous
-abstract class ZoomAnimEvent{}
-extension ZoomAnimEventExtension on ZoomAnimEvent {
+abstract class ZoomAnimEvent implements LeafletEvent {
+  external factory ZoomAnimEvent({required LatLng center, required num zoom, required bool noUpdate, required String type, required dynamic popup, required dynamic target, required dynamic sourceTarget, required dynamic propagatedFrom, required dynamic layer});
   external LatLng get center;
   external set center(LatLng value);
   external num get zoom;
@@ -2530,39 +2942,42 @@ extension ZoomAnimEventExtension on ZoomAnimEvent {
 
 typedef EventHandlerFn = void Function(Event);
 
-typedef PropagableEvent = dynamic /* LeafletMouseEvent|LeafletKeyboardEvent|LeafletEvent|Event */;
+/// A JavaScript union of \`LeafletMouseEvent | LeafletKeyboardEvent | LeafletEvent | Event\`; Dart has no union types.
+typedef PropagableEvent = dynamic;
 
 @JS("DomEvent.on")
-external TypeOfDomEvent on_1(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
+external TypeOfDomEvent on_1(HtmlElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS()
 @anonymous
-abstract class Anon_DomEvent_on_overload_1_param_1_eventMap{}
+abstract class Anon_DomEvent_on_overload_1_param_1_eventMap {
+  external factory Anon_DomEvent_on_overload_1_param_1_eventMap();
+}
 extension Anon_DomEvent_on_overload_1_param_1_eventMapExtension on Anon_DomEvent_on_overload_1_param_1_eventMap {
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
+  external EventHandlerFn operator [](String key);
+  external void operator []=(String key, EventHandlerFn value);
 }
 
 @JS("DomEvent.on")
-external TypeOfDomEvent on_2(HTMLElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent on_2(HtmlElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
 @JS("DomEvent.off")
-external TypeOfDomEvent off_1(HTMLElement el);
+external TypeOfDomEvent off_1(HtmlElement el);
 
 @JS("DomEvent.off")
-external TypeOfDomEvent off_2(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
+external TypeOfDomEvent off_2(HtmlElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.off")
-external TypeOfDomEvent off_3(HTMLElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent off_3(HtmlElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
 @JS("DomEvent.stopPropagation")
 external TypeOfDomEvent stopPropagation(PropagableEvent ev);
 
 @JS("DomEvent.disableScrollPropagation")
-external TypeOfDomEvent disableScrollPropagation(HTMLElement el);
+external TypeOfDomEvent disableScrollPropagation(HtmlElement el);
 
 @JS("DomEvent.disableClickPropagation")
-external TypeOfDomEvent disableClickPropagation(HTMLElement el);
+external TypeOfDomEvent disableClickPropagation(HtmlElement el);
 
 @JS("DomEvent.preventDefault")
 external TypeOfDomEvent preventDefault(Event ev);
@@ -2571,65 +2986,67 @@ external TypeOfDomEvent preventDefault(Event ev);
 external TypeOfDomEvent stop(PropagableEvent ev);
 
 @JS("DomEvent.getMousePosition")
-external Point getMousePosition(MouseEvent ev, [HTMLElement container]);
+external Point getMousePosition(MouseEvent ev, [HtmlElement container]);
 
 @JS("DomEvent.getWheelDelta")
 external num getWheelDelta(Event ev);
 
 @JS("DomEvent.addListener")
-external TypeOfDomEvent addListener_1(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
+external TypeOfDomEvent addListener_1(HtmlElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.addListener")
-external TypeOfDomEvent addListener_2(HTMLElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent addListener_2(HtmlElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
 @JS("DomEvent.removeListener")
-external TypeOfDomEvent removeListener_1(HTMLElement el, String types, EventHandlerFn fn, [dynamic context]);
+external TypeOfDomEvent removeListener_1(HtmlElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS("DomEvent.removeListener")
-external TypeOfDomEvent removeListener_2(HTMLElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
+external TypeOfDomEvent removeListener_2(HtmlElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
 @JS("DomEvent.getPropagationPath")
-external List<HTMLElement> getPropagationPath(Event ev);
+external List<HtmlElement> getPropagationPath(Event ev);
 
 @JS()
 @anonymous
-abstract class DefaultMapPanes{}
-extension DefaultMapPanesExtension on DefaultMapPanes {
-  external HTMLElement get mapPane;
-  external set mapPane(HTMLElement value);
-  external HTMLElement get tilePane;
-  external set tilePane(HTMLElement value);
-  external HTMLElement get overlayPane;
-  external set overlayPane(HTMLElement value);
-  external HTMLElement get shadowPane;
-  external set shadowPane(HTMLElement value);
-  external HTMLElement get markerPane;
-  external set markerPane(HTMLElement value);
-  external HTMLElement get tooltipPane;
-  external set tooltipPane(HTMLElement value);
-  external HTMLElement get popupPane;
-  external set popupPane(HTMLElement value);
+abstract class DefaultMapPanes {
+  external factory DefaultMapPanes({required HtmlElement mapPane, required HtmlElement tilePane, required HtmlElement overlayPane, required HtmlElement shadowPane, required HtmlElement markerPane, required HtmlElement tooltipPane, required HtmlElement popupPane});
+  external HtmlElement get mapPane;
+  external set mapPane(HtmlElement value);
+  external HtmlElement get tilePane;
+  external set tilePane(HtmlElement value);
+  external HtmlElement get overlayPane;
+  external set overlayPane(HtmlElement value);
+  external HtmlElement get shadowPane;
+  external set shadowPane(HtmlElement value);
+  external HtmlElement get markerPane;
+  external set markerPane(HtmlElement value);
+  external HtmlElement get tooltipPane;
+  external set tooltipPane(HtmlElement value);
+  external HtmlElement get popupPane;
+  external set popupPane(HtmlElement value);
 }
 
 @JS()
 @anonymous
-abstract class Anon_Map_method_35_getPanes_return_intersection_0{}
+abstract class Anon_Map_method_35_getPanes_return_intersection_0 {
+  external factory Anon_Map_method_35_getPanes_return_intersection_0();
+}
 extension Anon_Map_method_35_getPanes_return_intersection_0Extension on Anon_Map_method_35_getPanes_return_intersection_0 {
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
+  external HtmlElement operator [](String key);
+  external void operator []=(String key, HtmlElement value);
 }
 
 @JS()
 @anonymous
-abstract class Anon_Map_method_37_whenReady_param_0_fn_param_0_event{}
-extension Anon_Map_method_37_whenReady_param_0_fn_param_0_eventExtension on Anon_Map_method_37_whenReady_param_0_fn_param_0_event {
+abstract class Anon_Map_method_37_whenReady_param_0_fn_param_0_event {
+  external factory Anon_Map_method_37_whenReady_param_0_fn_param_0_event({required JS$Map target});
   external JS$Map get target;
   external set target(JS$Map value);
 }
 
 @JS("Map")
-class JS$Map {
-  external factory JS$Map(dynamic /* String|HTMLElement */ element, [MapOptions options]);
+class JS$Map extends Evented {
+  external JS$Map(StringOrHtmlElement element, [MapOptions options]);
   external Attribution get attributionControl;
   external set attributionControl(Attribution value);
   external Handler get boxZoom;
@@ -2663,7 +3080,7 @@ class JS$Map {
   external JS$Map setZoom(num zoom, [ZoomPanOptions options]);
   external JS$Map zoomIn([num delta, ZoomOptions options]);
   external JS$Map zoomOut([num delta, ZoomOptions options]);
-  external JS$Map setZoomAround(dynamic /* Point|LatLngExpression */ position, num zoom, [ZoomOptions options]);
+  external JS$Map setZoomAround(PointOrLatLngExpression position, num zoom, [ZoomOptions options]);
   external JS$Map fitBounds(LatLngBoundsExpression bounds, [FitBoundsOptions options]);
   external JS$Map fitWorld([FitBoundsOptions options]);
   external JS$Map panTo(LatLngExpression latlng, [PanOptions options]);
@@ -2673,16 +3090,18 @@ class JS$Map {
   external JS$Map setMaxZoom(num zoom);
   external JS$Map panInside(LatLngExpression latLng, [PanInsideOptions options]);
   external JS$Map panInsideBounds(LatLngBoundsExpression bounds, [PanOptions options]);
-  external JS$Map invalidateSize([dynamic /* bool|InvalidateSizeOptions */ options]);
+  /// Boolean for animate or advanced ZoomPanOptions
+  external JS$Map invalidateSize([BoolOrInvalidateSizeOptions options]);
   external JS$Map stop();
   external JS$Map flyTo(LatLngExpression latlng, [num zoom, ZoomPanOptions options]);
   external JS$Map flyToBounds(LatLngBoundsExpression bounds, [FitBoundsOptions options]);
   external JS$Map addHandler(String name, TypeOfHandler HandlerClass);
   external JS$Map remove();
-  external HTMLElement createPane(String name, [HTMLElement container]);
-  external HTMLElement? getPane(dynamic /* String|HTMLElement */ pane);
+  external HtmlElement createPane(String name, [HtmlElement container]);
+  /// Name of the pane or the pane as HTML-Element
+  external HtmlElement? getPane(StringOrHtmlElement pane);
   external Anon_Map_method_35_getPanes_return_intersection_0 /* Anon_Map_method_35_getPanes_return_intersection_0&DefaultMapPanes */ getPanes();
-  external HTMLElement getContainer();
+  external HtmlElement getContainer();
   external JS$Map whenReady(void Function(Anon_Map_method_37_whenReady_param_0_fn_param_0_event) fn, [dynamic context]);
   external LatLng getCenter();
   external num getZoom();
@@ -2724,67 +3143,68 @@ extension JS$MapExtension on JS$Map {
   external JS$Map openTooltip_2(Content content, LatLngExpression latlng, [TooltipOptions options]);
 }
 
+/// ID of a HTML-Element as string or the HTML-ELement itself
 @JS("map")
-external JS$Map map(dynamic /* String|HTMLElement */ element, [MapOptions options]);
+external JS$Map map(StringOrHtmlElement element, [MapOptions options]);
 
 @JS()
 @anonymous
-abstract class BaseIconOptions{}
-extension BaseIconOptionsExtension on BaseIconOptions {
+abstract class BaseIconOptions implements LayerOptions {
+  external factory BaseIconOptions({String? iconUrl, String? iconRetinaUrl, PointExpression iconSize, PointExpression iconAnchor, PointExpression popupAnchor, PointExpression tooltipAnchor, String? shadowUrl, String? shadowRetinaUrl, PointExpression shadowSize, PointExpression shadowAnchor, String? className, String? pane, String? attribution});
   external String? get iconUrl;
   external set iconUrl(String? value);
   external String? get iconRetinaUrl;
   external set iconRetinaUrl(String? value);
-  external PointExpression? get iconSize;
-  external set iconSize(PointExpression? value);
-  external PointExpression? get iconAnchor;
-  external set iconAnchor(PointExpression? value);
-  external PointExpression? get popupAnchor;
-  external set popupAnchor(PointExpression? value);
-  external PointExpression? get tooltipAnchor;
-  external set tooltipAnchor(PointExpression? value);
+  external PointExpression get iconSize;
+  external set iconSize(PointExpression value);
+  external PointExpression get iconAnchor;
+  external set iconAnchor(PointExpression value);
+  external PointExpression get popupAnchor;
+  external set popupAnchor(PointExpression value);
+  external PointExpression get tooltipAnchor;
+  external set tooltipAnchor(PointExpression value);
   external String? get shadowUrl;
   external set shadowUrl(String? value);
   external String? get shadowRetinaUrl;
   external set shadowRetinaUrl(String? value);
-  external PointExpression? get shadowSize;
-  external set shadowSize(PointExpression? value);
-  external PointExpression? get shadowAnchor;
-  external set shadowAnchor(PointExpression? value);
+  external PointExpression get shadowSize;
+  external set shadowSize(PointExpression value);
+  external PointExpression get shadowAnchor;
+  external set shadowAnchor(PointExpression value);
   external String? get className;
   external set className(String? value);
 }
 
 @JS()
 @anonymous
-abstract class IconOptions{}
-extension IconOptionsExtension on IconOptions {
+abstract class IconOptions implements BaseIconOptions {
+  external factory IconOptions({required String iconUrl, CrossOriginOrBool crossOrigin, String? iconRetinaUrl, PointExpression iconSize, PointExpression iconAnchor, PointExpression popupAnchor, PointExpression tooltipAnchor, String? shadowUrl, String? shadowRetinaUrl, PointExpression shadowSize, PointExpression shadowAnchor, String? className, String? pane, String? attribution});
   external String get iconUrl;
-  external set iconUrl(String value);
-  external dynamic /* CrossOrigin|bool */ get crossOrigin;
-  external set crossOrigin(dynamic /* CrossOrigin|bool */ value);
+  external set iconUrl(covariant String value);
+  external CrossOriginOrBool get crossOrigin;
+  external set crossOrigin(CrossOriginOrBool value);
 }
 
 @JS("Icon")
-class Icon {
-  external factory Icon(T options);
-  external T get options;
-  external set options(T value);
-  external HTMLElement createIcon([HTMLElement oldIcon]);
-  external HTMLElement createShadow([HTMLElement oldIcon]);
+class Icon<T extends BaseIconOptions> extends Layer {
+  external Icon(T options);
+  external LayerOptions get options;
+  external set options(covariant LayerOptions value);
+  external HtmlElement createIcon([HtmlElement oldIcon]);
+  external HtmlElement createShadow([HtmlElement oldIcon]);
 }
 
 @JS()
 @anonymous
-abstract class DefaultIconOptions{}
-extension DefaultIconOptionsExtension on DefaultIconOptions {
+abstract class DefaultIconOptions implements BaseIconOptions {
+  external factory DefaultIconOptions({String? imagePath, String? iconUrl, String? iconRetinaUrl, PointExpression iconSize, PointExpression iconAnchor, PointExpression popupAnchor, PointExpression tooltipAnchor, String? shadowUrl, String? shadowRetinaUrl, PointExpression shadowSize, PointExpression shadowAnchor, String? className, String? pane, String? attribution});
   external String? get imagePath;
   external set imagePath(String? value);
 }
 
 @JS("Icon.Default")
-class Default {
-  external factory Default([DefaultIconOptions options]);
+class Default extends Icon<DefaultIconOptions> {
+  external Default([DefaultIconOptions options]);
   external static String? get imagePath;
   external static set imagePath(String? value);
 }
@@ -2794,25 +3214,25 @@ external Icon icon(IconOptions options);
 
 @JS()
 @anonymous
-abstract class DivIconOptions{}
-extension DivIconOptionsExtension on DivIconOptions {
-  external dynamic /* String|HTMLElement|bool */ get html;
-  external set html(dynamic /* String|HTMLElement|bool */ value);
-  external PointExpression? get bgPos;
-  external set bgPos(PointExpression? value);
-  external PointExpression? get iconSize;
-  external set iconSize(PointExpression? value);
-  external PointExpression? get iconAnchor;
-  external set iconAnchor(PointExpression? value);
-  external PointExpression? get popupAnchor;
-  external set popupAnchor(PointExpression? value);
+abstract class DivIconOptions implements BaseIconOptions {
+  external factory DivIconOptions({StringOrHtmlElementOrBool html, PointExpression bgPos, PointExpression iconSize, PointExpression iconAnchor, PointExpression popupAnchor, String? className, String? iconUrl, String? iconRetinaUrl, PointExpression tooltipAnchor, String? shadowUrl, String? shadowRetinaUrl, PointExpression shadowSize, PointExpression shadowAnchor, String? pane, String? attribution});
+  external StringOrHtmlElementOrBool get html;
+  external set html(StringOrHtmlElementOrBool value);
+  external PointExpression get bgPos;
+  external set bgPos(PointExpression value);
+  external PointExpression get iconSize;
+  external set iconSize(covariant PointExpression value);
+  external PointExpression get iconAnchor;
+  external set iconAnchor(covariant PointExpression value);
+  external PointExpression get popupAnchor;
+  external set popupAnchor(covariant PointExpression value);
   external String? get className;
-  external set className(String? value);
+  external set className(covariant String? value);
 }
 
 @JS("DivIcon")
-class DivIcon {
-  external factory DivIcon([DivIconOptions options]);
+class DivIcon extends Icon<DivIconOptions> {
+  external DivIcon([DivIconOptions options]);
 }
 
 @JS("divIcon")
@@ -2820,32 +3240,44 @@ external DivIcon divIcon([DivIconOptions options]);
 
 @JS()
 @anonymous
-abstract class MarkerOptions{}
-extension MarkerOptionsExtension on MarkerOptions {
-  external dynamic /* Icon|DivIcon */ get icon;
-  external set icon(dynamic /* Icon|DivIcon */ value);
+abstract class MarkerOptions implements InteractiveLayerOptions {
+  external factory MarkerOptions({IconOrDivIcon icon, bool? draggable, bool? keyboard, String? title, String? alt, num? zIndexOffset, num? opacity, bool? riseOnHover, num? riseOffset, String? shadowPane, bool? autoPan, PointExpression autoPanPadding, num? autoPanSpeed, bool? autoPanOnFocus, bool? interactive, bool? bubblingMouseEvents, String? pane, String? attribution});
+  external IconOrDivIcon get icon;
+  external set icon(IconOrDivIcon value);
+  /// Whether the marker is draggable with mouse/touch or not.
   external bool? get draggable;
   external set draggable(bool? value);
+  /// Whether the marker can be tabbed to with a keyboard and clicked by pressing enter.
   external bool? get keyboard;
   external set keyboard(bool? value);
+  /// Text for the browser tooltip that appear on marker hover (no tooltip by default).
   external String? get title;
   external set title(String? value);
+  /// Text for the \`alt\` attribute of the icon image (useful for accessibility).
   external String? get alt;
   external set alt(String? value);
+  /// Option for putting the marker on top of all others (or below).
   external num? get zIndexOffset;
   external set zIndexOffset(num? value);
+  /// The opacity of the marker.
   external num? get opacity;
   external set opacity(num? value);
+  /// If \`true\`, the marker will get on top of others when you hover the mouse over it.
   external bool? get riseOnHover;
   external set riseOnHover(bool? value);
+  /// The z-index offset used for the \`riseOnHover\` feature.
   external num? get riseOffset;
   external set riseOffset(num? value);
+  /// \`Map pane\` where the markers shadow will be added.
   external String? get shadowPane;
   external set shadowPane(String? value);
+  /// Whether to pan the map when dragging this marker near its edge or not.
   external bool? get autoPan;
   external set autoPan(bool? value);
-  external PointExpression? get autoPanPadding;
-  external set autoPanPadding(PointExpression? value);
+  /// Distance (in pixels to the left/right and to the top/bottom) of the map edge to start panning the map.
+  external PointExpression get autoPanPadding;
+  external set autoPanPadding(PointExpression value);
+  /// Number of pixels the map should pan by.
   external num? get autoPanSpeed;
   external set autoPanSpeed(num? value);
   external bool? get autoPanOnFocus;
@@ -2853,137 +3285,137 @@ extension MarkerOptionsExtension on MarkerOptions {
 }
 
 @JS("Marker")
-class Marker {
-  external factory Marker(LatLngExpression latlng, [MarkerOptions options]);
+class Marker<P> extends Layer {
+  external Marker(LatLngExpression latlng, [MarkerOptions options]);
   external MarkerOptions get options;
-  external set options(MarkerOptions value);
+  external set options(covariant MarkerOptions value);
   external Handler? get dragging;
   external set dragging(Handler? value);
-  external geojson.Feature<geojson.Point, P>? get feature;
-  external set feature(geojson.Feature<geojson.Point, P>? value);
-  external geojson.Feature<geojson.Point, P> toGeoJSON([dynamic /* num|bool */ precision]);
+  external GeojsonFeature get feature;
+  external set feature(GeojsonFeature value);
+  external GeojsonFeature toGeoJSON([NumOrBool precision]);
   external LatLng getLatLng();
   external Marker setLatLng(LatLngExpression latlng);
   external Marker setZIndexOffset(num offset);
-  external dynamic /* Icon|DivIcon */ getIcon();
-  external Marker setIcon(dynamic /* Icon|DivIcon */ icon);
+  external IconOrDivIcon getIcon();
+  external Marker setIcon(IconOrDivIcon icon);
   external Marker setOpacity(num opacity);
-  external HTMLElement? getElement();
+  external HtmlElement? getElement();
 }
-extension MarkerExtension on Marker {
+extension MarkerExtension<P> on Marker<P> {
   @JS("_shadow")
-  external HTMLElement? get JS$_shadow;
+  external HtmlElement? get JS$_shadow;
   @JS("_shadow")
-  external set JS$_shadow(HTMLElement? value);
+  external set JS$_shadow(HtmlElement? value);
 }
 
 @JS("marker")
-external Marker<P> marker(LatLngExpression latlng, [MarkerOptions options]);
+external Marker<P> marker<P>(LatLngExpression latlng, [MarkerOptions options]);
 
 @JS("Browser.ie")
-external bool ie;
+external bool get ie;
 
 @JS("Browser.ielt9")
-external bool ielt9;
+external bool get ielt9;
 
 @JS("Browser.edge")
-external bool edge;
+external bool get edge;
 
 @JS("Browser.webkit")
-external bool webkit;
+external bool get webkit;
 
 @JS("Browser.android")
-external bool android;
+external bool get android;
 
 @JS("Browser.android23")
-external bool android23;
+external bool get android23;
 
 @JS("Browser.androidStock")
-external bool androidStock;
+external bool get androidStock;
 
 @JS("Browser.opera")
-external bool opera;
+external bool get opera;
 
 @JS("Browser.chrome")
-external bool chrome;
+external bool get chrome;
 
 @JS("Browser.gecko")
-external bool gecko;
+external bool get gecko;
 
 @JS("Browser.safari")
-external bool safari;
+external bool get safari;
 
 @JS("Browser.opera12")
-external bool opera12;
+external bool get opera12;
 
 @JS("Browser.win")
-external bool win;
+external bool get win;
 
 @JS("Browser.ie3d")
-external bool ie3d;
+external bool get ie3d;
 
 @JS("Browser.webkit3d")
-external bool webkit3d;
+external bool get webkit3d;
 
 @JS("Browser.gecko3d")
-external bool gecko3d;
+external bool get gecko3d;
 
 @JS("Browser.any3d")
-external bool any3d;
+external bool get any3d;
 
 @JS("Browser.mobile")
-external bool mobile;
+external bool get mobile;
 
 @JS("Browser.mobileWebkit")
-external bool mobileWebkit;
+external bool get mobileWebkit;
 
 @JS("Browser.mobileWebkit3d")
-external bool mobileWebkit3d;
+external bool get mobileWebkit3d;
 
 @JS("Browser.msPointer")
-external bool msPointer;
+external bool get msPointer;
 
 @JS("Browser.pointer")
-external bool pointer;
+external bool get pointer;
 
 @JS("Browser.touch")
-external bool touch;
+external bool get touch;
 
 @JS("Browser.mobileOpera")
-external bool mobileOpera;
+external bool get mobileOpera;
 
 @JS("Browser.mobileGecko")
-external bool mobileGecko;
+external bool get mobileGecko;
 
 @JS("Browser.retina")
-external bool retina;
+external bool get retina;
 
 @JS("Browser.canvas")
-external bool Browser_canvas;
+external bool get Browser_canvas;
 
 @JS("Browser.svg")
-external bool Browser_svg;
+external bool get Browser_svg;
 
 @JS("Browser.vml")
-external bool vml;
+external bool get vml;
 
 @JS("Util.extend")
-external D /* D&S1 */ extend_1(D dest, [S1 src]);
+external D /* D&S1 */ extend_1<D /* extends object */, S1 /* extends object */>(D dest, [S1 src]);
 
 @JS("Util.extend")
-external D /* D&S1&S2 */ extend_2(D dest, S1 src1, S2 src2);
+external D /* D&S1&S2 */ extend_2<D /* extends object */, S1 /* extends object */, S2 /* extends object */>(D dest, S1 src1, S2 src2);
 
 @JS("Util.extend")
-external D /* D&S1&S2&S3 */ extend_3(D dest, S1 src1, S2 src2, S3 src3);
+external D /* D&S1&S2&S3 */ extend_3<D /* extends object */, S1 /* extends object */, S2 /* extends object */, S3 /* extends object */>(D dest, S1 src1, S2 src2, S3 src3);
 
 @JS("Util.extend")
-external dynamic extend_4(dynamic dest, [/* rest */ List<dynamic> src]);
+external dynamic extend_4(dynamic dest, [dynamic src1, dynamic src2, dynamic src3, dynamic src4, dynamic src5]);
 
 @JS("Util.create")
-external dynamic create(dynamic proto, [PropertyDescriptorMap properties]);
+external dynamic create(Object? proto, [PropertyDescriptorMap properties]);
 
 @JS("Util.bind")
-external void Function() Util_bind(void Function([List<dynamic>]) fn, [/* rest */ List<dynamic> obj]);
+external void Function() Util_bind(void Function([dynamic, dynamic, dynamic, dynamic, dynamic]) fn, [dynamic obj1, dynamic obj2, dynamic obj3, dynamic obj4, dynamic obj5]);
 
 @JS("Util.stamp")
 external num Util_stamp(dynamic obj);
@@ -2998,7 +3430,7 @@ external num wrapNum(num num, List<num> range, [bool includeMax]);
 external bool falseFn();
 
 @JS("Util.formatNum")
-external num formatNum(num num, [dynamic /* num|bool */ digits]);
+external num formatNum(num num, [NumOrBool digits]);
 
 @JS("Util.trim")
 external String trim(String str);
@@ -3028,22 +3460,26 @@ external num requestAnimFrame(void Function(num) fn, [dynamic context, bool imme
 external void cancelAnimFrame(num id);
 
 @JS("Util.lastId")
-external num lastId;
+external num get lastId;
+@JS("Util.lastId")
+external set lastId(num value);
 
 @JS("Util.emptyImageUrl")
-external String emptyImageUrl;
+external String get emptyImageUrl;
+@JS("Util.emptyImageUrl")
+external set emptyImageUrl(String value);
 
 @JS("extend")
-external IndexedTypeOfUtilExtend extend;
+external IndexedTypeOfUtilExtend get extend;
 
 @JS("bind")
-external IndexedTypeOfUtilBind bind;
+external IndexedTypeOfUtilBind get bind;
 
 @JS("stamp")
-external IndexedTypeOfUtilStamp stamp;
+external IndexedTypeOfUtilStamp get stamp;
 
 @JS("setOptions")
-external IndexedTypeOfUtilSetOptions setOptions;
+external IndexedTypeOfUtilSetOptions get setOptions;
 
 @JS("noConflict")
 external dynamic noConflict();
@@ -3051,10 +3487,9 @@ external dynamic noConflict();
 // ---------------------------------------------------------------------------
 // Type definitions
 //
-// TypeScript constructs with no Dart representation. Each one is \`dynamic\`
-// with its original spelling recorded, so the degradation is stated once and
-// every use site refers to it by name. Replacing a \`dynamic\` here upgrades
-// every use site at once.
+// TypeScript constructs with no direct Dart representation. Each one is
+// stated once, with its original spelling, and every use site refers to it
+// by name. Replacing a \`dynamic\` here upgrades every use site at once.
 // ---------------------------------------------------------------------------
 
 /// Unrepresentable in Dart: \`HTMLElementTagNameMap[T]\`
@@ -3092,6 +3527,141 @@ typedef TypeOfDomEvent = dynamic;
 
 /// Unrepresentable in Dart: \`typeof Handler\`
 typedef TypeOfHandler = dynamic;
+
+/// A JavaScript union of \`bool | InvalidateSizeOptions\`; Dart has no union types.
+typedef BoolOrInvalidateSizeOptions = dynamic;
+
+/// A JavaScript union of \`BoundsExpression | PointExpression\`; Dart has no union types.
+typedef BoundsExpressionOrPointExpression = dynamic;
+
+/// A JavaScript union of \`Content Function(Layer) | Content\`; Dart has no union types.
+typedef ContentFunctionLayerOrContent = dynamic;
+
+/// A JavaScript union of \`Content Function(Layer) | Content | Popup\`; Dart has no union types.
+typedef ContentFunctionLayerOrContentOrPopup = dynamic;
+
+/// A JavaScript union of \`Content Function(Layer) | Tooltip | Content\`; Dart has no union types.
+typedef ContentFunctionLayerOrTooltipOrContent = dynamic;
+
+/// A JavaScript union of \`Content | Content Function(Layer)\`; Dart has no union types.
+typedef ContentOrContentFunctionLayer = dynamic;
+
+/// A JavaScript union of \`Content | Popup\`; Dart has no union types.
+typedef ContentOrPopup = dynamic;
+
+/// A JavaScript union of \`Content | Tooltip\`; Dart has no union types.
+typedef ContentOrTooltip = dynamic;
+
+/// A JavaScript union of \`CrossOrigin | bool\`; Dart has no union types.
+typedef CrossOriginOrBool = dynamic;
+
+/// TypeScript host type \`DOMRect\` (lib.dom.d.ts) has no Dart mapping.
+typedef DOMRect = dynamic;
+
+/// TypeScript host type \`Error\` (lib.es5.d.ts) has no Dart mapping.
+typedef Error_6a2353 = dynamic;
+
+/// Unresolved TypeScript reference \`geojson.Feature<T, P> | undefined\`; its declaration is not part of this build.
+typedef GeojsonFeature = dynamic;
+
+/// A JavaScript union of \`geojson.FeatureCollection<geojson.GeometryObject, P> | geojson.Feature<geojson.MultiPoint, P> | geojson.GeometryCollection\`; Dart has no union types.
+typedef GeojsonFeatureCollectionGeojsonGeometryObjectPOrOther = dynamic;
+
+/// A JavaScript union of \`geojson.Feature<G, P> | G\`; Dart has no union types.
+typedef GeojsonFeatureGPOrG = dynamic;
+
+/// Unresolved TypeScript reference \`geojson.GeoJsonObject | null\`; its declaration is not part of this build.
+typedef GeojsonGeoJsonObject = dynamic;
+
+/// A JavaScript union of \`geojson.GeoJsonObject | geojson.GeoJsonObject[]\`; Dart has no union types.
+typedef GeojsonGeoJsonObjectOrGeojsonGeoJsonObject = dynamic;
+
+/// A JavaScript union of \`geojson.Polygon | geojson.MultiPolygon\`; Dart has no union types.
+typedef GeojsonPolygonOrGeojsonMultiPolygon = dynamic;
+
+/// A JavaScript union of \`Icon | DivIcon\`; Dart has no union types.
+typedef IconOrDivIcon = dynamic;
+
+/// A JavaScript union of \`JS$Map | LayerGroup\`; Dart has no union types.
+typedef JSMapOrLayerGroup = dynamic;
+
+/// A JavaScript union of \`LatLngBoundsExpression | LatLngExpression\`; Dart has no union types.
+typedef LatLngBoundsExpressionOrLatLngExpression = dynamic;
+
+/// A JavaScript union of \`LatLngExpression | LatLngBoundsExpression\`; Dart has no union types.
+typedef LatLngExpressionOrLatLngBoundsExpression = dynamic;
+
+/// A JavaScript union of \`LatLngExpression | List<LatLngExpression>\`; Dart has no union types.
+typedef LatLngExpressionOrListLatLngExpression = dynamic;
+
+/// A JavaScript union of \`LatLng | LatLngLiteral\`; Dart has no union types.
+typedef LatLngOrLatLngLiteral = dynamic;
+
+/// A JavaScript union of \`LatLngTuple | List<num> | LatLngLiteral | Anon_latLng_overload_1_param_0_coords_union_3\`; Dart has no union types.
+typedef LatLngTupleOrOther = dynamic;
+
+/// A JavaScript union of \`List<LatLngExpression> | List<List<LatLngExpression>>\`; Dart has no union types.
+typedef ListLatLngExpressionOrListListLatLngExpression = dynamic;
+
+/// A JavaScript union of \`List<LatLngExpression> | List<List<LatLngExpression>> | List<List<List<LatLngExpression>>>\`; Dart has no union types.
+typedef ListLatLngExpressionOrOther = dynamic;
+
+/// A JavaScript union of \`List<LatLng> | List<List<LatLng>> | List<List<List<LatLng>>>\`; Dart has no union types.
+typedef ListLatLngOrListListLatLngOrListListListLatLng = dynamic;
+
+/// A JavaScript union of \`List<Point> | bool\`; Dart has no union types.
+typedef ListPointOrBool = dynamic;
+
+/// A JavaScript union of \`List<Point> | BoundsLiteral\`; Dart has no union types.
+typedef ListPointOrBoundsLiteral = dynamic;
+
+/// A JavaScript union of \`num | bool\`; Dart has no union types.
+typedef NumOrBool = dynamic;
+
+/// A JavaScript union of \`num | Layer\`; Dart has no union types.
+typedef NumOrLayer = dynamic;
+
+/// A JavaScript union of \`num | Point\`; Dart has no union types.
+typedef NumOrPoint = dynamic;
+
+/// A JavaScript union of \`PathOptions | StyleFunction<P>\`; Dart has no union types.
+typedef PathOptionsOrStyleFunctionP = dynamic;
+
+/// A JavaScript union of \`Point | LatLngExpression\`; Dart has no union types.
+typedef PointOrLatLngExpression = dynamic;
+
+/// A JavaScript union of \`PointTuple | Anon_point_overload_1_param_0_coords_union_1\`; Dart has no union types.
+typedef PointTupleOrAnonPointOverload1Param0CoordsUnion1 = dynamic;
+
+/// TypeScript host type \`PropertyDescriptorMap\` (lib.es5.d.ts) has no Dart mapping.
+typedef PropertyDescriptorMap = dynamic;
+
+/// A JavaScript union of \`ReferrerPolicy | bool\`; Dart has no union types.
+typedef ReferrerPolicyOrBool = dynamic;
+
+/// A JavaScript union of \`String | bool\`; Dart has no union types.
+typedef StringOrBool = dynamic;
+
+/// A JavaScript union of \`String | HtmlElement\`; Dart has no union types.
+typedef StringOrHtmlElement = dynamic;
+
+/// A JavaScript union of \`String | HtmlElement | bool\`; Dart has no union types.
+typedef StringOrHtmlElementOrBool = dynamic;
+
+/// A JavaScript union of \`String | List<num>\`; Dart has no union types.
+typedef StringOrListNum = dynamic;
+
+/// A JavaScript union of \`String | List<String>\`; Dart has no union types.
+typedef StringOrListString = dynamic;
+
+/// A JavaScript union of \`String | List<String> | VideoElement\`; Dart has no union types.
+typedef StringOrListStringOrVideoElement = dynamic;
+
+/// A JavaScript union of \`String | HtmlElement | String Function(Layer) | HtmlElement Function(Layer)\`; Dart has no union types.
+typedef StringOrOther = dynamic;
+
+/// A JavaScript union of \`String | SvgElement\`; Dart has no union types.
+typedef StringOrSvgElement = dynamic;
 "
 `;
 
@@ -3105,37 +3675,40 @@ library probe;
 import 'package:js/js.dart';
 
 @JS("Base")
-class Base {
+class Base<T> {
+  external Base();
   external T get baseValue;
   external set baseValue(T value);
 }
 
 @JS()
 @anonymous
-abstract class Holder{}
-extension HolderExtension on Holder {
+abstract class Holder<T> {
+  external factory Holder({required T held});
   external T get held;
   external set held(T value);
 }
 
 @JS()
 @anonymous
-abstract class Named{}
-extension NamedExtension on Named {
+abstract class Named {
+  external factory Named({required String name});
   external String get name;
   external set name(String value);
 }
 
 @JS("Box")
-class Box {
-  external factory Box(String a);
+class Box<T> extends Base<T> implements Holder<T>, Named {
+  external Box(String a);
+  external factory Box.overload2(String a, num b);
   external T get held;
-  external set held(T value);
+  external set held(covariant T value);
   external String get name;
-  external set name(String value);
+  external set name(covariant String value);
   external T get value;
   external set value(T value);
-  external Box<U> map(U Function(T) fn);
+  external Box<U> map<U>(U Function(T) fn);
+  /// E-01: an underscore in a method name must survive into @JS()
   external String to_json();
 }
 
@@ -3143,102 +3716,114 @@ class Box {
 external void my_func(String a);
 
 @JS("readonly_const")
-external num readonly_const;
+external num get readonly_const;
 
 @JS("mutable_var")
-external String mutable_var;
+external String get mutable_var;
+@JS("mutable_var")
+external set mutable_var(String value);
+
+typedef Callable = bool Function(num n);
 
 @JS()
 @anonymous
-abstract class Callable{}
-extension CallableExtension on Callable {
-}
+abstract class Constructable {}
 
 @JS()
 @anonymous
-class Constructable{
-  external factory Constructable({required num n});
-}
-extension ConstructableExtension on Constructable {
-}
-
-@JS()
-@anonymous
-abstract class Child{}
-extension ChildExtension on Child {
+abstract class Child implements Holder<String>, Named {
+  external factory Child({required String x, required String held, required String name});
   external String get x;
   external set x(String value);
 }
 
 @JS()
 @anonymous
-abstract class Dict{}
+abstract class Dict {
+  external factory Dict();
+}
 extension DictExtension on Dict {
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
+  external num operator [](String key);
+  external void operator []=(String key, num value);
 }
 
 @JS()
 @anonymous
-abstract class ReadonlyDict{}
+abstract class ReadonlyDict {
+  external factory ReadonlyDict();
+}
 extension ReadonlyDictExtension on ReadonlyDict {
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
+  external String operator [](num key);
 }
 
 @JS("keyofThing")
-external KeyOfBoxString keyofThing;
+external KeyOfBoxString get keyofThing;
+@JS("keyofThing")
+external set keyofThing(KeyOfBoxString value);
 
 @JS("tmpl")
-external TemplatePreString tmpl;
+external TemplatePreString get tmpl;
+@JS("tmpl")
+external set tmpl(TemplatePreString value);
 
 @JS("cond")
-external StringExtendsNumberTrueFalse cond;
+external StringExtendsNumberTrueFalse get cond;
+@JS("cond")
+external set cond(StringExtendsNumberTrueFalse value);
 
 @JS("idx")
-external IndexedBoxStringValue idx;
+external IndexedBoxStringValue get idx;
+@JS("idx")
+external set idx(IndexedBoxStringValue value);
 
 @JS("predicateHolder")
-external bool Function(dynamic) predicateHolder;
+external bool Function(dynamic) get predicateHolder;
+@JS("predicateHolder")
+external set predicateHolder(bool Function(dynamic) value);
 
 @JS("typeofThing")
-external num typeofThing;
+external num get typeofThing;
+@JS("typeofThing")
+external set typeofThing(num value);
 
 /// Unrepresentable in Dart: \`{ [K in keyof T]: T[K] }\`
-typedef Mapped = dynamic;
+typedef Mapped<T> = dynamic;
 
 /// Unrepresentable in Dart: \`T extends Array<infer U> ? U : never\`
-typedef Inferred = dynamic;
+typedef Inferred<T> = dynamic;
 
 @JS("nullable")
-external String? nullable;
+external String? get nullable;
+@JS("nullable")
+external set nullable(String? value);
 
 @JS("bareNull")
-external Null bareNull;
+external Null get bareNull;
+@JS("bareNull")
+external set bareNull(Null value);
 
 @JS()
 @anonymous
-abstract class Fluent{}
-extension FluentExtension on Fluent {
-  @JS("chain")
+abstract class Fluent {
   external Fluent chain();
 }
 
 @JS("E")
-class E{}
-@JS("E")
-extension EEnum on E{
-  external static int get A;
-  external static dynamic get B;
-  external static String get C;
+abstract class E {
+  external static Object get A;
+  external static Object get B;
+  external static Object get C;
 }
 
 @JS()
 @anonymous
-abstract class Keywords{}
-extension KeywordsExtension on Keywords {
+abstract class Keywords {
+  // Not settable through the factory: class, extends
+  external factory Keywords({required bool static});
   external bool get static;
   external set static(bool value);
+}
+extension KeywordsExtension on Keywords {
   @JS("class")
   external String get JS$class;
   @JS("class")
@@ -3251,8 +3836,8 @@ extension KeywordsExtension on Keywords {
 
 @JS()
 @anonymous
-abstract class Anon_withOptions_overload_0_param_0_opts{}
-extension Anon_withOptions_overload_0_param_0_optsExtension on Anon_withOptions_overload_0_param_0_opts {
+abstract class Anon_withOptions_overload_0_param_0_opts {
+  external factory Anon_withOptions_overload_0_param_0_opts({required num width, required num height});
   external num get width;
   external set width(num value);
   external num get height;
@@ -3264,16 +3849,16 @@ external void withOptions(Anon_withOptions_overload_0_param_0_opts opts);
 
 @JS()
 @anonymous
-abstract class Opts{}
-extension OptsExtension on Opts {
+abstract class Opts {
+  external factory Opts({required String a});
   external String get a;
   external set a(String value);
 }
 
 @JS()
 @anonymous
-abstract class B_Opts{}
-extension B_OptsExtension on B_Opts {
+abstract class B_Opts {
+  external factory B_Opts({required num b});
   external num get b;
   external set b(num value);
 }
@@ -3281,10 +3866,9 @@ extension B_OptsExtension on B_Opts {
 // ---------------------------------------------------------------------------
 // Type definitions
 //
-// TypeScript constructs with no Dart representation. Each one is \`dynamic\`
-// with its original spelling recorded, so the degradation is stated once and
-// every use site refers to it by name. Replacing a \`dynamic\` here upgrades
-// every use site at once.
+// TypeScript constructs with no direct Dart representation. Each one is
+// stated once, with its original spelling, and every use site refers to it
+// by name. Replacing a \`dynamic\` here upgrades every use site at once.
 // ---------------------------------------------------------------------------
 
 /// Unrepresentable in Dart: \`Box<string>["value"]\`

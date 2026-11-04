@@ -71,16 +71,32 @@ exports[`pre-S5 emitter acceptance fixture > renders the complete multi-file Dar
 library ambient;
 
 import 'package:js/js.dart';
+import 'package:js/js_util.dart' show promiseToFuture;
 
 @JS()
 @anonymous
-abstract class Remote{}
-extension RemoteExtension on Remote {
+abstract class Remote {
+  external factory Remote({required bool connected});
   external bool get connected;
 }
 
 @JS("virtual-sdk.connect")
-external Future<Remote> connect(String url);
+external Promise<Remote> connect(String url);
+// ---------------------------------------------------------------------------
+// Type definitions
+//
+// TypeScript constructs with no direct Dart representation. Each one is
+// stated once, with its original spelling, and every use site refers to it
+// by name. Replacing a \`dynamic\` here upgrades every use site at once.
+// ---------------------------------------------------------------------------
+
+/// A JavaScript \`Promise\`. Use \`toFuture()\` to await it from Dart.
+@JS("Promise")
+abstract class Promise<T> {}
+
+extension PromiseToFuture<T> on Promise<T> {
+  Future<T> toFuture() => promiseToFuture<T>(this);
+}
 ",
       "output": "ambient.dart",
       "source": "ambient.d.ts",
@@ -94,17 +110,20 @@ external Future<Remote> connect(String url);
 library augmentation;
 
 import 'package:js/js.dart';
+import 'foundation.dart' show Widget;
 
 @JS()
 @anonymous
-abstract class GlobalWidgetRegistry{}
-extension GlobalWidgetRegistryExtension on GlobalWidgetRegistry {
+abstract class GlobalWidgetRegistry {
+  external factory GlobalWidgetRegistry({required Widget? active});
   external Widget? get active;
   external set active(Widget? value);
 }
 
 @JS("globalWidgetRegistry")
-external GlobalWidgetRegistry globalWidgetRegistry;
+external GlobalWidgetRegistry get globalWidgetRegistry;
+@JS("globalWidgetRegistry")
+external set globalWidgetRegistry(GlobalWidgetRegistry value);
 ",
       "output": "augmentation.dart",
       "source": "augmentation.d.ts",
@@ -118,11 +137,14 @@ external GlobalWidgetRegistry globalWidgetRegistry;
 library consumer;
 
 import 'package:js/js.dart';
+import 'foundation.dart' show Codec, Entity, Registry, Service, Widget;
+import 'foundation.dart' as foundation;
 
+/// Imported generic and merged declarations exercise cross-file references.
 @JS()
 @anonymous
-abstract class Consumer{}
-extension ConsumerExtension on Consumer {
+abstract class Consumer implements Entity<num> {
+  external factory Consumer({required Service service, required Codec codec, required Registry<Entity<num>> registry, required Widget widget, required TypeOfWidgetConstructor create, required foundation.Options options, required num id, RecordStringUnknown metadata});
   external Service get service;
   external set service(Service value);
   external Codec get codec;
@@ -133,22 +155,22 @@ extension ConsumerExtension on Consumer {
   external set widget(Widget value);
   external TypeOfWidgetConstructor get create;
   external set create(TypeOfWidgetConstructor value);
-  external Options get options;
-  external set options(Options value);
+  external foundation.Options get options;
+  external set options(foundation.Options value);
 }
 
 @JS()
 @anonymous
-abstract class Options{}
-extension OptionsExtension on Options {
+abstract class Options {
+  external factory Options({required String alpha});
   external String get alpha;
   external set alpha(String value);
 }
 
 @JS()
 @anonymous
-abstract class Beta_Options{}
-extension Beta_OptionsExtension on Beta_Options {
+abstract class Beta_Options {
+  external factory Beta_Options({required num beta});
   external num get beta;
   external set beta(num value);
 }
@@ -159,14 +181,16 @@ external Beta_Options useOptions(Options value);
 // ---------------------------------------------------------------------------
 // Type definitions
 //
-// TypeScript constructs with no Dart representation. Each one is \`dynamic\`
-// with its original spelling recorded, so the degradation is stated once and
-// every use site refers to it by name. Replacing a \`dynamic\` here upgrades
-// every use site at once.
+// TypeScript constructs with no direct Dart representation. Each one is
+// stated once, with its original spelling, and every use site refers to it
+// by name. Replacing a \`dynamic\` here upgrades every use site at once.
 // ---------------------------------------------------------------------------
 
 /// Unrepresentable in Dart: \`typeof WidgetConstructor\`
 typedef TypeOfWidgetConstructor = dynamic;
+
+/// TypeScript host type \`Record<string, unknown>\` (lib.es5.d.ts) has no Dart mapping.
+typedef RecordStringUnknown = dynamic;
 ",
       "output": "consumer.dart",
       "source": "consumer.d.ts",
@@ -180,29 +204,31 @@ typedef TypeOfWidgetConstructor = dynamic;
 library foundation;
 
 import 'package:js/js.dart';
+import 'dart:typed_data' show Uint8List;
 
+/// A generic base with a constrained and defaulted identifier type.
 @JS()
 @anonymous
-abstract class Entity{}
-extension EntityExtension on Entity {
+abstract class Entity<TId /* extends string | number */> {
+  external factory Entity({required TId id, RecordStringUnknown metadata});
   external TId get id;
-  external Record<String, dynamic> get metadata;
-  external set metadata(Record<String, dynamic> value);
+  external RecordStringUnknown get metadata;
+  external set metadata(RecordStringUnknown value);
 }
 
+/// Reopened declarations must become one Dart-visible interface.
 @JS()
 @anonymous
-abstract class Reopened{}
-extension ReopenedExtension on Reopened {
+abstract class Reopened {
   external String get first;
   external set first(String value);
-  @JS("second")
   external bool second([num value]);
 }
 
+/// A class/interface merge must retain members from both declarations.
 @JS("Service")
 class Service {
-  external factory Service(String url);
+  external Service(String url);
   external String get url;
   external bool get mergedFlag;
   external set mergedFlag(bool value);
@@ -211,23 +237,28 @@ class Service {
 
 @JS()
 @anonymous
-abstract class WidgetOptions{}
-extension WidgetOptionsExtension on WidgetOptions {
-  external String get label;
-  external set label(String value);
+abstract class WidgetOptions {
+  external factory WidgetOptions({String? label, required List<num> size, required String mode});
+  external String? get label;
+  external set label(String? value);
   external List<num> get size;
   external set size(List<num> value);
   external String get mode;
   external set mode(String value);
 }
 
+/// Constructor-companion pattern: interface instance plus variable value.
 @JS("Widget")
-class Widget {
-  external factory Widget(String name);
+class Widget implements Entity<num> {
+  external Widget(String name);
+  external factory Widget.overload2(String name, WidgetOptions options);
   external String get name;
   external set name(String value);
   external static String get version;
   external static Widget create([WidgetOptions options]);
+  external num get id;
+  external RecordStringUnknown get metadata;
+  external set metadata(RecordStringUnknown value);
 }
 extension WidgetExtension on Widget {
   @JS("configure")
@@ -236,33 +267,31 @@ extension WidgetExtension on Widget {
   external Widget configure_2(String label, [num size]);
 }
 
+/// Same-name interface and value retain distinct type/value facets.
 @JS("Codec")
-class Codec{
+abstract class Codec {
   external static String get defaultEncoding;
-  @JS("parse")
-  external static Codec parse(Uint8Array bytes);
-}
-extension CodecExtension on Codec {
-  @JS("encode")
-  external Uint8Array encode(String value);
+  external Uint8List encode(String value);
+  external static Codec parse(Uint8List bytes);
 }
 
+/// Callable, constructable, indexable interface with accessors and overloads.
 @JS()
 @anonymous
-class Registry{
-  external factory Registry({required T value});
+abstract class Registry<T extends Entity> {
+  external T? get current;
+  external set current(T? value);
+  external bool call(T value);
 }
-extension RegistryExtension on Registry {
+extension RegistryExtension<T extends Entity> on Registry<T> {
   @JS("lookup")
   external T? lookup_1(String id);
   @JS("lookup")
   external T? lookup_2(num id);
-  external T? get current;
-  external set current(T? value);
-  external dynamic operator [](Object key);
-  external void operator []=(Object key, dynamic value);
+  external T operator [](String key);
 }
 
+/// Free-function overloads need stable Dart names and one exact JS name.
 @JS("select")
 external Widget select_1(String value);
 
@@ -271,70 +300,76 @@ external Widget select_2(num value, [bool strict]);
 
 @JS()
 @anonymous
-abstract class Options{}
-extension OptionsExtension on Options {
-  external num get retries;
-  external set retries(num value);
+abstract class Options {
+  external factory Options({num? retries});
+  external num? get retries;
+  external set retries(num? value);
 }
 
 @JS("Toolkit.create")
 external Widget create([Options options]);
 
 @JS("Toolkit.version")
-external String version;
+external String get version;
 
 @JS()
 @anonymous
-abstract class Nested_Options{}
-extension Nested_OptionsExtension on Nested_Options {
+abstract class Nested_Options {
+  external factory Nested_Options({required bool trace});
   external bool get trace;
   external set trace(bool value);
 }
 
+/// Reserved and computed JS member names require explicit Dart-safe names.
 @JS()
 @anonymous
-abstract class OddNames{}
+abstract class OddNames {
+  external bool static();
+  // Unsupported computed JavaScript member preserved in IR: [Symbol.iterator]
+}
 extension OddNamesExtension on OddNames {
   @JS("class")
   external String get JS$class;
   @JS("class")
   external set JS$class(String value);
-  @JS(""kebab-name"")
+  @JS("kebab-name")
   external num get JS$kebab_name;
-  @JS(""kebab-name"")
+  @JS("kebab-name")
   external set JS$kebab_name(num value);
-  @JS("static")
-  external bool static();
-  // Unsupported computed JavaScript member preserved in IR: [Symbol.iterator]
 }
 
+/// Enum initializers exercise implicit, numeric, string, and computed forms.
 @JS("State")
-class State{}
-@JS("State")
-extension StateEnum on State{
-  external static dynamic get Idle;
-  external static int get Ready;
-  external static String get Label;
-  external static int get Mask;
+abstract class State {
+  external static Object get Idle;
+  external static Object get Ready;
+  external static Object get Label;
+  external static Object get Mask;
 }
 
 @JS("immutableCount")
-external num immutableCount;
+external num get immutableCount;
 
 @JS("mutableLabel")
-external String mutableLabel;
+external String get mutableLabel;
+@JS("mutableLabel")
+external set mutableLabel(String value);
 
 @JS("replaceableWidget")
-external Widget replaceableWidget;
+external Widget get replaceableWidget;
+@JS("replaceableWidget")
+external set replaceableWidget(Widget value);
 
-typedef PrimitiveUnion = dynamic /* String|num */;
+/// Type forms with explicit S5 lowering policy.
+/// A JavaScript union of \`String | num\`; Dart has no union types.
+typedef PrimitiveUnion = dynamic;
 
-typedef Pair = List<dynamic>;
+typedef Pair = List<Object?>;
 
 @JS()
 @anonymous
-abstract class Anon_Combined_intersection_1{}
-extension Anon_Combined_intersection_1Extension on Anon_Combined_intersection_1 {
+abstract class Anon_Combined_intersection_1 {
+  external factory Anon_Combined_intersection_1({required bool extra});
   external bool get extra;
   external set extra(bool value);
 }
@@ -348,18 +383,18 @@ typedef Keys = dynamic;
 typedef TemplateKey = dynamic;
 
 /// Unrepresentable in Dart: \`T[keyof T]\`
-typedef ValueOf = dynamic;
+typedef ValueOf<T> = dynamic;
 
 /// Unrepresentable in Dart: \`T extends Entity ? T["id"] : never\`
-typedef Conditional = dynamic;
+typedef Conditional<T> = dynamic;
 
 /// Unrepresentable in Dart: \`{ readonly [K in keyof T]?: T[K] }\`
-typedef Mapped = dynamic;
+typedef Mapped<T> = dynamic;
 
 @JS()
 @anonymous
-abstract class Anon_withInline_overload_0_return{}
-extension Anon_withInline_overload_0_returnExtension on Anon_withInline_overload_0_return {
+abstract class Anon_withInline_overload_0_return {
+  external factory Anon_withInline_overload_0_return({required bool ok, required Widget value});
   external bool get ok;
   external set ok(bool value);
   external Widget get value;
@@ -368,16 +403,16 @@ extension Anon_withInline_overload_0_returnExtension on Anon_withInline_overload
 
 @JS()
 @anonymous
-abstract class Anon_withInline_overload_0_param_0_options_property_1_nested{}
-extension Anon_withInline_overload_0_param_0_options_property_1_nestedExtension on Anon_withInline_overload_0_param_0_options_property_1_nested {
+abstract class Anon_withInline_overload_0_param_0_options_property_1_nested {
+  external factory Anon_withInline_overload_0_param_0_options_property_1_nested({required bool enabled});
   external bool get enabled;
   external set enabled(bool value);
 }
 
 @JS()
 @anonymous
-abstract class Anon_withInline_overload_0_param_0_options{}
-extension Anon_withInline_overload_0_param_0_optionsExtension on Anon_withInline_overload_0_param_0_options {
+abstract class Anon_withInline_overload_0_param_0_options {
+  external factory Anon_withInline_overload_0_param_0_options({required num width, required Anon_withInline_overload_0_param_0_options_property_1_nested nested});
   external num get width;
   external set width(num value);
   external Anon_withInline_overload_0_param_0_options_property_1_nested get nested;
@@ -386,16 +421,27 @@ extension Anon_withInline_overload_0_param_0_optionsExtension on Anon_withInline
 
 @JS()
 @anonymous
-abstract class Anon_withInline_overload_0_param_1_equivalent{}
-extension Anon_withInline_overload_0_param_1_equivalentExtension on Anon_withInline_overload_0_param_1_equivalent {
+abstract class Anon_withInline_overload_0_param_1_equivalent {
+  external factory Anon_withInline_overload_0_param_1_equivalent({required num width, required Anon_withInline_overload_0_param_0_options_property_1_nested nested});
   external num get width;
   external set width(num value);
   external Anon_withInline_overload_0_param_0_options_property_1_nested get nested;
   external set nested(Anon_withInline_overload_0_param_0_options_property_1_nested value);
 }
 
+/// Inline structural types must be hoisted and reused deterministically.
 @JS("withInline")
 external Anon_withInline_overload_0_return withInline(Anon_withInline_overload_0_param_0_options options, Anon_withInline_overload_0_param_1_equivalent equivalent);
+// ---------------------------------------------------------------------------
+// Type definitions
+//
+// TypeScript constructs with no direct Dart representation. Each one is
+// stated once, with its original spelling, and every use site refers to it
+// by name. Replacing a \`dynamic\` here upgrades every use site at once.
+// ---------------------------------------------------------------------------
+
+/// TypeScript host type \`Record<string, unknown>\` (lib.es5.d.ts) has no Dart mapping.
+typedef RecordStringUnknown = dynamic;
 ",
       "output": "foundation.dart",
       "source": "foundation.d.ts",

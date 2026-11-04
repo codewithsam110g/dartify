@@ -13,11 +13,17 @@ type ModifierNode = ts.Node & {
 
 export function sourceLocationOf(node: ts.Node): IRSourceLocation {
   const sourceFile = node.getSourceFile();
-  const position = sourceFile.getLineAndColumnAtPos(node.getStart());
+  // The compiler's cached line-start table makes this O(log n). ts-morph's
+  // `getLineAndColumnAtPos` rescans the text from the start on every call,
+  // which made lib.dom.d.ts spend 90 s here (1-based, like ts-morph).
+  const position = ts.ts.getLineAndCharacterOfPosition(
+    sourceFile.compilerNode,
+    node.getStart(),
+  );
   return {
     file: sourceFile.getFilePath(),
-    line: position.line,
-    column: position.column,
+    line: position.line + 1,
+    column: position.character + 1,
   };
 }
 

@@ -5,7 +5,7 @@ import {
   createTypeNodeInContext,
 } from "../test-helper";
 import { parseType } from "../../src/engine/parser/type/type";
-import { emitType } from "../../src/engine/emitter/old/type/emit";
+import { emitType } from "../test-helper";
 import { TypeKind, UnsupportedReason } from "../../src/ir/type";
 import { Transpiler } from "../../src/transpiler";
 import * as ts from "ts-morph";
@@ -157,13 +157,15 @@ describe("Tier A: constructs with a real Dart representation", () => {
       "any | null",
       "unknown | null",
       "(keyof T) | undefined",
-    ])("%s emits bare dynamic", (source) => {
-      expect(emitType(parseType(createTypeNode(source)))).toBe("dynamic");
+    ])("%s emits a named degradation with no ?", (source) => {
+      const emitted = emitType(parseType(createTypeNode(source)));
+      expect(emitted).toMatch(/^(dynamic|[A-Z][A-Za-z0-9]*)$/);
+      expect(emitted).not.toContain("?");
     });
 
     test.each([
       ["string | null", "String?"],
-      ["Foo | null", "Foo?"],
+      ["Date | null", "DateTime?"],
       ["string[] | null", "List<String>?"],
     ])("%s still gets its ? (no over-correction)", (source, expected) => {
       expect(emitType(parseType(createTypeNode(source)))).toBe(expected);

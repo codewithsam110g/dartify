@@ -623,7 +623,7 @@ describe("Stage 4 transitional emission", () => {
     });
     const content = [...report.files.values()][0].content;
 
-    expect(content).toContain("abstract class JS$abstract{}");
+    expect(content).toContain("abstract class JS$abstract {");
     expect(content).toContain('@JS("while")\n  external String get JS$while;');
     expect(content).toContain(
       "// Unsupported computed JavaScript member preserved in IR: [Symbol.iterator]",
@@ -639,8 +639,10 @@ describe("Stage 4 transitional emission", () => {
     expect(content).toContain('@JS("run")\n  external JS$abstract run_2');
     expect(content).toContain('@JS("api.under_score")\nexternal JS$abstract under_score_1');
     expect(content).toContain('@JS("api.under_score")\nexternal JS$abstract under_score_2');
-    expect(content).toContain("typedef Dual = dynamic /* String|num */;");
-    expect(content).toContain('@JS("Dual")\nexternal String JS$Dual;');
+    expect(content).toContain(
+      "/// A JavaScript union of `String | num`; Dart has no union types.\ntypedef Dual = dynamic;",
+    );
+    expect(content).toContain('@JS("Dual")\nexternal String get JS$Dual;');
     expect(content).not.toContain(".split(");
   });
 
@@ -656,10 +658,10 @@ describe("Stage 4 transitional emission", () => {
     });
     const content = [...report.files.values()][0].content;
 
-    expect(content).toContain('@JS("Config")\nclass Config{');
+    // No construct signature: an uninstantiable class (E-35).
+    expect(content).toContain('@JS("Config")\nabstract class Config {');
     expect(content).toContain("external static String get version;");
     expect(content).toContain("external static Config create(String value);");
-    expect(content).toContain("extension ConfigExtension on Config");
     expect(content).toContain("external String get instance;");
   });
 

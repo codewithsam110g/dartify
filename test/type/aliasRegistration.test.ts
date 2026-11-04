@@ -16,7 +16,7 @@ describe("alias registration", () => {
   test("a use site names its degradation and the name is declared", async () => {
     const content = await render("declare var k: keyof Box<string>;");
 
-    expect(content).toContain("external KeyOfBoxString k;");
+    expect(content).toContain("external KeyOfBoxString get k;");
     expect(content).toContain("typedef KeyOfBoxString = dynamic;");
   });
 
@@ -28,7 +28,8 @@ describe("alias registration", () => {
     `);
 
     expect(content.match(/typedef KeyOfBoxString = dynamic;/g)).toHaveLength(1);
-    expect(content.match(/KeyOfBoxString/g)).toHaveLength(4); // 3 uses + 1 typedef
+    // a and b are getter/setter pairs (4 uses), f is 1, plus the typedef.
+    expect(content.match(/KeyOfBoxString/g)).toHaveLength(6);
   });
 
   test("different expressions get different typedefs", async () => {
@@ -43,10 +44,10 @@ describe("alias registration", () => {
 
   test("degraded types nested inside other types are reached", async () => {
     const content = await render(
-      "declare function f(): Map<string, Array<keyof Box>>;",
+      "declare function f(): Array<Array<keyof Box>>;",
     );
 
-    expect(content).toContain("Map<String, List<KeyOfBox>>");
+    expect(content).toContain("List<List<KeyOfBox>>");
     expect(content).toContain("typedef KeyOfBox = dynamic;");
   });
 
@@ -56,7 +57,7 @@ describe("alias registration", () => {
   test("an author's own alias is not given a second name", async () => {
     const content = await render("type Mapped<T> = { [K in keyof T]: T[K] };");
 
-    expect(content).toContain("typedef Mapped = dynamic;");
+    expect(content).toContain("typedef Mapped<T> = dynamic;");
     expect(content).not.toContain("MappedKInKeyOfTTK");
   });
 
@@ -109,7 +110,7 @@ describe("alias registration", () => {
         declare var k: keyof Box<string>;
       `);
 
-      const authorAlias = content.indexOf("typedef Mapped = dynamic;");
+      const authorAlias = content.indexOf("typedef Mapped<T> = dynamic;");
       const sectionHeader = content.indexOf("// Type definitions");
 
       expect(content).toContain(

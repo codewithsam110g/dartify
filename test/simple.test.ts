@@ -20,7 +20,7 @@ describe("transpileFromString", () => {
 
     expect(result.errors).toEqual([]);
     expect(result.content).toContain('@JS("a")');
-    expect(result.content).toContain("external num a;");
+    expect(result.content).toContain("external num get a;");
     expect(result.content).toContain("import 'package:js/js.dart';");
   });
 
@@ -58,9 +58,9 @@ declare var b: string;
 `);
 
     expect(result.content).toContain('@JS("a")');
-    expect(result.content).toContain("external num a;");
+    expect(result.content).toContain("external num get a;");
     expect(result.content).toContain('@JS("b")');
-    expect(result.content).toContain("external String b;");
+    expect(result.content).toContain("external String get b;");
   });
 
   /**
@@ -73,7 +73,7 @@ declare var b: string;
       "declare var fresh: string;",
     );
 
-    expect(second.content).toContain("external String fresh;");
+    expect(second.content).toContain("external String get fresh;");
     expect(second.content).not.toContain("leaked");
   });
 });

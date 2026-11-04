@@ -87,3 +87,24 @@ export function normalizeIRSnapshot<T>(value: T): T {
   visit(clone);
   return clone;
 }
+
+import { IRType } from "../src/ir/type";
+import { LibraryPlan } from "../src/engine/emitter/packagejs/library";
+import { ProgramIndex } from "../src/engine/emitter/packagejs/program";
+import { emitType as emitBackendType } from "../src/engine/emitter/packagejs/types";
+
+/**
+ * Emits one IR type through the package:js backend with an empty program, the
+ * way a library containing only that use site would. Support typedefs
+ * (named degradations) resolve to their allocated names.
+ */
+export function emitType(type: IRType): string {
+  const plan = new LibraryPlan("/out/test.dart");
+  const text = emitBackendType(type, {
+    plan,
+    index: new ProgramIndex(new Map(), new Map()),
+    file: "/test.d.ts",
+    scope: new Map(),
+  });
+  return plan.finish(text, []).body.split("\n")[0];
+}

@@ -1,7 +1,7 @@
 // in tests/emitter.test.ts
 
 import { describe, it, expect } from "vitest";
-import { emitType } from "../../src/engine/emitter/old/type/emit"; // Using the correct path
+import { emitType } from "../test-helper";
 import { IRType, TypeKind } from "../../src/ir/type"; // Using the correct path
 
 describe("Type Emitter", () => {
@@ -132,7 +132,10 @@ describe("Type Emitter", () => {
         returnType: { kind: TypeKind.Void, name: "void", isNullable: false },
       };
       const dartType = emitType(irType);
-      expect(dartType).toBe("void Function(List<dynamic>)"); // Common Dart pattern for rest params
+      // Polyfilled as five optional positionals (js_facade_gen §6.4, E-31).
+      expect(dartType).toBe(
+        "void Function([dynamic, dynamic, dynamic, dynamic, dynamic])",
+      );
     });
   });
 
@@ -163,7 +166,9 @@ describe("Type Emitter", () => {
         ],
       };
       const dartType = emitType(irType);
-      expect(dartType).toBe("Future<num>"); // Assuming Promise -> Future mapping
+      // No host identity on hand-built IR: an unresolved name degrades to a
+      // named typedef rather than guessing a mapping (I-15).
+      expect(dartType).toBe("Promise");
     });
 
     it("should emit a tuple type", () => {
@@ -177,7 +182,7 @@ describe("Type Emitter", () => {
         ],
       };
       const dartType = emitType(irType);
-      expect(dartType).toBe("List<dynamic>"); // Common fallback for tuples
+      expect(dartType).toBe("List<Object?>");
     });
 
     it("should fall back to dynamic for an unhoisted TypeLiteral", () => {
@@ -187,7 +192,7 @@ describe("Type Emitter", () => {
         isNullable: false,
       };
       const dartType = emitType(irType);
-      expect(dartType).toBe("dynamic");
+      expect(dartType).toMatch(/^Unrepresentable/);
     });
   });
 
@@ -205,7 +210,7 @@ describe("Type Emitter", () => {
       };
       const dartType = emitType(irType);
       // A common strategy is to fall back to a common supertype or dynamic.
-      expect(dartType).toBe("dynamic /* String|num */");
+      expect(dartType).toBe("StringOrNum");
     });
 
     it("should correctly identify a nullable union type", () => {

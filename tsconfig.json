@@ -24,7 +24,6 @@
 
       // Type system
       "@typeParser/*": ["src/engine/parser/type/*"],
-      "@typeEmitter/*": ["src/engine/emitter/old/type/*"]
     }
   },
   "include": ["src", "test", "tools"]

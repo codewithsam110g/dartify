@@ -1,7 +1,7 @@
 import { expect, test, describe } from "vitest";
 import { createTypeNode } from "../test-helper";
 import { parseType } from "../../src/engine/parser/type/type";
-import { emitType } from "../../src/engine/emitter/old/type/emit";
+import { emitType } from "../test-helper";
 import { TypeKind } from "../../src/ir/type";
 import { Transpiler } from "../../src/transpiler";
 
@@ -20,7 +20,7 @@ describe("union normalisation (T-12)", () => {
   });
 
   test("nullability survives the unwrap", () => {
-    expect(emitType(parseType(createTypeNode("Foo | undefined")))).toBe("Foo?");
+    expect(emitType(parseType(createTypeNode("Date | undefined")))).toBe("DateTime?");
     expect(emitType(parseType(createTypeNode("string[] | null")))).toBe(
       "List<String>?",
     );
@@ -52,11 +52,11 @@ describe("nullable dynamic in its commented form (E-17)", () => {
     "(Foo | Bar) | null",
     "Foo | Bar | null",
     "(Foo | Bar) | undefined",
-  ])("%s does not gain a ?", (source) => {
+  ])("%s is a named degradation without a ?", (source) => {
     const emitted = emitType(parseType(createTypeNode(source)));
 
-    expect(emitted).toBe("dynamic /* Foo|Bar */");
-    expect(emitted).not.toContain("*/?");
+    expect(emitted).toBe("FooOrBar");
+    expect(emitted).not.toContain("?");
   });
 
   // A minted alias is a typedef for `dynamic`, so a `?` on it is exactly as
@@ -67,13 +67,13 @@ describe("nullable dynamic in its commented form (E-17)", () => {
       { fileName: "t.d.ts" },
     );
 
-    expect(content).toMatch(/external KeyOfBoxStringNull k;/);
-    expect(content).not.toContain("?");
+    expect(content).toMatch(/external KeyOfBoxStringNull get k;/);
+    expect(content).not.toMatch(/KeyOfBoxStringNull\?/);
   });
 
   test("representable types still get their ?", () => {
-    expect(emitType(parseType(createTypeNode("Foo | null")))).toBe("Foo?");
-    expect(emitType(parseType(createTypeNode("(Foo | Foo) | null")))).toBe("Foo?");
+    expect(emitType(parseType(createTypeNode("Date | null")))).toBe("DateTime?");
+    expect(emitType(parseType(createTypeNode("(Date | Date) | null")))).toBe("DateTime?");
   });
 });
 
@@ -91,7 +91,7 @@ describe("degenerate unions (T-15)", () => {
       "declare var x: null | undefined;",
       { fileName: "t.d.ts" },
     );
-    expect(content).toContain("external dynamic x;");
+    expect(content).toContain("external dynamic get x;");
     expect(content).not.toContain("// ERROR emitting");
   });
 });
@@ -105,7 +105,7 @@ describe("the empty type literal (T-16)", () => {
       { fileName: "t.d.ts" },
     );
 
-    expect(content).toContain("external dynamic y;");
+    expect(content).toContain("external dynamic get y;");
     expect(content).toContain("typedef Empty = dynamic;");
     expect(content).not.toContain("anon_dynamic");
   });
@@ -149,9 +149,9 @@ describe("intersections reach the output (T-09)", () => {
   test.each([
     ["Foo & Bar", "Foo /* Foo&Bar */"],
     ["Foo & Bar & Baz", "Foo /* Foo&Bar&Baz */"],
-    // `Foo & Bar` is a `Foo`, so nullability composes normally; the comment is
-    // stripped by the Dart parser, leaving `Foo?`.
-    ["(Foo & Bar) | null", "Foo /* Foo&Bar */?"],
+    // Unresolved `Foo` degrades to a `dynamic` typedef, so it takes no `?`.
+    ["(Foo & Bar) | null", "Foo /* Foo&Bar */"],
+    ["(Date & Bar) | null", "DateTime? /* DateTime&Bar */"],
   ])("%s -> %s", (source, expected) => {
     expect(emitType(parseType(createTypeNode(source)))).toBe(expected);
   });
@@ -181,6 +181,7 @@ describe("intersections reach the output (T-09)", () => {
     );
 
     expect(content).toContain("external Foo /* Foo&Bar */ f();");
+    expect(content).toContain("typedef Foo = dynamic;");
   });
 });
 

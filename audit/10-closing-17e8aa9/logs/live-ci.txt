@@ -1,0 +1,9 @@
+# Live CI (GitHub Actions, workflow "CI", read-only via GitHub API), queried 2026-11-04
+Run 12  id 41880869035  head 17e8aa9  push  conclusion: success
+  Node 20.19.0        success  (install, tsc, test, build; coverage/incremental skipped by design)
+  Node 22.12.0        success  (same)
+  Node 24.x           success  (install, tsc, test, build, test:coverage, test:incremental)
+  Dart analyzer gate  success  (setup-dart stable, test:dart, test:e2e)
+Runs 4-11 (857c636 .. 456dec8, the earlier v1 commits): conclusion failure.
+  Consistent with X-16 (bis): the h3 golden and Dart fixtures were gitignored until 17e8aa9.
+Run 13  id 41887383913  head 4b71f87 (this audit's commit)  in_progress at query time.

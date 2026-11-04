@@ -1,0 +1,6 @@
+# dart 3.13.7; generated from fixtures/backend/{ambient,privatector}
+## dart analyze amb_only.dart priv_only.dart: No issues found!
+## dart compile js amb_only.dart (binds @JS("@scope/pkg.make")):
+Internal Error: The compiler crashed when compiling this element. ... The compiler crashed: Error in MiniJsParser
+## dart compile js priv_only.dart + node (Singleton has only a private TS constructor):
+Singleton() constructed from Dart: JSObject

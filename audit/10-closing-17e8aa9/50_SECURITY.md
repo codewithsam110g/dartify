@@ -13,7 +13,7 @@ dartify is a local developer CLI. It has no authentication, authorization, netwo
 | Check | Method | Result | Label |
 |---|---|---|---|
 | Secrets in current tree | regex scan (AWS, GitHub, npm, Slack, private keys, OpenAI/Google API key shapes, `password=` style) over `git grep HEAD`, including `def_files` | 0 hits | Verified [runtime] |
-| Secrets in history | same patterns over `git log --all -p` excluding `def_files` and the lockfile (51 revisions) | 0 hits | Verified [runtime]. `def_files` history excluded for size; the current `def_files` tree was scanned |
+| Secrets in history | same patterns over `git log --all -p` of a fresh **non-shallow** clone (the working clone is shallow): 99 commits, 22.8 MB of patches, all paths including `def_files` | 0 hits; 0 generic credential assignments | Verified [runtime], `logs/secrets-scan.txt` |
 | `.env`, `.npmrc` | listing | none | Verified |
 | Personal data | Author name in `package.json`/`LICENSE` headers (intentional attribution). Commit metadata carries author emails (2 distinct); not reproduced here | — | Noted |
 | Injection: names → `@JS` strings | `dartString` escapes `\`, `"`, `$`, control characters (E-32); reviewed every `jsAnnotation` call site | sound | Verified [static] |

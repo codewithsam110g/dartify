@@ -4,30 +4,27 @@ Correctness, edge cases, error handling, silent failures, concurrency, resource 
 
 ## Coverage table
 
-"Full" means read line by line. "Partial" lists how much was read. "Gate-only" means not read in this audit and exercised only through the executed gates and probes.
+"Full" means read line by line. The first delivery left ≈2,500 lines gate-only; after the plan was approved, they were read (second pass), so all of `src/` is now covered.
 
 | Area | Files | Lines | Read | Method |
 |---|---|---:|---|---|
-| `src/cli.ts` | 1 | 285 | Full | read + CLI probes (exit codes, `.d.mts`, bracket paths, unwritable `-o`, syntax error) |
+| `src/cli.ts` | 1 | 285 | Full | read + CLI probes (exit codes, `.d.mts`, bracket paths, unwritable `-o`, syntax error, real `-w` watcher) |
 | `src/transpiler.ts` | 1 | 837 | Full | read + gates |
-| `src/watch.ts` | 1 | 597 | Full | read + differential probes (CA-02) |
+| `src/watch.ts` | 1 | 597 | Full | read + differential probes (CA-02), `pnpm bench` |
 | `src/engine/phase/*` | 3 | 1,234 | Full | read + gates |
 | `src/engine/emitter/backend.ts` | 1 | 76 | Full | read |
-| `src/engine/emitter/packagejs/` (excl. `browserTypes.ts`) | 7 | 3,270 | Full | read + analyzer and dart2js probes |
-| `src/engine/emitter/packagejs/browserTypes.ts` | 1 | 535 | Gate-only (generated data) | structure checked through `platformMapping()` callers |
-| `src/engine/semantic/{keywords,names,run,merge}.ts` | 4 | 1,506 | Full | read + probes |
-| `src/engine/semantic/{shape,types}.ts` | 2 | 131 | Gate-only | — |
+| `src/engine/emitter/packagejs/` (excl. data) | 7 | 3,270 | Full | read + analyzer and dart2js probes |
+| `src/engine/emitter/packagejs/browserTypes.ts` | 1 | 535 | Header and structure read; entries validated programmatically (500, no cross-library duplicates) | generated data; generator missing (CA-29) |
+| `src/engine/semantic/*` | 6 | 1,637 | Full | read + probes |
 | `src/engine/alias/*` | 3 | 450 | Full | read |
 | `src/symbol/*` | 6 | 640 | Full | read + cycle probe (CA-13) |
 | `src/resolution/*` | 3 | 157 | Full | read |
-| `src/reporting/linker.ts` | 1 | 144 | Partial (60) | read |
-| `src/engine/parser/` class, interface, typeRefernce, literals | 4 | 634 | Full | read + bigint probe (CA-09) |
-| `src/engine/parser/type/type.ts`, `signature.ts` | 2 | 425 | Partial (~360) | read |
-| `src/engine/parser/` remaining 20 files | 20 | ~1,106 | Gate-only | exercised by the S3 census (2,530 declarations), stress (1,661 files), snapshots |
-| `src/ir/*` | 13 | 579 | Gate-only | type definitions; behaviour exercised everywhere |
-| **`src/` total** | **73** | **12,606** | **≈10,100 lines (≈80%) read; ≈2,500 gate-only** | |
-| `test/` | 54 | 5,604 | Partial: dart gate, conformance (4 files), stress, watch-differential header, e2e listing | assertion strength reviewed for the release gates |
-| `tools/` | 4 | 354 | `ir.ts` full; `graph.ts`/`bench.ts` imports only | reachability |
+| `src/reporting/linker.ts` | 1 | 144 | Full | read |
+| `src/engine/parser/**` | 26 | 2,165 | Full (second pass covered the remaining 20 files) | read + bigint, anonymous-collision and `this` probes (CA-09, CA-25, CA-26) |
+| `src/ir/*` | 13 | 579 | Full (second pass) | read |
+| **`src/` total** | **73** | **12,606** | **12,071 lines read line by line; 535-line data table validated programmatically** | |
+| `test/**` (40 `.ts` files, 5,604 lines) | 40 | 5,604 | Every file: assertion census (tests, `expect` count, snapshot-only and weak assertions). Release gates and the isolation, watch, diagnostics, module-export, host-identity and decl-emitter tests read in full. Remaining unit tests reviewed by test name and assertion list | see "Test meaningfulness" below |
+| `tools/` | 4 | 354 | `ir.ts` full; `graph.ts`/`bench.ts` imports and usage; `bench.ts` executed | reachability + run |
 
 ## Executed checks
 
@@ -54,6 +51,9 @@ An independent CLI generation of h3, Leaflet and three.js (`--js-root THREE`), 4
 | CA-15 | low | Watch root computed by string prefix |
 | CA-16 | low | Private-only constructors leave Dart's implicit constructor |
 | CA-23 | low | P-18, E-44 diagnostic and E-20 have no regression test |
+| CA-25 | medium | Distinct inline types hoist to the same anonymous FQN and merge into one wrong shape |
+| CA-26 | low | `this` in generic classes emitted raw; rationale stale; a test locks it |
+| CA-28 | low | e2e oracle `expected.cjs` never executed |
 
 ## Areas examined and found correct (falsification record)
 
@@ -74,3 +74,15 @@ An independent CLI generation of h3, Leaflet and three.js (`--js-root THREE`), 4
 - `ResolutionRun.moduleFallbacks` accumulates across watch rebuilds (never cleared). `buildResolutionReport` deduplicates, but a fallback that stops applying stays reported. The differential suite does not compare `ResolutionReport`. Observation only; not reproduced.
 - `pruneUnreachable` relies on TypeScript compiler internals (`getResolvedModuleFromModuleSpecifier`, `getSourceFileFromReference`, …) cast onto the public `Program` type. With `ts-morph ^28` on a caret range, a TypeScript upgrade that renames them would surface as `UNEXPECTED_ERROR`. This is an upgrade risk to watch in CI, not a current defect.
 - `resolveReference`'s syntax fallbacks scan every table key per unresolved reference (O(references × symbols)). This only affects checker-failed references and is fast on the corpus.
+
+## Test meaningfulness (second pass)
+
+| Observation | Evidence |
+|---|---|
+| Release-relevant tests assert exact output, with negative checks (`not.toContain`), not merely "no throw" | `decl-emitter.test.ts` (52 expects), `semantic.test.ts` (118), `run-isolation.test.ts` (21), `watch.test.ts` (17), `generation-diagnostics.test.ts` (8) |
+| Snapshot-only files | `type/type-parser.test.ts` (21 snapshots), `decl/decl-parser.test.ts` (7), `smoke.test.ts` (3 byte-exact files). Acceptable as IR/format locks; snapshots are not reviewed for correctness by the tests themselves |
+| Weak assertions | 14 sites in total (`toBeGreaterThan(0)`, `toBeDefined`), mostly the S3 census (`decl/corpus.test.ts:131-140`), where the exact protected floor `inputDeclarations === 2_530` carries the real assertion |
+| Tests that lock questionable behaviour | `tier-a.test.ts` "drops type arguments on a generic owner" (CA-26) |
+| Paths with no test | barrel re-export forms (CA-03; `module-exports.test.ts` checks only IR records), P-18, E-44 diagnostic, E-20 (CA-23), module-file `declare global` in watch mode (CA-02) |
+| Oracle integrity | e2e compares with a committed `main.expected` and never runs `expected.cjs` (CA-28; consistent today) |
+| Opt-in gates | dart, e2e, stress, S2, S3 and incremental are skipped in `pnpm test`; CI runs dart, e2e and incremental, but not stress, S2 or S3 |

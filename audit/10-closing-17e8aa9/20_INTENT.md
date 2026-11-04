@@ -26,11 +26,15 @@ Documented promises (README, ROADMAP, CHANGELOG, PLAN, CLAUDE.md, code comments)
 | 18 | `tsc --noEmit` 0 errors; `pnpm build` succeeds | yes | Verified correct | [runtime] |
 | 19 | Process-global state removed; `context.ts`/`reset.ts` deleted (4.11) | files absent; `test/run-isolation.test.ts` passes | Verified correct | [static + runtime] |
 | 20 | Instruments outside the bundle (D-07) | 0 Viz/graphology matches in `dist`; `npm pack` ships 6 files | Verified correct | [runtime] |
-| 21 | Node floor `^20.19.0 \|\| ^22.12.0 \|\| >=23` (X-15) | Declared; CI matrix covers 20.19.0/22.12.0/24.x | Unverified locally (only Node 22 available) | [static] |
-| 22 | Watch rebuild h3 ~35 ms, Leaflet ≤ 94 ms, three.js ~53 ms | not measured | Unverified | `pnpm bench` not run (time budget) |
+| 21 | Node floor `^20.19.0 \|\| ^22.12.0 \|\| >=23` (X-15) | Node 20.19.0 and 24.22.2 (downloaded to the scratchpad): `tsc` 0, 299 passed / 10 skipped, build OK, built CLI generates h3. Live CI run 12 for `17e8aa9`: Node 20.19.0, 22.12.0, 24.x and the Dart gate all success | Verified correct | `logs/node-matrix.txt`, `logs/live-ci.txt` [runtime + live] |
+| 22 | Watch rebuild h3 ~35 ms, Leaflet ≤ 94 ms, three.js ~53 ms; "under 100 ms" | h3 37 ms; Leaflet leaf 132 ms / core 57 ms; three.js leaf 57 ms / core 731 ms; 40 builds verified byte-for-byte | Incorrect (partly) | CA-27, `logs/bench.txt` [runtime] |
 | 23 | "Drop-in replacement: swap the tool, rerun the command" (README, ROADMAP) | Output parity is demonstrated (h3 golden, conformance). CLI invocation compatibility with js_facade_gen is neither documented nor verifiable offline | Unverified | follow-up F-3 |
 | 24 | Private members (`JS$_x` style) | Emitted, as js_facade_gen §2.13/§2.14 do | Verified correct (parity) | falsified suspicion [runtime] |
 | 25 | Registry: "never renumber or delete an ID" (CLAUDE.md) | `X-16` used twice | Incorrect | CA-22 [static] |
+| 26 | `browserTypes.ts` is generated; "regenerate and re-validate rather than hand-edit" (CLAUDE.md) | No generator or validator is committed; the table is internally consistent (500 entries, no duplicates) | Incorrect | CA-29 [static + runtime] |
+| 27 | e2e oracle "computed by `expected.cjs`, never depends on dartify" | True today (all three reproduce `main.expected`), but the suite never runs `expected.cjs` | Incomplete | CA-28 [runtime] |
+| 28 | `thisType.ts`: generic arguments dropped "because type parameters are not emitted yet (E-03)" | E-03 is fixed; the rationale is stale and a test locks the old behaviour | Incorrect | CA-26 [runtime] |
+| 29 | Every CI run is green for the shipped work | Run 12 (`17e8aa9`) success; runs 4–11 (earlier v1 commits) failed, consistent with the X-16 (bis) gitignore defect fixed at `17e8aa9` | Verified for the audited commit | `logs/live-ci.txt` [live] |
 
 ## Data handling
 

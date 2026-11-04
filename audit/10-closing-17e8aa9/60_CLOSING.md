@@ -40,7 +40,14 @@ Scope: every finding `audit/FINDINGS.md` marks fixed in the v1 window (pre-S5 ba
 | E-44 | `--js-root`; `NATIVE_NAME_CONFLICT` diagnostic | ✅ diagnostic reproduced [runtime] | e2e covers `--js-root`; ❌ diagnostic untested | ✅ | CA-23 |
 | R-16 | Prune unreachable files in watch | ✅ | watch-differential ✅ | ✅ | |
 | R-05 | stdlib files not materialised | ✅ `transpiler.ts:624-629` [static] | — | ✅ | perf claim unverified |
-| W-01 | Watch output equals cold build | ✅ for the 38 scripted edits | `test:incremental` ✅ 5/5 | ❌ **Incomplete** | CA-02 |
+| W-01 | Watch output equals cold build | ✅ for the 38 scripted edits; `pnpm bench` verified 40 more builds byte-for-byte | `test:incremental` ✅ 5/5 | ❌ **Incomplete** | CA-02; latency claims partly not reproduced (CA-27) |
+| E-03 (S5, generics) | Type parameters on every declaration | ✅ | decl-emitter ✅ | ⚠️ residual | `this` in a generic owner is still emitted raw on a stale "E-03 not yet" rationale (CA-26) |
+
+### Earlier fix found incomplete during the second pass
+
+| ID | Claim | Finding |
+|---|---|---|
+| P-13 / P-14 (S4) | Anonymous hoisted identities never collide; distinct siblings do not collapse | Sibling positions are fixed, but hoisted FQNs are derived by **stripping** characters from the scope path, so `A` and `A$` (or names differing only in non-ASCII letters) collide and their inline types are merged into one wrong shape (CA-25, medium). The defect class "lossy identity for anonymous types" is not closed |
 
 ## Fixes registered as open, or accepted
 
@@ -61,7 +68,7 @@ Scope: every finding `audit/FINDINGS.md` marks fixed in the v1 window (pre-S5 ba
 | R-07 version from package.json | `--version` → `1.0.0` | holds |
 | Output path containment (R-03) | reasoning + collision check | holds |
 
-No previously fixed behaviour was found regressed. Three fixes are incomplete for their defect class: P-17, E-32 and W-01.
+No previously fixed behaviour was found regressed in the gated corpora. Fixes incomplete for their defect class: P-17 (CA-03), E-32 (CA-11), W-01 (CA-02) and the P-13/P-14 anonymous-identity class (CA-25).
 
 ## Probe for untested fixes
 

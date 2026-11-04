@@ -1,0 +1,12 @@
+## node v20.19.0
+tsc rc=0
+test rc=0       Tests  299 passed | 10 skipped (309)
+build rc=0
+dist cli h3 rc=0 Completed in 535ms
+## node v24.22.2
+tsc rc=0
+test rc=0       Tests  299 passed | 10 skipped (309)
+build rc=0
+dist cli h3 rc=0 Completed in 462ms
+## bench (node v22.23.4) rc=0
+DONE

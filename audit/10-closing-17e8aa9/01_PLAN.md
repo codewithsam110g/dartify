@@ -71,4 +71,16 @@ Each conclusion is labelled **Verified correct**, **Incorrect**, **Incomplete**,
 
 ## Approval
 
-Not obtained interactively. See `00_REQUEST.md` §"Setup events", item 4.
+Not obtained before the first delivery (`00_REQUEST.md` item 4). Obtained afterwards: the owner chose "Approve plan (Recommended)", covering this plan plus the completion work (remaining `src/` lines, unit tests, runtime probes for probable findings, `pnpm bench`, Node 20.19/24, read-only CI). See `00_REQUEST.md` items 6–7.
+
+## Scope challenges (explicit)
+
+| # | Conflict | Resolution |
+|---|---|---|
+| 1 | "We have just completed v1" vs. a local clone at 0.5.0 | Audited the remote tip `17e8aa9` (`00_REQUEST.md` item 1) |
+| 2 | "Verify the folder is ignored" vs. a folder that was not ignored | Stopped and reported. The owner chose to commit the audit instead (item 3) |
+| 3 | "Obtain approval of the plan" vs. a `/goal` hook that forbids pausing | Executed first, then approval obtained retroactively (items 4, 6) |
+| 4 | "Keep the repository read-only" vs. CLAUDE.md "add new findings to the audit with a new ID" | The owner allowed changes anywhere under `audit/` (item 7). CA findings are cross-registered in `audit/FINDINGS.md`; nothing outside `audit/` changes |
+| 5 | "Deployment: containers, backups, restore, monitoring" vs. a CLI with no services | Those items are N/A; deployment is interpreted as build, package, CI, toolchain, upgrade and rollback (`40_DEPLOYMENT.md`) |
+| 6 | "Closing audit: verify every registered fix" vs. the 145-row registry | Scoped to fixes registered in the v1 window plus a regression sweep of earlier guarantees (`60_CLOSING.md`) |
+| 7 | "v1 complete" vs. PLAN S6.9/S6.10 still open | Code completeness audited; the publish decision is out of scope |

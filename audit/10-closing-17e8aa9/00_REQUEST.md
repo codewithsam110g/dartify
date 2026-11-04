@@ -90,3 +90,9 @@ This was not a context-free audit. These sources influenced it:
 ## Delivery (appended at completion)
 
 5. **Commit and push.** The folder is committed to `refactor/orchestration` on top of `17e8aa9`, as the owner requested. The tracked `.gitignore` ignores `**/*.dart` outside `def_files/` and `test/`. It also ignores every `logs/` directory. The hand-written reproducer `fixtures/runtime-date/main.dart` and the evidence files under `logs/` are therefore added with `git add -f` instead of changing `.gitignore`. No tracked file outside this folder was modified.
+
+## Owner decisions after the first delivery (appended)
+
+6. **Plan approval (owner answer, verbatim choice):** "Approve plan (Recommended)". This retroactively approves `01_PLAN.md`, plus the completion work: reading the remaining gate-only `src/` lines and the unit tests, runtime probes for findings labelled probable, `pnpm bench`, Node 20.19/24 runs, and a read-only CI check.
+7. **Registry scope (owner answer, verbatim):** "update the audit dir only as you see fit, the audit skill set had to be adhoc adapted for this run". This resolves the scope challenge between the request's read-only rule and CLAUDE.md's maintenance contract. Changes are allowed anywhere under `audit/`, including registering the CA findings in `audit/FINDINGS.md`. Nothing outside `audit/` is modified.
+8. **Second delivery.** The completion work was committed to the audit folder, and the CA findings were cross-registered in `audit/FINDINGS.md` (new section, no existing row changed) with an index line in `audit/README.md`, in a separate commit. New evidence under `logs/` is again force-added past the tracked `.gitignore`.

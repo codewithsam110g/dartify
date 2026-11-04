@@ -1,0 +1,17 @@
+> dart_bindgen@1.0.0 bench /home/user/dartify
+> tsx tools/bench.ts
+h3 — 1 libraries
+  cold build          591 ms  (resolve 367.1, generate 200.8, link 3.7, render 16.7, write 2.6)
+  no change           2.5 ms  (resolve 1.9, generate 0, link 0.3, render 0.3, write 0)
+  leaf edit          37.3 ms  (resolve 14.3, generate 19.5, link 0.8, render 2.6, write 0)  [1 file(s) rebuilt: h3.d.ts]
+leaflet — 2 libraries
+  cold build          592 ms  (resolve 275.9, generate 209.8, link 16.2, render 87.9, write 2.1)
+  no change           6.8 ms  (resolve 1.6, generate 0, link 4.2, render 0.7, write 0.2)
+  leaf edit         132.3 ms  (resolve 29.5, generate 32.2, link 13.8, render 55, write 1.7)  [1 file(s) rebuilt: leaflet.d.ts]
+  core edit          57.4 ms  (resolve 4.3, generate 3.3, link 4.9, render 43.4, write 1.5)  [1 file(s) rebuilt: geojson.d.ts]
+three.js — 421 libraries
+  cold build       2707.2 ms  (resolve 625.6, generate 1181.4, link 81.5, render 732.8, write 85.9)
+  no change          44.2 ms  (resolve 10, generate 0.7, link 23.9, render 8, write 1.6)
+  leaf edit          57.4 ms  (resolve 17.4, generate 1.8, link 18.1, render 17.9, write 2.3)  [1 file(s) rebuilt: src/helpers/AxesHelper.d.ts]
+  core edit         730.9 ms  (resolve 19.3, generate 2.1, link 19.2, render 686.6, write 3.8)  [1 file(s) rebuilt: src/math/Vector3.d.ts]
+40 incremental builds verified byte-for-byte against cold compilations.

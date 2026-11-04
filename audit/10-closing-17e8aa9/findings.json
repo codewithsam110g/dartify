@@ -17,7 +17,9 @@
       "falsification": "Checked whether js_facade_gen's reference cases or the repo's runtime/e2e probes cover Date (they do not), and whether package:js converts DateTime (it does not; dart2js run throws). The finding stands.",
       "consequence": "Any binding that returns or accepts a Date compiles and analyzes cleanly but throws when used. Corpus: 13 occurrences in 5 files, including Leaflet `TileEvent.loaded?: Date` (a gated library).",
       "remediation": "Lower `Date` to a named, documented interop type (for example a `@JS('Date')` class or a named dynamic typedef) rather than `DateTime`, and add a dart2js runtime probe case for Date in def_files/synthetic/runtime.",
-      "related": ["CA-23"],
+      "related": [
+        "CA-23"
+      ],
       "rootCause": "RC-1 host-type mapping chosen without a runtime probe"
     },
     {
@@ -33,7 +35,9 @@
       "falsification": "Re-ran the documented differential suite (pnpm test:incremental: 5/5 pass) and two neighbouring scenarios (typeof const and alias change across an import), which do match. Only the non-import global-visibility path diverges.",
       "consequence": "During a watch session, consumers of globals declared in module files keep degraded or stale bindings (dynamic instead of the real class, or missing imports) until they are edited or the session restarts; -lv link reports are wrong.",
       "remediation": "Treat files containing `declare global` (or any globally visible declaration) like script files for invalidation, or track dependents through resolved checker targets as well as imports. Add the two scenarios to test/watch-differential.test.ts.",
-      "related": ["CA-07"],
+      "related": [
+        "CA-07"
+      ],
       "rootCause": "RC-2 global visibility not modelled across files"
     },
     {
@@ -49,7 +53,9 @@
       "falsification": "Confirmed that `export * from` and `export { A } from` (same name) work, as the docs claim; only the three listed forms fail.",
       "consequence": "Consumers importing a barrel get missing libraries or different names than the TypeScript API, with exit code 0 and no warning.",
       "remediation": "Resolve specifier-less named exports through the checker's alias target; emit a typedef or diagnostic for renamed exports (Dart cannot rename on export); emit a MODULE_EXPORT_UNSUPPORTED diagnostic for namespace re-exports.",
-      "related": ["CA-08"],
+      "related": [
+        "CA-08"
+      ],
       "rootCause": "RC-3 module-export linking keyed by file-local terminal names"
     },
     {
@@ -65,7 +71,9 @@
       "falsification": "A compatible override (`toString(precision?: number)`, as in Leaflet's LatLng) is valid Dart and analyzes cleanly; the defect needs a non-optional parameter or an incompatible property type, which valid TypeScript permits (e.g. bignum `toString(base)`).",
       "consequence": "Libraries declaring such members fail the v1 acceptance criterion with hard analyzer errors.",
       "remediation": "Treat Object members as reserved in member allocation unless the emitted signature is a valid override: rename to `JS$toString` etc. with `@JS('toString')` through the extension path already used for renamed members.",
-      "related": ["CA-05"],
+      "related": [
+        "CA-05"
+      ],
       "rootCause": "RC-4 member identifier legality ignores Dart class-member constraints"
     },
     {
@@ -81,23 +89,27 @@
       "falsification": "None of the gated corpora contain this shape (they analyze clean); the defect is real for valid TypeScript input.",
       "consequence": "Uncompilable library for inputs that use this (rare) pattern.",
       "remediation": "Reserve the owner's Dart name during member allocation and route the renamed member through the extension with `@JS('<name>')`.",
-      "related": ["CA-04"],
+      "related": [
+        "CA-04"
+      ],
       "rootCause": "RC-4 member identifier legality ignores Dart class-member constraints"
     },
     {
       "id": "CA-06",
-      "title": "Ambient external modules bind `@JS(\"<module specifier>.<name>\")`, a runtime-unresolvable path for most specifiers",
+      "title": "Ambient external modules bind `@JS(\"<module specifier>.<name>\")`; non-identifier specifiers crash dart2js",
       "severity": "medium",
-      "confidence": "probable",
+      "confidence": "confirmed",
       "category": "implementation",
       "location": "src/engine/emitter/packagejs/declarations.ts:90-102 (jsPath, externalModule scope -> scope.specifier); commit 17e8aa9",
       "violatedIntent": "Design principle 1; README 'Correct runtime dispatch'",
-      "evidence": "`declare module \"@scope/pkg\" { export class Widget ... }` in a script file emits `@JS(\"@scope/pkg.Widget\")`. dart2js resolves dotted @JS paths from the global object, so `globalThis['@scope/pkg']` is read, which no loader defines. `--js-root` does not apply (fileIsModule is false). No diagnostic. h3 works only because its specifier `h3` equals its browser global.",
-      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/ambient/ambient.d.ts (logs/backend-probes.txt shows the emitted @JS paths)",
-      "falsification": "Checked h3 (specifier equals the global, e2e passes) and module augmentations (suppressed with a diagnostic). Runtime failure for non-identifier specifiers is by reasoning from dart2js @JS path semantics; not executed.",
-      "consequence": "Analyzer-clean bindings that throw at first use for ambient modules named like npm packages with scopes, slashes or dashes.",
+      "evidence": "`declare module \"@scope/pkg\" { export class Widget ... export function make() }` in a script file emits `@JS(\"@scope/pkg.make\")`. `dart analyze` reports 'No issues found!', but `dart compile js` of a program calling `make()` crashes the compiler ('Internal Error: The compiler crashed ... Error in MiniJsParser'). `--js-root` does not apply (fileIsModule is false) and there is no diagnostic. h3 works only because its specifier `h3` is also its browser global.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/runtime-ambient/{amb_only.dart,observed.txt} (bindings generated from fixtures/backend/ambient/ambient.d.ts)",
+      "falsification": "Checked h3 (specifier equals the global; e2e passes) and module augmentations (suppressed with a diagnostic). Executed dart2js 3.13.7: the compiler crashes on the generated binding, so the failure is confirmed, and it is a build-time crash rather than the runtime failure first predicted.",
+      "consequence": "Analyzer-clean bindings that make dart2js crash for any program using them, for ambient modules named like scoped or slashed npm packages. The v1 acceptance test (dart analyze) passes while the code cannot be compiled.",
       "remediation": "Emit a diagnostic when a specifier is not a JS identifier path, and allow `--js-root` (or a per-module root option) to supply the global for ambient modules.",
-      "related": ["CA-01"],
+      "related": [
+        "CA-01"
+      ],
       "rootCause": "RC-1 runtime binding decisions without a runtime probe"
     },
     {
@@ -113,7 +125,10 @@
       "falsification": "Checked STAGE4_PLAN's merge matrix: it is per-FQN and never states that cross-file global merging is unsupported. Same-file merging works.",
       "consequence": "Common DefinitelyTyped patterns (global interfaces augmented in several files, e.g. Window/JQuery plugins) lose typing and members are split across libraries.",
       "remediation": "Merge globally visible declarations across files into one canonical symbol (or document the limitation and emit a diagnostic at default verbosity).",
-      "related": ["CA-02", "CA-08"],
+      "related": [
+        "CA-02",
+        "CA-08"
+      ],
       "rootCause": "RC-2 global visibility not modelled across files"
     },
     {
@@ -129,7 +144,10 @@
       "falsification": "Degradations are still named and documented inside the generated file, so the output itself is not silent; only the console summary is.",
       "consequence": "Users and CI scripts see a clean run while some types degraded to dynamic.",
       "remediation": "Always print the broken-symbol count (and ambiguous edge count) with a pointer to -lv.",
-      "related": ["CA-03", "CA-07"],
+      "related": [
+        "CA-03",
+        "CA-07"
+      ],
       "rootCause": "RC-5 console summary covers module resolution only"
     },
     {
@@ -161,7 +179,9 @@
       "falsification": "The TypeScript parser's recovery happened to keep the member here; other malformed inputs can lose declarations without notice.",
       "consequence": "Typos in hand-written declaration files go unnoticed.",
       "remediation": "Report syntactic diagnostics of input files in AnalysisReport and print them in the CLI.",
-      "related": ["CA-08"],
+      "related": [
+        "CA-08"
+      ],
       "rootCause": "RC-5 console summary coverage"
     },
     {
@@ -193,7 +213,9 @@
       "falsification": "Input needs deliberate private-use characters; in a library with imports the same sequence can add a name to an import's `show` list.",
       "consequence": "Crafted or corrupted input can alter generated code or documentation; integrity issue, not code execution.",
       "remediation": "Escape or strip these code points from copied text before emission, or use placeholder tokens that cannot occur in input.",
-      "related": ["CA-11"],
+      "related": [
+        "CA-11"
+      ],
       "rootCause": "RC-7 emitted strings outside the central escaper"
     },
     {
@@ -209,7 +231,9 @@
       "falsification": "Emission does not read LinkResult, so generated Dart is unaffected.",
       "consequence": "-lv reports and the dependency graph (red nodes) under-count broken symbols.",
       "remediation": "Compute states over strongly connected components, or do not cache provisional results produced while a cycle member is in progress.",
-      "related": ["CA-08"],
+      "related": [
+        "CA-08"
+      ],
       "rootCause": "RC-5 reporting accuracy"
     },
     {
@@ -232,29 +256,31 @@
       "id": "CA-15",
       "title": "Watch mode computes its root directory by string prefix, not by path segment",
       "severity": "low",
-      "confidence": "probable",
+      "confidence": "confirmed",
       "category": "implementation",
       "location": "src/cli.ts:256-260; commit 17e8aa9",
       "violatedIntent": "Watch mode rebuilds whenever an input changes",
-      "evidence": "reduce() keeps `common` while `directory.startsWith(common)`. For inputs in /p/types and /p/types2 the root stays /p/types, so changes under /p/types2 are never observed.",
-      "reproduction": "Reasoning from the code path; not executed (requires an interactive watcher).",
-      "falsification": "Inputs under one directory, or directories without a shared string prefix, are unaffected.",
+      "evidence": "reduce() keeps `common` while `directory.startsWith(common)`. With inputs in <tmp>/types and <tmp>/types2 the CLI printed 'Watching .../types'; editing types2/b.d.ts caused 0 rebuilds, editing types/a.d.ts caused 1.",
+      "reproduction": "node audit/10-closing-17e8aa9/fixtures/watch-root-prefix.cjs (logs/watch-root-prefix.log)",
+      "falsification": "Executed with a real `dartify -w` process; inputs under a single directory are unaffected.",
       "consequence": "Some inputs are silently not watched.",
       "remediation": "Reuse resolvedInputRoot() (segment-wise) from transpiler.ts.",
-      "related": ["CA-02"],
+      "related": [
+        "CA-02"
+      ],
       "rootCause": "RC-8 CLI input handling"
     },
     {
       "id": "CA-16",
       "title": "A class whose constructors are all private/protected gets Dart's implicit public constructor",
       "severity": "low",
-      "confidence": "probable",
+      "confidence": "confirmed",
       "category": "implementation",
       "location": "src/engine/emitter/packagejs/declarations.ts:1031-1036 (emitClass constructor selection); commit 17e8aa9",
       "violatedIntent": "E-35 intent (no implicit construction of non-constructable runtime types)",
-      "evidence": "inheritedConstructors() filters private constructors; because declaration.constructors is non-empty, no external constructor is written either, so Dart supplies an implicit `Singleton()`.",
-      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/privatector/privatector.d.ts",
-      "falsification": "Analyzer is clean; dart2js behaviour of calling the implicit constructor on an @JS class was not executed.",
+      "evidence": "inheritedConstructors() filters private constructors; because declaration.constructors is non-empty, no external constructor is written either, so Dart supplies an implicit `Singleton()`. dart2js program calling `Singleton()` compiles and prints 'Singleton() constructed from Dart: JSObject'.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/runtime-ambient/{priv_only.dart,probe.js,observed.txt}; input fixtures/backend/privatector/privatector.d.ts",
+      "falsification": "Analyzer is clean; dart2js executed and the construction succeeded, which TypeScript forbids.",
       "consequence": "Dart code can call a constructor TypeScript forbids.",
       "remediation": "Emit an unreachable private Dart constructor (`external Name._();`) or make the class abstract when no public constructor exists.",
       "related": [],
@@ -264,16 +290,18 @@
       "id": "CA-17",
       "title": "CI installs Dart `stable` while the analyzer baseline is an exact census for Dart 3.13",
       "severity": "low",
-      "confidence": "probable",
+      "confidence": "confirmed",
       "category": "deployment",
       "location": ".github/workflows/ci.yml:41-43; test/dart/baseline.json:2; commit 17e8aa9",
       "violatedIntent": "Reproducible acceptance gate (X-09, S6.2)",
-      "evidence": "baseline.json says 'Dart SDK 3.13'; the gate fails on any changed count or category. setup-dart `sdk: stable` follows new releases.",
-      "reproduction": "Reasoning; the gate passed with 3.13.7 in this audit.",
-      "falsification": "Today stable is 3.13.7 and the gate passes.",
+      "evidence": "baseline.json says 'Dart SDK 3.13'; the gate fails on any changed count or category. setup-dart `sdk: stable` follows new releases. The configuration mismatch is a fact; its impact was not reproduced: `pnpm test:dart` also passes unchanged under Dart 3.14.0-315.3.beta and 3.15.0-106.0.dev.",
+      "reproduction": "PATH=<dart-3.14-beta>/bin:$PATH pnpm test:dart (2/2 pass); same for 3.15 dev",
+      "falsification": "Attempted: the next two SDK lines do not change the census. The risk remains for future lints/deprecations, but nothing is broken today.",
       "consequence": "A new Dart release (new deprecations or lints) turns CI red without a code change, or changes what the gate certifies.",
       "remediation": "Pin the SDK in CI to the baseline's version and bump both together.",
-      "related": ["CA-18"],
+      "related": [
+        "CA-18"
+      ],
       "rootCause": "RC-9 CI pinning"
     },
     {
@@ -289,7 +317,9 @@
       "falsification": "The workflow publishes nothing and has no secrets, which limits impact; the token's default scope depends on repository settings (not verifiable from the tree).",
       "consequence": "A compromised action tag would run with the job's token.",
       "remediation": "Pin actions by commit SHA and set `permissions: contents: read`.",
-      "related": ["CA-17"],
+      "related": [
+        "CA-17"
+      ],
       "rootCause": "RC-9 CI pinning"
     },
     {
@@ -305,7 +335,9 @@
       "falsification": "None ship in the npm package (dev-only); exposure needs the UI server listening or attacker-controlled worker options.",
       "consequence": "Contributors running the documented UI command expose local files to a malicious web page or network peer while it runs.",
       "remediation": "Upgrade vitest/@vitest/* to >=3.2.6 (and tinypool) and re-run the gates.",
-      "related": ["CA-20"],
+      "related": [
+        "CA-20"
+      ],
       "rootCause": "RC-10 dependency currency"
     },
     {
@@ -321,7 +353,9 @@
       "falsification": "Glob patterns come from the user running the CLI, so the DoS is self-inflicted; the published package ships no lockfile, so npm installs resolve patched versions where ranges allow.",
       "consequence": "Low for end users; the repository's own CI and dev environment run the pinned vulnerable versions.",
       "remediation": "Refresh the lockfile (`pnpm update`) and re-run the gates.",
-      "related": ["CA-19"],
+      "related": [
+        "CA-19"
+      ],
       "rootCause": "RC-10 dependency currency"
     },
     {
@@ -337,7 +371,9 @@
       "falsification": "All gates pass; only the recorded numbers are stale.",
       "consequence": "Readers cannot tell a regression from drift; the 'exact' numbers in CLAUDE.md are not exact.",
       "remediation": "Re-measure and update the numbers in one commit; consider generating them from gate output.",
-      "related": ["CA-22"],
+      "related": [
+        "CA-22"
+      ],
       "rootCause": "RC-11 manually maintained metrics"
     },
     {
@@ -353,7 +389,9 @@
       "falsification": "Not applicable (documentation fact).",
       "consequence": "Commit messages and CHANGELOG references to X-16 are ambiguous.",
       "remediation": "Give the .gitignore finding a new ID (keep X-16 for coverage) and refresh stale locations.",
-      "related": ["CA-21"],
+      "related": [
+        "CA-21"
+      ],
       "rootCause": "RC-11 manually maintained registry"
     },
     {
@@ -369,7 +407,9 @@
       "falsification": "Snapshots might cover them indirectly: the P-18 and E-44 shapes do not occur in the snapshot inputs; the E-20 TS abstract class does not either.",
       "consequence": "Regressions in these paths would pass the suite.",
       "remediation": "Add focused cases to test/decl/decl-emitter.test.ts.",
-      "related": ["CA-01"],
+      "related": [
+        "CA-01"
+      ],
       "rootCause": "RC-12 coverage of registered fixes"
     },
     {
@@ -387,6 +427,96 @@
       "remediation": "Add a 'Breaking changes since 0.5.0' section and a release/rollback checklist (npm dist-tag `next`, deprecate).",
       "related": [],
       "rootCause": "RC-13 release documentation"
+    },
+    {
+      "id": "CA-25",
+      "title": "Distinct inline object types can hoist to the same anonymous FQN and be merged into one wrong shape",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/engine/parser/type/typeLiterals.ts (anonymous name from scopeFQN with non-[A-Za-z0-9_] characters stripped and `|` mapped to `_`); src/engine/semantic/merge.ts (same-FQN interface merge); commit 17e8aa9",
+      "violatedIntent": "P-13 / P-14 (anonymous identities must not collide); design principle 1 (never degrade silently)",
+      "evidence": "`interface A { x: { p: string } }` and `interface A$ { x: { q: number } }` both hoist to `Anon_A_property_0_x`, because `$` is stripped. The two facets share one FQN, the semantic pass merges them (merges=1), and both `A.x` and `A$.x` are typed as `{p: String, q: num}` with a factory requiring both. No diagnostic; analyzer-clean.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/anoncollide/anoncollide.d.ts (pnpm dev -d ... -lv shows merges=1 and both references resolving to the same Anon_ FQN)",
+      "falsification": "Equal shapes would be canonicalised legitimately; the probe uses deliberately different shapes. Collisions need owner/scope names differing only in stripped characters (`$`, non-ASCII letters), which valid JavaScript identifiers allow.",
+      "consequence": "Silently wrong member sets and required factory parameters on both types.",
+      "remediation": "Derive the hoisted FQN from an injective encoding of the scope path (escape rather than strip), or append a hash of the raw scope; keep the readable Dart name separate from the FQN key.",
+      "related": [
+        "CA-12"
+      ],
+      "rootCause": "RC-14 lossy name sanitisation used as identity"
+    },
+    {
+      "id": "CA-26",
+      "title": "`this` in a generic class is emitted as the raw type; the rationale in the code is stale",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "intent",
+      "location": "src/engine/parser/type/thisType.ts (docblock: 'type parameters are not emitted yet (E-03) ... Revisit when E-03 lands'); test/type/tier-a.test.ts 'drops type arguments on a generic owner'",
+      "violatedIntent": "E-03 (type parameters emitted, fixed in S5); CLAUDE.md maintenance contract (stale comments)",
+      "evidence": "`class Box<T> { clone(): this }` emits `external Box clone();` (raw `Box`, i.e. `Box<dynamic>`) while the class itself is `class Box<T>`. The comment justifying this refers to E-03 as unfixed, and a unit test locks the behaviour.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/thisgeneric/thisgeneric.d.ts",
+      "falsification": "Raw types are analyzer-valid; the cost is lost type arguments, not an error.",
+      "consequence": "Fluent APIs on generic classes lose their element type in Dart.",
+      "remediation": "Emit `Box<T>` using the owner's type parameters, update the docblock and the tier-a expectation.",
+      "related": [
+        "CA-21"
+      ],
+      "rootCause": "RC-11 manually maintained rationale"
+    },
+    {
+      "id": "CA-27",
+      "title": "Watch-latency claims are only partly reproduced (Leaflet edit and three.js core edit)",
+      "severity": "low",
+      "confidence": "probable",
+      "category": "intent",
+      "location": "README.md ('rebuilds take tens of milliseconds'), ROADMAP.md (h3 ~35 ms, Leaflet ≤ 94 ms, three.js ~53 ms), CHANGELOG/PLAN 6.12 ('rebuilds under 100 ms on h3, Leaflet and three.js')",
+      "violatedIntent": "Documented performance claims",
+      "evidence": "`pnpm bench` at 17e8aa9 (Node 22.23.4): h3 leaf edit 37.3 ms; Leaflet leaf edit 132.3 ms, core edit 57.4 ms; three.js leaf edit 57.4 ms but core edit (Vector3) 730.9 ms. All 40 incremental builds were verified byte-for-byte by the tool.",
+      "reproduction": "pnpm bench (output saved in logs/bench.txt)",
+      "falsification": "Single run on a shared container with other jobs finishing; the three.js core edit is slow by design (shape and heritage changes re-render everything), which the docs do not mention.",
+      "consequence": "Users editing widely inherited types see ~0.7 s rebuilds, not 'under 100 ms'.",
+      "remediation": "State per-edit-kind numbers (leaf vs core) and the full re-render policy in README/ROADMAP; re-measure on a quiet machine.",
+      "related": [
+        "CA-21"
+      ],
+      "rootCause": "RC-11 manually maintained metrics"
+    },
+    {
+      "id": "CA-28",
+      "title": "The e2e oracle script is never executed by the suite",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "test/e2e/e2e.test.ts:1-12,73 (compares with committed main.expected); test/e2e/*/expected.cjs (not referenced by any code)",
+      "violatedIntent": "e2e.test.ts header: main.expected is computed by expected.cjs 'so the oracle never depends on dartify'",
+      "evidence": "No code runs expected.cjs; the test compares dart2js output with the committed main.expected. Running each expected.cjs by hand today reproduces main.expected exactly for h3, three and leaflet.",
+      "reproduction": "cd test/e2e/<lib> && node -e 'globalThis.self=globalThis;require(\"./setup.cjs\");require(\"./expected.cjs\")' | diff - main.expected",
+      "falsification": "Consistent today; the risk is future drift (for example a library upgrade) going unnoticed.",
+      "consequence": "A stale main.expected would make e2e certify outputs the JavaScript library no longer produces.",
+      "remediation": "Have the e2e test run expected.cjs and compare against both main.expected and the Dart output.",
+      "related": [
+        "CA-23"
+      ],
+      "rootCause": "RC-12 test integrity"
+    },
+    {
+      "id": "CA-29",
+      "title": "The platform-type registry has no committed generator or SDK validation script",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "deployment",
+      "location": "src/engine/emitter/packagejs/browserTypes.ts header ('Regenerate rather than hand-edit'); CLAUDE.md:54",
+      "violatedIntent": "CLAUDE.md 'It is generated: regenerate and re-validate rather than hand-edit'",
+      "evidence": "A NUL-safe search of every tracked file finds BROWSER_TYPES only in the table itself, its two consumers, CLAUDE.md, PLAN.md and audit/07-emitter.md. No script produces or validates it against a Dart SDK.",
+      "reproduction": "git ls-files -z | xargs -0 grep -ln 'BROWSER_TYPES\\|dart_libraries_for_browser_types'",
+      "falsification": "The table itself is consistent: 500 entries, no key mapped to two libraries, matching the documented count.",
+      "consequence": "The documented maintenance procedure cannot be followed; SDK upgrades (dart:html deprecations) cannot re-validate the 500 entries reproducibly.",
+      "remediation": "Commit the generator/validator under tools/ and reference it from CLAUDE.md.",
+      "related": [
+        "CA-17"
+      ],
+      "rootCause": "RC-9 reproducible toolchain"
     }
   ]
 }

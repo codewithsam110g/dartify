@@ -5,6 +5,15 @@
  * This predicate is shared by project categorisation and reference extraction;
  * those two decisions must never drift or the linker gains phantom edges.
  */
+export function hostFamilyOf(
+  filePath: string,
+): "typescript" | "node" | "undici" | undefined {
+  if (filePath.includes("@types/node/")) return "node";
+  if (filePath.includes("undici-types/")) return "undici";
+  if (/typescript\/lib\/lib\..*\.d\.ts$/.test(filePath)) return "typescript";
+  return undefined;
+}
+
 export function isStdlibFile(filePath: string): boolean {
   if (filePath.includes("@types/node/")) return true;
   if (filePath.includes("undici-types/")) return true;

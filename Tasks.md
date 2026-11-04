@@ -46,13 +46,13 @@ checkboxes and evidence synchronized with this summary.
     nested mutation isolation; and unchanged single-run output.
 - [x] Preserve module-export/anonymity/const-enum facts and correct impossible
   intersections (`P-15`–`P-17`, `T-18`).
-- [ ] Enforce external-module visibility and deterministic/legal semantic names
+- [x] Enforce external-module visibility and deterministic/legal semantic names
   (`L-19`, `E-29`, `E-30`).
 - [ ] Replace the false expectations identified by `X-14` and establish a
   categorized Dart analyzer/compiler/runtime fixture gate.
 - [ ] Declare the dependency-compatible Node range and repair or remove the
   nonfunctional coverage command (`X-15`, `X-16`).
-- [ ] Preserve checker-confirmed TypeScript host/stdlib reference identity
+- [x] Preserve checker-confirmed TypeScript host/stdlib reference identity
   without adding host declarations to generated dependency edges (`I-15`).
 - [ ] Begin the Stage 5 `package:js` emitter rebuild only after this barrier.
 

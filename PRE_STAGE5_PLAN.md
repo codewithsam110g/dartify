@@ -94,14 +94,14 @@ Commit: `fix(names): stabilize generated Dart identifiers`
 
 Commit: `feat(ir): preserve TypeScript host type provenance`
 
-- [ ] Add non-linkable `IRHostTypeIdentity` containing the source family,
+- [x] Add non-linkable `IRHostTypeIdentity` containing the source family,
   sorted canonical declaration-library names, and checker-qualified symbol.
-- [ ] Distinguish TypeScript libraries, Node declarations, and Undici
+- [x] Distinguish TypeScript libraries, Node declarations, and Undici
   declarations. Host identities must never become generated-file dependencies
   or linker edges.
-- [ ] Verify `HTMLElement`, `Uint8Array`, `Record`, and `Promise`, plus lexical
+- [x] Verify `HTMLElement`, `Uint8Array`, `Record`, and `Promise`, plus lexical
   type parameters and project declarations with the same spellings.
-- [ ] Close `I-15`. Leave `E-36` open for S5.18, which must give every standard
+- [x] Close `I-15`. Leave `E-36` open for S5.18, which must give every standard
   utility alias a verified lowering or named documented fallback.
 
 ### 4.15 — Executable Dart correctness gate

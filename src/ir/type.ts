@@ -22,6 +22,25 @@ export interface IRReferenceTarget {
 }
 
 /**
+ * Checker-confirmed identity of a type declared by the host environment rather
+ * than by the project (`I-15`, task 4.17).
+ *
+ * Deliberately *not* an `IRReferenceTarget`: host declarations are never parsed
+ * or emitted, so they must not become linker edges or generated-file
+ * dependencies. Backends match platform substitutions (`HTMLElement` →
+ * `dart:html` `HtmlElement`) against this identity — never against the
+ * written leaf name, which a project type or type parameter may share.
+ */
+export interface IRHostTypeIdentity {
+  /** Which host declaration family declares the symbol. */
+  family: "typescript" | "node" | "undici";
+  /** Sorted declaring library basenames, e.g. `["lib.dom.d.ts"]`. */
+  libraries: string[];
+  /** Checker-qualified symbol name, e.g. `HTMLElement` or `Intl.Collator`. */
+  qualifiedName: string;
+}
+
+/**
  * IR structure for TypeScript .d.ts types to generate Dart bindings
  */
 export interface IRType extends IRNode {
@@ -91,6 +110,9 @@ export interface IRType extends IRNode {
 
   /** Present on non-stdlib, non-type-parameter reference use sites. */
   reference?: IRReferenceTarget;
+
+  /** Present on references whose every declaration is a host library. */
+  host?: IRHostTypeIdentity;
 }
 
 /**

@@ -1,9 +1,14 @@
 import * as ts from "ts-morph";
-import { IRReferenceTarget, IRType, TypeKind } from "@ir/type";
+import {
+  IRHostTypeIdentity,
+  IRReferenceTarget,
+  IRType,
+  TypeKind,
+} from "@ir/type";
 import { parseType } from "./type";
 import { ParseContext } from "@parser/context";
 import { declarationFQN } from "@/symbol/fqn";
-import { isStdlibFile } from "@/resolution/stdlib";
+import { hostFamilyOf, isStdlibFile } from "@/resolution/stdlib";
 
 export type ReferenceLikeNode =
   | ts.TypeReferenceNode
@@ -77,9 +82,51 @@ function isLexicalTypeParameter(node: ts.Node, writtenName: string): boolean {
  * (node.getType().getSymbol()) because simple type aliases like `type H3Index = string`
  * resolve through to the primitive, losing the alias source file information.
  */
+export interface CollectedReference {
+  reference?: IRReferenceTarget;
+  host?: IRHostTypeIdentity;
+}
+
 export function collectTypeDep(
   node: ReferenceLikeNode,
 ): IRReferenceTarget | undefined {
+  return collectReference(node).reference;
+}
+
+function hostIdentityOf(
+  symbol: ts.Symbol,
+  declarations: readonly ts.Node[],
+): IRHostTypeIdentity | undefined {
+  const families = new Set(
+    declarations.map((declaration) =>
+      hostFamilyOf(declaration.getSourceFile().getFilePath()),
+    ),
+  );
+  if (families.size !== 1) return undefined;
+  const family = [...families][0];
+  if (!family) return undefined;
+  const libraries = [
+    ...new Set(
+      declarations.map((declaration) => declaration.getSourceFile().getBaseName()),
+    ),
+  ].sort();
+  return {
+    family,
+    libraries,
+    qualifiedName: symbol.getFullyQualifiedName().replace(/^"[^"]*"\./, ""),
+  };
+}
+
+/**
+ * Resolves a reference to either a linkable project target or a host
+ * identity. Lexical type parameters get neither.
+ */
+export function collectReference(node: ReferenceLikeNode): CollectedReference {
+  const reference = collectReferenceTarget(node);
+  return reference;
+}
+
+function collectReferenceTarget(node: ReferenceLikeNode): CollectedReference {
   try {
     const nameNode = referenceNameNode(node);
     const writtenName = nameNode.getText();
@@ -94,7 +141,7 @@ export function collectTypeDep(
       isLexicalTypeParameter(node, writtenName) ||
       symbol?.getDeclarations().some(ts.Node.isTypeParameterDeclaration)
     ) {
-      return undefined;
+      return {};
     }
     if (symbol?.isAlias()) symbol = symbol.getAliasedSymbol();
 
@@ -104,7 +151,7 @@ export function collectTypeDep(
       if (symbol?.isAlias()) symbol = symbol.getAliasedSymbol();
     }
 
-    if (!symbol) return syntaxReference(node);
+    if (!symbol) return { reference: syntaxReference(node) };
 
     const declarations = symbol.getDeclarations();
     if (
@@ -113,7 +160,8 @@ export function collectTypeDep(
         isStdlibFile(declaration.getSourceFile().getFilePath()),
       )
     ) {
-      return undefined;
+      const host = hostIdentityOf(symbol, declarations);
+      return host ? { host } : {};
     }
 
     const nonStdlibDeclarations = declarations.filter(
@@ -136,11 +184,14 @@ export function collectTypeDep(
       ),
     ].sort();
 
-    return candidates.length > 0
-      ? { writtenName, lookup: { kind: "checker", candidates } }
-      : syntaxReference(node);
+    return {
+      reference:
+        candidates.length > 0
+          ? { writtenName, lookup: { kind: "checker", candidates } }
+          : syntaxReference(node),
+    };
   } catch (error) {
-    return syntaxReference(node, error);
+    return { reference: syntaxReference(node, error) };
   }
 }
 
@@ -150,7 +201,7 @@ export function handleTypeReferences(
   context: ParseContext,
 ): IRType {
   const name = referenceNameNode(node).getText();
-  const reference = collectTypeDep(node);
+  const { reference, host } = collectReference(node);
 
   const typeArgs = node.getTypeArguments();
   let genericArgs: IRType[] = [];
@@ -168,5 +219,6 @@ export function handleTypeReferences(
     isNullable: false,
     genericArgs: genericArgs,
     ...(reference ? { reference } : {}),
+    ...(host ? { host } : {}),
   };
 }

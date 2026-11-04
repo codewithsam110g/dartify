@@ -14,6 +14,12 @@ All notable changes to this project will be documented in this file.
 - The bare-name linker fallback no longer binds declarations exported from an
   unrelated module (`L-19`).
 
+### Host type provenance (task 4.17)
+
+- References to TypeScript/Node/Undici host declarations carry a non-linkable
+  `IRType.host` identity (family, libraries, qualified name), so platform
+  substitutions can match checker identity instead of leaf spelling (`I-15`).
+
 ### Deterministic names (task 4.14)
 
 - Minted alias names no longer depend on traversal order; colliding derived

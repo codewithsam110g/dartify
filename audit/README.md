@@ -27,6 +27,7 @@ planning, so `PLAN.md` is sequenced by real dependency rather than by guess.
 | [`FINDINGS.md`](FINDINGS.md) | **Consolidated, severity-ranked index of every finding** |
 | [`POST-S4-AUDIT.md`](POST-S4-AUDIT.md) | File/line ledger for the mandatory audit before S5 |
 | [`10-closing-17e8aa9/`](10-closing-17e8aa9/MASTER.md) | Closing v1 audit of `17e8aa9`: request, plan, five passes, fix verification, `CA-01`–`CA-31` with reproducers and logs |
+| [`11-closing-verification.md`](11-closing-verification.md) | Independent fresh-session re-run of every closing-audit finding, reproducer, falsification row and gate; corrects `CA-23` and the lone-CR row, adds `CA-32`/`CA-33` |
 
 Start at `FINDINGS.md` if you want the summary; go to the area file for the
 per-line reasoning behind any given ID.

@@ -403,7 +403,7 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `CA-18` | S3 / low | CI hardening: actions pinned to mutable tags and no explicit `permissions:` | .github/workflows/ci.yml (actions/checkout@v4, pnpm/action-setup@v4, actions/setup-node@v4, dart-lang/setup-dart@v1 | ✅ |
 | `CA-19` | S3 / medium | Lockfile pins dev tooling with critical advisories (Vitest UI arbitrary file read/execute, tinypool RCE gadgets) | pnpm-lock.yaml (vitest 3.2.4, tinypool) | ✅ |
 | `CA-20` | S3 / low | Production transitive glob libraries carry high ReDoS advisories | pnpm-lock.yaml: ts-morph > @ts-morph/common > minimatch/@isaacs/brace-expansion, tinyglobby > picomatch | ✅ |
-| `CA-23` | S3 / low | Several registered fixes work but have no regression test | test/** (no case for P-18, E-44's NATIVE_NAME_CONFLICT diagnostic, or a TypeScript `abstract class` for E-20) | ✅ |
+| `CA-23` **[PARTLY REFUTED — `11-closing-verification.md`]** | S3 / low | Several registered fixes work but have no regression test. Mutation re-run: reverting P-18 or E-20 fails the normal suite (conformance `type_aliases`/2.5, Leaflet smoke); only E-44's diagnostic and the misnamed optional-parameter test are uncovered | test/** (no case for P-18, E-44's NATIVE_NAME_CONFLICT diagnostic, or a TypeScript `abstract class` for E-20) | ✅ |
 | `CA-26` | S3 / low | `this` in a generic class is emitted as the raw type; the rationale in the code is stale | src/engine/parser/type/thisType.ts (docblock: 'type parameters are not emitted yet (E-03) ... Revisit when E-03 lands') | ✅ |
 | `CA-28` | S3 / low | The e2e oracle script is never executed by the suite | test/e2e/e2e.test.ts:1-12,73 (compares with committed main.expected) | ✅ |
 | `CA-29` | S3 / low | The platform-type registry has no committed generator or SDK validation script | src/engine/emitter/packagejs/browserTypes.ts header ('Regenerate rather than hand-edit') | ✅ |
@@ -411,6 +411,8 @@ Severity-ranked index. Detail and per-line reasoning live in the area files.
 | `CA-22` | S4 / low | Finding registry integrity: `X-16` is assigned to two different findings; `Where` columns point to deleted files | audit/FINDINGS.md:107 and :183 (two X-16 rows) | ✅ |
 | `CA-24` | S4 / low | No upgrade or rollback notes for existing 0.5.0 users | CHANGELOG.md [1.0.0] section | ✅ |
 | `CA-27` | S4 / low | Watch-latency claims are only partly reproduced (Leaflet edit and three.js core edit) | README.md ('rebuilds take tens of milliseconds'), ROADMAP.md (h3 ~35 ms, Leaflet ≤ 94 ms, three.js ~53 ms), CHANGELOG/PLAN 6.12 ('rebuilds under 100 ms on h3, Leaflet and three.js') | ✅ |
+| `CA-32` | S1 / medium | A lone CR in JSDoc escapes the `///` comment and injects Dart declarations (found by the independent re-run; it overturns the audit's "falsified" lone-CR row) | src/engine/emitter/packagejs/text.ts:84 (`split(/\r?\n/)`); see `11-closing-verification.md` | ✅ |
+| `CA-33` | S4 / low | The closing-audit registration corrupted this file: a `$`-pattern in the `CA-11` title spliced a copy of the header and every pre-CA row into that row, and `CA-30`/`CA-31` sit outside any table | audit/FINDINGS.md (`c8b0eff`, `652caf1`); see `11-closing-verification.md` | ✅ |
 
 ---
 ## Historical pre-S1 corpus frequency data

@@ -25,6 +25,7 @@ import { Symbol } from "@/symbol";
 import { sourceFileOfFQN } from "@/symbol/fqn";
 import { SymbolTable } from "@/symbol/table";
 import { createPackageJsBackend } from "@emitter/packagejs/index";
+import { isShapeCandidate } from "@emitter/packagejs/program";
 import { Backend } from "@emitter/backend";
 import {
   mergeSemanticResults,
@@ -115,7 +116,7 @@ export class WatchSession {
   private readonly files: string[];
   private readonly outDir: string;
   private readonly write: boolean;
-  private readonly backend: Backend = createPackageJsBackend();
+  private readonly backend: Backend;
   private readonly states = new Map<string, FileState>();
   private readonly renderCache = new Map<string, unknown>();
   private readonly lastWritten = new Map<string, string>();
@@ -131,6 +132,7 @@ export class WatchSession {
     this.files = [...new Set(options.files)].sort();
     this.outDir = options.outDir || "./dart_out";
     this.write = options.write ?? true;
+    this.backend = createPackageJsBackend(options.jsRoot ? { jsRoot: options.jsRoot } : {});
     this.run = new ResolutionRun(this.files, options.tsConfigFilePath);
   }
 
@@ -216,6 +218,12 @@ export class WatchSession {
         ? changedKeys(previous.memberKey, next.memberKey)
         : [...next.memberKey.keys()];
       changedMembers.forEach((fqn) => memberChanged.add(fqn));
+      // Structural conformance relates classes to shape interfaces anywhere in
+      // the program, so a changed shape re-renders every library.
+      const shapeFQNs = new Set([...shapesOf(previous), ...shapesOf(next)]);
+      if ([...changedMembers, ...changedSurface].some((fqn) => shapeFQNs.has(fqn))) {
+        heritageChanged = true;
+      }
       // Override correction walks heritage chains through files an importer
       // never names, so any heritage change re-renders every library.
       if (previous && changedKeys(previous.heritageKey, next.heritageKey).length > 0) {
@@ -502,6 +510,15 @@ function fingerprints(
     interfaceKey.set(`redirect:${redirect.fromFQN}`, redirect.toFQN);
   }
   return { interfaceKey, memberKey, heritageKey, lightKey, fileKey };
+}
+
+function shapesOf(state: FileState | undefined): string[] {
+  if (!state) return [];
+  const result: string[] = [];
+  for (const [fqn, group] of state.groups) {
+    if (group.some((symbol) => symbol.facets.some(isShapeCandidate))) result.push(fqn);
+  }
+  return result;
 }
 
 /** FQNs whose fingerprint differs between two maps (added, removed or changed). */

@@ -94,6 +94,13 @@ const EDITS: Edit[] = [
   },
   { name: "kinds: an interface becomes a class", file: "base.d.ts", apply: replace("export interface Shape {\n  id: string;\n}", "export declare class Shape {\n  id: string;\n}") },
   { name: "typeof: a const becomes a variable", file: "base.d.ts", apply: replace('export declare const LIMIT: "ten";', "export declare let LIMIT: number;") },
+  {
+    name: "structural: add a shape a class satisfies",
+    file: "other.d.ts",
+    apply: (text) => `${text}\nexport interface Named {\n  readonly name: string;\n  readonly id?: string;\n}\n`,
+  },
+  { name: "structural: the shape grows past the class", file: "other.d.ts", apply: replace("  readonly id?: string;\n", "  readonly id?: string;\n  readonly extra: number;\n") },
+  { name: "structural: the class grows to fit again", file: "base.d.ts", apply: replace("  name: string;\n", "  name: string;\n  extra: number;\n  id?: string;\n") },
   { name: "no-op: identical rewrite", file: "base.d.ts", apply: (text) => text },
 ];
 

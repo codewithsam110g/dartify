@@ -17,6 +17,7 @@ import {
   LinkReport,
 } from "./engine/phase/linkerPhase";
 import { SymbolTable } from "./symbol/table";
+import { createPackageJsBackend } from "./engine/emitter/packagejs/index";
 import { ModuleExportTable } from "./symbol/exports";
 import {
   renderAllFiles,
@@ -79,6 +80,8 @@ export interface TranspilerOptions {
   outDir?: string;
   debug?: boolean;
   tsConfigFilePath?: string;
+  /** See `PackageJsOptions.jsRoot`. */
+  jsRoot?: string;
 }
 
 export interface TranspileFromStringOptions {
@@ -133,6 +136,7 @@ export class Transpiler {
   private readonly outDir: string | undefined;
   private readonly debug: boolean;
   private readonly tsConfigFilePath: string | undefined;
+  private readonly jsRoot: string | undefined;
 
   constructor(options: TranspilerOptions) {
     if (!Array.isArray(options.files) || options.files.length === 0) {
@@ -145,6 +149,7 @@ export class Transpiler {
     this.outDir = options.outDir;
     this.debug = options.debug ?? false;
     this.tsConfigFilePath = options.tsConfigFilePath;
+    this.jsRoot = options.jsRoot;
   }
 
   /**
@@ -227,7 +232,13 @@ export class Transpiler {
     const { analysis, program } = await this.analyzeProgram();
     const inputRoot = resolvedInputRoot(analysis.resolution.inputFiles);
     const files = await this.guard(() =>
-      renderAllFiles(program, this.resolvedOutDir(), inputRoot, this.debug),
+      renderAllFiles(
+        program,
+        this.resolvedOutDir(),
+        inputRoot,
+        this.debug,
+        createPackageJsBackend(this.jsRoot ? { jsRoot: this.jsRoot } : {}),
+      ),
     );
     return { analysis, files };
   }

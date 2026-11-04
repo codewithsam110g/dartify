@@ -381,14 +381,14 @@ import 'dart:svg' show SvgElement;
 import 'leaflet.dart' as leaflet;
 
 /// A constant that represents the Leaflet version in use.
-@JS("version")
+@JS("L.version")
 external String get version;
 
 @JS()
 @anonymous
 abstract class Anon_Class_method_0_extend_return_intersection_0 {}
 
-@JS("Class")
+@JS("L.Class")
 class Class {
   external Class();
   external static Anon_Class_method_0_extend_return_intersection_0 /* Anon_Class_method_0_extend_return_intersection_0&TypeOfClass */ extend(dynamic props);
@@ -396,12 +396,12 @@ class Class {
   external static dynamic mergeOptions(dynamic props);
   external static void callInitHooks();
 }
-@JS("Class.addInitHook")
+@JS("L.Class.addInitHook")
 external dynamic Class_addInitHook_1(void Function() initHookFn);
-@JS("Class.addInitHook")
+@JS("L.Class.addInitHook")
 external dynamic Class_addInitHook_2(String methodName, [dynamic args1, dynamic args2, dynamic args3, dynamic args4, dynamic args5]);
 
-@JS("Transformation")
+@JS("L.Transformation")
 class Transformation {
   external Transformation(num a, num b, num c, num d);
   external Point transform(Point point, [num scale]);
@@ -409,91 +409,91 @@ class Transformation {
 }
 
 /// Instantiates a Transformation object with the given coefficients.
-@JS("transformation")
+@JS("L.transformation")
 external Transformation transformation_1(num a, num b, num c, num d);
 
 /// Expects an coefficients array of the form \`[a: Number, b: Number, c: Number, d: Number]\`.
-@JS("transformation")
+@JS("L.transformation")
 external Transformation transformation_2(List<num> coefficients);
 
-@JS("LineUtil.simplify")
+@JS("L.LineUtil.simplify")
 external List<Point> simplify(List<Point> points, num tolerance);
 
-@JS("LineUtil.pointToSegmentDistance")
+@JS("L.LineUtil.pointToSegmentDistance")
 external num pointToSegmentDistance(Point p, Point p1, Point p2);
 
-@JS("LineUtil.closestPointOnSegment")
+@JS("L.LineUtil.closestPointOnSegment")
 external Point closestPointOnSegment(Point p, Point p1, Point p2);
 
-@JS("LineUtil.isFlat")
+@JS("L.LineUtil.isFlat")
 external bool isFlat(List<LatLngExpression> latlngs);
 
-@JS("LineUtil.clipSegment")
+@JS("L.LineUtil.clipSegment")
 external ListPointOrBool clipSegment(Point a, Point b, Bounds bounds, [bool useLastCode, bool round]);
 
-@JS("LineUtil.polylineCenter")
+@JS("L.LineUtil.polylineCenter")
 external LatLng polylineCenter(List<LatLngExpression> latlngs, CRS crs);
 
-@JS("PolyUtil.clipPolygon")
+@JS("L.PolyUtil.clipPolygon")
 external List<Point> clipPolygon(List<Point> points, BoundsExpression bounds, [bool round]);
 
-@JS("PolyUtil.polygonCenter")
+@JS("L.PolyUtil.polygonCenter")
 external LatLng polygonCenter(List<LatLngExpression> latlngs, CRS crs);
 
 /// Get Element by its ID or with the given HTML-Element
-@JS("DomUtil.get")
+@JS("L.DomUtil.get")
 external HtmlElement? get(StringOrHtmlElement element);
 
-@JS("DomUtil.getStyle")
+@JS("L.DomUtil.getStyle")
 external String? getStyle(HtmlElement el, String styleAttrib);
 
 /// Creates an HTML element with \`tagName\`, sets its class to \`className\`, and optionally appends it to \`container\` element.
-@JS("DomUtil.create")
+@JS("L.DomUtil.create")
 external IndexedHTMLElementTagNameMapT create_1<T /* extends keyof HTMLElementTagNameMap */>(T tagName, [String className, HtmlElement container]);
 
-@JS("DomUtil.create")
+@JS("L.DomUtil.create")
 external HtmlElement create_2(String tagName, [String className, HtmlElement container]);
 
-@JS("DomUtil.remove")
+@JS("L.DomUtil.remove")
 external void remove(HtmlElement el);
 
-@JS("DomUtil.empty")
+@JS("L.DomUtil.empty")
 external void empty(HtmlElement el);
 
-@JS("DomUtil.toFront")
+@JS("L.DomUtil.toFront")
 external void toFront(HtmlElement el);
 
-@JS("DomUtil.toBack")
+@JS("L.DomUtil.toBack")
 external void toBack(HtmlElement el);
 
-@JS("DomUtil.hasClass")
+@JS("L.DomUtil.hasClass")
 external bool hasClass(HtmlElement el, String name);
 
-@JS("DomUtil.addClass")
+@JS("L.DomUtil.addClass")
 external void addClass(HtmlElement el, String name);
 
-@JS("DomUtil.removeClass")
+@JS("L.DomUtil.removeClass")
 external void removeClass(HtmlElement el, String name);
 
-@JS("DomUtil.setClass")
+@JS("L.DomUtil.setClass")
 external void setClass(HtmlElement el, String name);
 
-@JS("DomUtil.getClass")
+@JS("L.DomUtil.getClass")
 external String getClass(HtmlElement el);
 
-@JS("DomUtil.setOpacity")
+@JS("L.DomUtil.setOpacity")
 external void setOpacity(HtmlElement el, num opacity);
 
-@JS("DomUtil.testProp")
+@JS("L.DomUtil.testProp")
 external StringOrBool testProp(List<String> props);
 
-@JS("DomUtil.setTransform")
+@JS("L.DomUtil.setTransform")
 external void setTransform(HtmlElement el, Point offset, [num scale]);
 
-@JS("DomUtil.setPosition")
+@JS("L.DomUtil.setPosition")
 external void setPosition(HtmlElement el, Point position);
 
-@JS("DomUtil.getPosition")
+@JS("L.DomUtil.getPosition")
 external Point getPosition(HtmlElement el);
 
 @JS()
@@ -508,46 +508,46 @@ abstract class Anon_DomUtil_getScale_overload_0_return {
   external set boundingClientRect(DOMRect value);
 }
 
-@JS("DomUtil.getScale")
+@JS("L.DomUtil.getScale")
 external Anon_DomUtil_getScale_overload_0_return getScale(HtmlElement el);
 
-@JS("DomUtil.getSizedParentNode")
+@JS("L.DomUtil.getSizedParentNode")
 external HtmlElement getSizedParentNode(HtmlElement el);
 
-@JS("DomUtil.disableTextSelection")
+@JS("L.DomUtil.disableTextSelection")
 external void disableTextSelection();
 
-@JS("DomUtil.enableTextSelection")
+@JS("L.DomUtil.enableTextSelection")
 external void enableTextSelection();
 
-@JS("DomUtil.disableImageDrag")
+@JS("L.DomUtil.disableImageDrag")
 external void disableImageDrag();
 
-@JS("DomUtil.enableImageDrag")
+@JS("L.DomUtil.enableImageDrag")
 external void enableImageDrag();
 
-@JS("DomUtil.preventOutline")
+@JS("L.DomUtil.preventOutline")
 external void preventOutline(HtmlElement el);
 
-@JS("DomUtil.restoreOutline")
+@JS("L.DomUtil.restoreOutline")
 external void restoreOutline();
 
-@JS("DomUtil.TRANSFORM")
+@JS("L.DomUtil.TRANSFORM")
 external String get TRANSFORM;
-@JS("DomUtil.TRANSFORM")
+@JS("L.DomUtil.TRANSFORM")
 external set TRANSFORM(String value);
 
-@JS("DomUtil.TRANSITION")
+@JS("L.DomUtil.TRANSITION")
 external String get TRANSITION;
-@JS("DomUtil.TRANSITION")
+@JS("L.DomUtil.TRANSITION")
 external set TRANSITION(String value);
 
-@JS("DomUtil.TRANSITION_END")
+@JS("L.DomUtil.TRANSITION_END")
 external String get TRANSITION_END;
-@JS("DomUtil.TRANSITION_END")
+@JS("L.DomUtil.TRANSITION_END")
 external set TRANSITION_END(String value);
 
-@JS("PosAnimation")
+@JS("L.PosAnimation")
 class PosAnimation extends Evented {
   external PosAnimation();
   external void run(HtmlElement el, Point newPos, [num duration, num easeLinearity]);
@@ -576,22 +576,22 @@ abstract class CRS {
   external LatLng wrapLatLng(LatLngOrLatLngLiteral latlng);
 }
 
-@JS("CRS.EPSG3395")
+@JS("L.CRS.EPSG3395")
 external CRS get EPSG3395;
 
-@JS("CRS.EPSG3857")
+@JS("L.CRS.EPSG3857")
 external CRS get EPSG3857;
 
-@JS("CRS.EPSG4326")
+@JS("L.CRS.EPSG4326")
 external CRS get EPSG4326;
 
-@JS("CRS.EPSG900913")
+@JS("L.CRS.EPSG900913")
 external CRS get EPSG900913;
 
-@JS("CRS.Earth")
+@JS("L.CRS.Earth")
 external CRS get Earth;
 
-@JS("CRS.Simple")
+@JS("L.CRS.Simple")
 external CRS get Simple;
 
 @JS()
@@ -603,16 +603,16 @@ abstract class Projection {
   external LatLng unproject(PointExpression point);
 }
 
-@JS("Projection.LonLat")
+@JS("L.Projection.LonLat")
 external Projection get LonLat;
 
-@JS("Projection.Mercator")
+@JS("L.Projection.Mercator")
 external Projection get Mercator;
 
-@JS("Projection.SphericalMercator")
+@JS("L.Projection.SphericalMercator")
 external Projection get SphericalMercator;
 
-@JS("LatLng")
+@JS("L.LatLng")
 class LatLng {
   external LatLng(num latitude, num longitude, [num altitude]);
   external num get lat;
@@ -646,7 +646,7 @@ typedef LatLngTuple = List<num>;
 /// A JavaScript union of \`LatLng | LatLngLiteral | LatLngTuple\`; Dart has no union types.
 typedef LatLngExpression = dynamic;
 
-@JS("latLng")
+@JS("L.latLng")
 external LatLng latLng_1(num latitude, num longitude, [num altitude]);
 
 @JS()
@@ -661,10 +661,10 @@ abstract class Anon_latLng_overload_1_param_0_coords_union_3 {
   external set alt(num? value);
 }
 
-@JS("latLng")
+@JS("L.latLng")
 external LatLng latLng_2(LatLngTupleOrOther coords);
 
-@JS("LatLngBounds")
+@JS("L.LatLngBounds")
 class LatLngBounds {
   external LatLngBounds(LatLngExpression southWest, LatLngExpression northEast);
   external factory LatLngBounds.overload2(List<LatLngExpression> latlngs);
@@ -692,15 +692,15 @@ typedef LatLngBoundsLiteral = List<LatLngTuple>;
 /// A JavaScript union of \`LatLngBounds | LatLngBoundsLiteral\`; Dart has no union types.
 typedef LatLngBoundsExpression = dynamic;
 
-@JS("latLngBounds")
+@JS("L.latLngBounds")
 external LatLngBounds latLngBounds_1(LatLngExpression southWest, LatLngExpression northEast);
 
-@JS("latLngBounds")
+@JS("L.latLngBounds")
 external LatLngBounds latLngBounds_2(List<LatLngExpression> latlngs);
 
 typedef PointTuple = List<num>;
 
-@JS("Point")
+@JS("L.Point")
 class Point {
   external Point(num x, num y, [bool round]);
   external num get x;
@@ -734,7 +734,7 @@ abstract class Coords implements Point {
 /// A JavaScript union of \`Point | PointTuple\`; Dart has no union types.
 typedef PointExpression = dynamic;
 
-@JS("point")
+@JS("L.point")
 external Point point_1(num x, num y, [bool round]);
 
 @JS()
@@ -747,12 +747,12 @@ abstract class Anon_point_overload_1_param_0_coords_union_1 {
   external set y(num value);
 }
 
-@JS("point")
+@JS("L.point")
 external Point point_2(PointTupleOrAnonPointOverload1Param0CoordsUnion1 coords);
 
 typedef BoundsLiteral = List<PointTuple>;
 
-@JS("Bounds")
+@JS("L.Bounds")
 class Bounds {
   external Bounds(PointExpression topLeft, PointExpression bottomRight);
   external factory Bounds.overload2([ListPointOrBoundsLiteral points]);
@@ -783,10 +783,10 @@ extension BoundsExtension on Bounds {
 /// A JavaScript union of \`Bounds | BoundsLiteral\`; Dart has no union types.
 typedef BoundsExpression = dynamic;
 
-@JS("bounds")
+@JS("L.bounds")
 external Bounds bounds_1(PointExpression topLeft, PointExpression bottomRight);
 
-@JS("bounds")
+@JS("L.bounds")
 external Bounds bounds_2(ListPointOrBoundsLiteral points);
 
 typedef LeafletEventHandlerFn = void Function(LeafletEvent event);
@@ -929,7 +929,7 @@ abstract class LeafletEventHandlerFnMap {
 /// Generally, events allow you to execute some function when something happens
 /// with an object (e.g. the user clicks on the map, causing the map to fire
 /// 'click' event).
-@JS("Events")
+@JS("L.Events")
 class Events {
   external Events();
   /// Fires an event of the specified type. You can optionally provide a data
@@ -1222,18 +1222,18 @@ extension EventsExtension on Events {
   external Events addOneTimeEventListener_16(LeafletEventHandlerFnMap eventMap);
 }
 
-@JS("MixinType")
+@JS("L.MixinType")
 class MixinType {
   external MixinType();
   external leaflet.Events get Events;
   external set Events(leaflet.Events value);
 }
 
-@JS("Mixin")
+@JS("L.Mixin")
 external MixinType get Mixin;
 
 /// Base class of Leaflet classes supporting events
-@JS("Evented")
+@JS("L.Evented")
 abstract class Evented extends Class {
   external Evented();
   /// Fires an event of the specified type. You can optionally provide a data
@@ -1539,7 +1539,7 @@ abstract class DraggableOptions {
 /// A class for making DOM elements draggable (including touch support).
 /// Used internally for map and marker dragging. Only works for elements
 /// that were positioned with [\`L.DomUtil.setPosition\`](#domutil-setposition).
-@JS("Draggable")
+@JS("L.Draggable")
 class Draggable extends Evented {
   external Draggable(HtmlElement element, [HtmlElement dragStartTarget, bool preventOutline, DraggableOptions options]);
   external void enable();
@@ -1575,7 +1575,7 @@ extension Anon_Layer_method_24_getEvents_returnExtension on Anon_Layer_method_24
   external void operator []=(String key, LeafletEventHandlerFn value);
 }
 
-@JS("Layer")
+@JS("L.Layer")
 class Layer extends Evented {
   external Layer([LayerOptions options]);
   external LayerOptions get options;
@@ -1683,7 +1683,7 @@ extension InternalTilesExtension on InternalTiles {
   external void operator []=(String key, Anon_InternalTiles_indexSig_0_value value);
 }
 
-@JS("GridLayer")
+@JS("L.GridLayer")
 class GridLayer extends Layer {
   external GridLayer([GridLayerOptions options]);
   external GridLayer bringToFront();
@@ -1711,7 +1711,7 @@ extension GridLayerExtension on GridLayer {
   external Coords JS$_wrapCoords(Coords parameter);
 }
 
-@JS("gridLayer")
+@JS("L.gridLayer")
 external GridLayer gridLayer([GridLayerOptions options]);
 
 @JS()
@@ -1738,7 +1738,7 @@ abstract class TileLayerOptions implements GridLayerOptions {
   external set referrerPolicy(ReferrerPolicyOrBool value);
 }
 
-@JS("TileLayer")
+@JS("L.TileLayer")
 class TileLayer extends GridLayer {
   external TileLayer(String urlTemplate, [TileLayerOptions options]);
   external TileLayerOptions get options;
@@ -1757,10 +1757,10 @@ extension TileLayerExtension on TileLayer {
   external num JS$_getZoomForUrl();
 }
 
-@JS("tileLayer")
+@JS("L.tileLayer")
 external TileLayer tileLayer(String urlTemplate, [TileLayerOptions options]);
 
-@JS("TileLayer.WMS")
+@JS("L.TileLayer.WMS")
 class WMS extends TileLayer {
   external WMS(String baseUrl, WMSOptions options);
   external WMSParams get wmsParams;
@@ -1814,7 +1814,7 @@ abstract class WMSParams {
   external set height(num? value);
 }
 
-@JS("tileLayer.wms")
+@JS("L.tileLayer.wms")
 external WMS wms(String baseUrl, [WMSOptions options]);
 
 typedef CrossOrigin = String;
@@ -1853,7 +1853,7 @@ extension ImageOverlayStyleOptionsExtension on ImageOverlayStyleOptions {
   external void operator []=(String key, dynamic value);
 }
 
-@JS("ImageOverlay")
+@JS("L.ImageOverlay")
 class ImageOverlay extends Layer {
   external ImageOverlay(String imageUrl, LatLngBoundsExpression bounds, [ImageOverlayOptions options]);
   external ImageOverlayOptions get options;
@@ -1877,12 +1877,12 @@ class ImageOverlay extends Layer {
   external ImageElement? getElement();
 }
 
-@JS("imageOverlay")
+@JS("L.imageOverlay")
 external ImageOverlay imageOverlay(String imageUrl, LatLngBoundsExpression bounds, [ImageOverlayOptions options]);
 
 typedef SVGOverlayStyleOptions = ImageOverlayStyleOptions;
 
-@JS("SVGOverlay")
+@JS("L.SVGOverlay")
 class SVGOverlay extends Layer {
   /// SVGOverlay doesn't extend ImageOverlay because SVGOverlay.getElement returns SVGElement
   external SVGOverlay(StringOrSvgElement svgImage, LatLngBoundsExpression bounds, [ImageOverlayOptions options]);
@@ -1907,7 +1907,7 @@ class SVGOverlay extends Layer {
   external SvgElement? getElement();
 }
 
-@JS("svgOverlay")
+@JS("L.svgOverlay")
 external SVGOverlay svgOverlay(StringOrSvgElement svgImage, LatLngBoundsExpression bounds, [ImageOverlayOptions options]);
 
 @JS()
@@ -1931,7 +1931,7 @@ abstract class VideoOverlayOptions implements ImageOverlayOptions {
   external set playsInline(bool? value);
 }
 
-@JS("VideoOverlay")
+@JS("L.VideoOverlay")
 class VideoOverlay extends Layer {
   /// VideoOverlay doesn't extend ImageOverlay because VideoOverlay.getElement returns HTMLImageElement
   external VideoOverlay(StringOrListStringOrVideoElement video, LatLngBoundsExpression bounds, [VideoOverlayOptions options]);
@@ -1956,7 +1956,7 @@ class VideoOverlay extends Layer {
   external VideoElement? getElement();
 }
 
-@JS("videoOverlay")
+@JS("L.videoOverlay")
 external VideoOverlay videoOverlay(StringOrListStringOrVideoElement video, LatLngBoundsExpression bounds, [VideoOverlayOptions options]);
 
 typedef LineCapShape = String;
@@ -1999,7 +1999,7 @@ abstract class PathOptions implements InteractiveLayerOptions {
   external set className(String? value);
 }
 
-@JS("Path")
+@JS("L.Path")
 abstract class Path extends Layer {
   external Path([LayerOptions options]);
   external PathOptions get options;
@@ -2021,7 +2021,7 @@ abstract class PolylineOptions implements PathOptions {
   external set noClip(bool? value);
 }
 
-@JS("Polyline")
+@JS("L.Polyline")
 class Polyline<T /* extends geojson.GeometryObject */, P> extends Path {
   external Polyline(List<dynamic> latlngs, [PolylineOptions options]);
   external GeojsonFeature get feature;
@@ -2038,24 +2038,24 @@ class Polyline<T /* extends geojson.GeometryObject */, P> extends Path {
   external Point closestLayerPoint(Point p);
 }
 
-@JS("polyline")
+@JS("L.polyline")
 external Polyline<T, P> polyline<T /* extends geojson.GeometryObject */, P>(List<dynamic> latlngs, [PolylineOptions options]);
 
-@JS("Polygon")
+@JS("L.Polygon")
 class Polygon<P> extends Polyline<GeojsonPolygonOrGeojsonMultiPolygon, P> {
   external Polygon(List<dynamic> latlngs, [PolylineOptions options]);
 }
 
-@JS("polygon")
+@JS("L.polygon")
 external Polygon<P> polygon<P>(List<dynamic> latlngs, [PolylineOptions options]);
 
-@JS("Rectangle")
+@JS("L.Rectangle")
 class Rectangle<P> extends Polygon<P> {
   external Rectangle(LatLngBoundsExpression latLngBounds, [PolylineOptions options]);
   external Rectangle setBounds(LatLngBoundsExpression latLngBounds);
 }
 
-@JS("rectangle")
+@JS("L.rectangle")
 external Rectangle<P> rectangle<P>(LatLngBoundsExpression latLngBounds, [PolylineOptions options]);
 
 @JS()
@@ -2066,7 +2066,7 @@ abstract class CircleMarkerOptions implements PathOptions {
   external set radius(num? value);
 }
 
-@JS("CircleMarker")
+@JS("L.CircleMarker")
 class CircleMarker<P> extends Path {
   external CircleMarker(LatLngExpression latlng, CircleMarkerOptions options);
   external CircleMarkerOptions get options;
@@ -2081,12 +2081,12 @@ class CircleMarker<P> extends Path {
   external CircleMarker setStyle(covariant PathOptions options);
 }
 
-@JS("circleMarker")
+@JS("L.circleMarker")
 external CircleMarker<P> circleMarker<P>(LatLngExpression latlng, [CircleMarkerOptions options]);
 
 typedef CircleOptions = CircleMarkerOptions;
 
-@JS("Circle")
+@JS("L.Circle")
 class Circle<P> extends CircleMarker<P> {
   external Circle(LatLngExpression latlng, CircleOptions options);
   external factory Circle.overload2(LatLngExpression latlng, num radius, [CircleOptions options]);
@@ -2097,11 +2097,11 @@ class Circle<P> extends CircleMarker<P> {
   external Circle setStyle(covariant PathOptions style);
 }
 
-@JS("circle")
+@JS("L.circle")
 external Circle<P> circle_1<P>(LatLngExpression latlng, CircleMarkerOptions options);
 
 /// @deprecated Passing the radius outside the options is deperecated. Use [circle:1] instead.
-@JS("circle")
+@JS("L.circle")
 external Circle<P> circle_2<P>(LatLngExpression latlng, num radius, [CircleMarkerOptions options]);
 
 @JS()
@@ -2114,42 +2114,42 @@ abstract class RendererOptions implements LayerOptions {
   external set tolerance(num? value);
 }
 
-@JS("Renderer")
+@JS("L.Renderer")
 class Renderer extends Layer {
   external Renderer([RendererOptions options]);
   external RendererOptions get options;
   external set options(covariant RendererOptions value);
 }
 
-@JS("SVG")
+@JS("L.SVG")
 class SVG extends Renderer {
   external SVG([RendererOptions options]);
 }
 
-@JS("SVG.create")
+@JS("L.SVG.create")
 external IndexedSVGElementTagNameMapK SVG_create_1<K /* extends keyof SVGElementTagNameMap */>(K name);
 
-@JS("SVG.create")
+@JS("L.SVG.create")
 external SvgElement SVG_create_2(String name);
 
-@JS("SVG.pointsToPath")
+@JS("L.SVG.pointsToPath")
 external String pointsToPath(List<PointExpression> rings, bool closed);
 
-@JS("svg")
+@JS("L.svg")
 external SVG svg([RendererOptions options]);
 
-@JS("Canvas")
+@JS("L.Canvas")
 class Canvas extends Renderer {
   external Canvas([RendererOptions options]);
 }
 
-@JS("canvas")
+@JS("L.canvas")
 external Canvas canvas([RendererOptions options]);
 
 /// Used to group several layers and handle them as one.
 /// If you add it to the map, any layers added or removed from the group will be
 /// added/removed on the map as well. Extends Layer.
-@JS("LayerGroup")
+@JS("L.LayerGroup")
 class LayerGroup<P> extends Layer {
   external LayerGroup([List<Layer> layers, LayerOptions options]);
   external GeojsonFeatureCollectionGeojsonGeometryObjectPOrOther get feature;
@@ -2182,12 +2182,12 @@ class LayerGroup<P> extends Layer {
 }
 
 /// Create a layer group, optionally given an initial set of layers and an \`options\` object.
-@JS("layerGroup")
+@JS("L.layerGroup")
 external LayerGroup<P> layerGroup<P>([List<Layer> layers, LayerOptions options]);
 
 /// Extended LayerGroup that also has mouse events (propagated from
 /// members of the group) and a shared bindPopup method.
-@JS("FeatureGroup")
+@JS("L.FeatureGroup")
 class FeatureGroup<P> extends LayerGroup<P> {
   external FeatureGroup([List<Layer> layers, LayerOptions options]);
   /// Adds the given layer to the group.
@@ -2206,7 +2206,7 @@ class FeatureGroup<P> extends LayerGroup<P> {
 }
 
 /// Create a feature group, optionally given an initial set of layers.
-@JS("featureGroup")
+@JS("L.featureGroup")
 external FeatureGroup<P> featureGroup<P>([List<Layer> layers, LayerOptions options]);
 
 typedef StyleFunction<P> = PathOptions Function([GeojsonFeature feature]);
@@ -2267,7 +2267,7 @@ abstract class GeoJSONOptions<P, G /* extends geojson.GeometryObject */> impleme
 
 /// Represents a GeoJSON object or an array of GeoJSON objects.
 /// Allows you to parse GeoJSON data and display it on the map. Extends FeatureGroup.
-@JS("GeoJSON")
+@JS("L.GeoJSON")
 class GeoJSON<P, G /* extends geojson.GeometryObject */> extends FeatureGroup<P> {
   external GeoJSON([GeojsonGeoJsonObject geojson, GeoJSONOptions<P, G>? options]);
   external GeoJSONOptions<P, G> get options;
@@ -2308,10 +2308,10 @@ class GeoJSON<P, G /* extends geojson.GeometryObject */> extends FeatureGroup<P>
 /// Optionally accepts an object in GeoJSON format to display on the
 /// map (you can alternatively add it later with addData method) and
 /// an options object.
-@JS("geoJSON")
+@JS("L.geoJSON")
 external GeoJSON<P, G> geoJSON<P, G /* extends geojson.GeometryObject */>([GeojsonGeoJsonObjectOrGeojsonGeoJsonObject geojson, GeoJSONOptions<P, G>? options]);
 
-@JS("geoJson")
+@JS("L.geoJson")
 external GeoJSON<P, G> geoJson<P, G /* extends geojson.GeometryObject */>([GeojsonGeoJsonObjectOrGeojsonGeoJsonObject geojson, GeoJSONOptions<P, G>? options]);
 
 /// A JavaScript union of \`bool | String\`; Dart has no union types.
@@ -2413,7 +2413,7 @@ abstract class ControlOptions {
 @anonymous
 abstract class Anon_Control_method_0_extend_return_intersection_0 {}
 
-@JS("Control")
+@JS("L.Control")
 class Control<Options extends ControlOptions> extends Class {
   external Control([Options options]);
   external Options get options;
@@ -2442,7 +2442,7 @@ abstract class Control_ZoomOptions implements ControlOptions {
   external set zoomOutTitle(String? value);
 }
 
-@JS("Control.Zoom")
+@JS("L.Control.Zoom")
 class Control_Zoom extends Control {
   external Control_Zoom([Control_ZoomOptions options]);
   external ControlOptions get options;
@@ -2457,7 +2457,7 @@ abstract class AttributionOptions implements ControlOptions {
   external set prefix(StringOrBool value);
 }
 
-@JS("Control.Attribution")
+@JS("L.Control.Attribution")
 class Attribution extends Control {
   external Attribution([AttributionOptions options]);
   external ControlOptions get options;
@@ -2496,7 +2496,7 @@ extension LayersObjectExtension on LayersObject {
   external void operator []=(String key, Layer value);
 }
 
-@JS("Control.Layers")
+@JS("L.Control.Layers")
 class Layers extends Control {
   external Layers([LayersObject baseLayers, LayersObject overlays, LayersOptions options]);
   external ControlOptions get options;
@@ -2522,23 +2522,23 @@ abstract class ScaleOptions implements ControlOptions {
   external set updateWhenIdle(bool? value);
 }
 
-@JS("Control.Scale")
+@JS("L.Control.Scale")
 class Scale extends Control {
   external Scale([ScaleOptions options]);
   external ControlOptions get options;
   external set options(covariant ControlOptions value);
 }
 
-@JS("control.zoom")
+@JS("L.control.zoom")
 external Control_Zoom zoom([Control_ZoomOptions options]);
 
-@JS("control.attribution")
+@JS("L.control.attribution")
 external Attribution attribution([AttributionOptions options]);
 
-@JS("control.layers")
+@JS("L.control.layers")
 external Layers layers([LayersObject baseLayers, LayersObject overlays, LayersOptions options]);
 
-@JS("control.scale")
+@JS("L.control.scale")
 external Scale scale([ScaleOptions options]);
 
 @JS()
@@ -2557,7 +2557,7 @@ abstract class DivOverlayOptions {
   external set content(StringOrOther value);
 }
 
-@JS("DivOverlay")
+@JS("L.DivOverlay")
 abstract class DivOverlay extends Layer {
   external DivOverlay(LatLngExpression latlng, [TooltipOptions options]);
   external factory DivOverlay.overload2([DivOverlayOptions options, Layer source]);
@@ -2610,7 +2610,7 @@ abstract class PopupOptions implements DivOverlayOptions {
 /// A JavaScript union of \`String | HtmlElement\`; Dart has no union types.
 typedef Content = dynamic;
 
-@JS("Popup")
+@JS("L.Popup")
 class Popup extends DivOverlay {
   external Popup(LatLngExpression latlng, [TooltipOptions options]);
   external factory Popup.overload2([PopupOptions options, Layer source]);
@@ -2619,10 +2619,10 @@ class Popup extends DivOverlay {
   external Popup openOn(covariant JS$Map map);
 }
 
-@JS("popup")
+@JS("L.popup")
 external Popup popup_1(LatLngExpression latlng, [PopupOptions options]);
 
-@JS("popup")
+@JS("L.popup")
 external Popup popup_2([PopupOptions options, Layer source]);
 
 typedef Direction = String;
@@ -2645,7 +2645,7 @@ abstract class TooltipOptions implements DivOverlayOptions {
   external set opacity(num? value);
 }
 
-@JS("Tooltip")
+@JS("L.Tooltip")
 class Tooltip extends DivOverlay {
   external Tooltip(LatLngExpression latlng, [TooltipOptions options]);
   external factory Tooltip.overload2([TooltipOptions options, Layer source]);
@@ -2654,10 +2654,10 @@ class Tooltip extends DivOverlay {
   external void setOpacity(num val);
 }
 
-@JS("tooltip")
+@JS("L.tooltip")
 external Tooltip tooltip_1(LatLngExpression latlng, [TooltipOptions options]);
 
-@JS("tooltip")
+@JS("L.tooltip")
 external Tooltip tooltip_2([TooltipOptions options, Layer source]);
 
 @JS()
@@ -2700,7 +2700,7 @@ abstract class InvalidateSizeOptions implements ZoomPanOptions {
 
 @JS()
 @anonymous
-abstract class FitBoundsOptions implements ZoomOptions, PanOptions {
+abstract class FitBoundsOptions implements ZoomOptions, PanOptions, PanInsideOptions {
   external factory FitBoundsOptions({PointExpression paddingTopLeft, PointExpression paddingBottomRight, PointExpression padding, num? maxZoom, bool? animate, num? duration, num? easeLinearity, bool? noMoveStart});
   external PointExpression get paddingTopLeft;
   external set paddingTopLeft(PointExpression value);
@@ -2742,7 +2742,7 @@ abstract class LocateOptions {
   external set enableHighAccuracy(bool? value);
 }
 
-@JS("Handler")
+@JS("L.Handler")
 class Handler extends Class {
   external Handler(JS$Map map);
   external Handler enable();
@@ -2924,7 +2924,7 @@ typedef EventHandlerFn = void Function(Event event);
 /// A JavaScript union of \`LeafletMouseEvent | LeafletKeyboardEvent | LeafletEvent | Event\`; Dart has no union types.
 typedef PropagableEvent = dynamic;
 
-@JS("DomEvent.on")
+@JS("L.DomEvent.on")
 external TypeOfDomEvent on_1(HtmlElement el, String types, EventHandlerFn fn, [dynamic context]);
 
 @JS()
@@ -2935,52 +2935,52 @@ extension Anon_DomEvent_on_overload_1_param_1_eventMapExtension on Anon_DomEvent
   external void operator []=(String key, EventHandlerFn value);
 }
 
-@JS("DomEvent.on")
+@JS("L.DomEvent.on")
 external TypeOfDomEvent on_2(HtmlElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
-@JS("DomEvent.off")
+@JS("L.DomEvent.off")
 external TypeOfDomEvent off_1(HtmlElement el);
 
-@JS("DomEvent.off")
+@JS("L.DomEvent.off")
 external TypeOfDomEvent off_2(HtmlElement el, String types, EventHandlerFn fn, [dynamic context]);
 
-@JS("DomEvent.off")
+@JS("L.DomEvent.off")
 external TypeOfDomEvent off_3(HtmlElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
-@JS("DomEvent.stopPropagation")
+@JS("L.DomEvent.stopPropagation")
 external TypeOfDomEvent stopPropagation(PropagableEvent ev);
 
-@JS("DomEvent.disableScrollPropagation")
+@JS("L.DomEvent.disableScrollPropagation")
 external TypeOfDomEvent disableScrollPropagation(HtmlElement el);
 
-@JS("DomEvent.disableClickPropagation")
+@JS("L.DomEvent.disableClickPropagation")
 external TypeOfDomEvent disableClickPropagation(HtmlElement el);
 
-@JS("DomEvent.preventDefault")
+@JS("L.DomEvent.preventDefault")
 external TypeOfDomEvent preventDefault(Event ev);
 
-@JS("DomEvent.stop")
+@JS("L.DomEvent.stop")
 external TypeOfDomEvent stop(PropagableEvent ev);
 
-@JS("DomEvent.getMousePosition")
+@JS("L.DomEvent.getMousePosition")
 external Point getMousePosition(MouseEvent ev, [HtmlElement container]);
 
-@JS("DomEvent.getWheelDelta")
+@JS("L.DomEvent.getWheelDelta")
 external num getWheelDelta(Event ev);
 
-@JS("DomEvent.addListener")
+@JS("L.DomEvent.addListener")
 external TypeOfDomEvent addListener_1(HtmlElement el, String types, EventHandlerFn fn, [dynamic context]);
 
-@JS("DomEvent.addListener")
+@JS("L.DomEvent.addListener")
 external TypeOfDomEvent addListener_2(HtmlElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
-@JS("DomEvent.removeListener")
+@JS("L.DomEvent.removeListener")
 external TypeOfDomEvent removeListener_1(HtmlElement el, String types, EventHandlerFn fn, [dynamic context]);
 
-@JS("DomEvent.removeListener")
+@JS("L.DomEvent.removeListener")
 external TypeOfDomEvent removeListener_2(HtmlElement el, Anon_DomEvent_on_overload_1_param_1_eventMap eventMap, [dynamic context]);
 
-@JS("DomEvent.getPropagationPath")
+@JS("L.DomEvent.getPropagationPath")
 external List<HtmlElement> getPropagationPath(Event ev);
 
 @JS()
@@ -3019,7 +3019,7 @@ abstract class Anon_Map_method_37_whenReady_param_0_fn_param_0_event {
   external set target(JS$Map value);
 }
 
-@JS("Map")
+@JS("L.Map")
 class JS$Map extends Evented {
   external JS$Map(StringOrHtmlElement element, [MapOptions options]);
   external Attribution get attributionControl;
@@ -3119,7 +3119,7 @@ extension JS$MapExtension on JS$Map {
 }
 
 /// ID of a HTML-Element as string or the HTML-ELement itself
-@JS("map")
+@JS("L.map")
 external JS$Map map(StringOrHtmlElement element, [MapOptions options]);
 
 @JS()
@@ -3160,7 +3160,7 @@ abstract class IconOptions implements BaseIconOptions {
   external set crossOrigin(CrossOriginOrBool value);
 }
 
-@JS("Icon")
+@JS("L.Icon")
 class Icon<T extends BaseIconOptions> extends Layer {
   external Icon(T options);
   external LayerOptions get options;
@@ -3177,14 +3177,14 @@ abstract class DefaultIconOptions implements BaseIconOptions {
   external set imagePath(String? value);
 }
 
-@JS("Icon.Default")
+@JS("L.Icon.Default")
 class Default extends Icon<DefaultIconOptions> {
   external Default([DefaultIconOptions options]);
   external static String? get imagePath;
   external static set imagePath(String? value);
 }
 
-@JS("icon")
+@JS("L.icon")
 external Icon icon(IconOptions options);
 
 @JS()
@@ -3205,12 +3205,12 @@ abstract class DivIconOptions implements BaseIconOptions {
   external set className(covariant String? value);
 }
 
-@JS("DivIcon")
+@JS("L.DivIcon")
 class DivIcon extends Icon<DivIconOptions> {
   external DivIcon([DivIconOptions options]);
 }
 
-@JS("divIcon")
+@JS("L.divIcon")
 external DivIcon divIcon([DivIconOptions options]);
 
 @JS()
@@ -3259,7 +3259,7 @@ abstract class MarkerOptions implements InteractiveLayerOptions {
   external set autoPanOnFocus(bool? value);
 }
 
-@JS("Marker")
+@JS("L.Marker")
 class Marker<P> extends Layer {
   external Marker(LatLngExpression latlng, [MarkerOptions options]);
   external MarkerOptions get options;
@@ -3284,179 +3284,179 @@ extension MarkerExtension<P> on Marker<P> {
   external set JS$_shadow(HtmlElement? value);
 }
 
-@JS("marker")
+@JS("L.marker")
 external Marker<P> marker<P>(LatLngExpression latlng, [MarkerOptions options]);
 
-@JS("Browser.ie")
+@JS("L.Browser.ie")
 external bool get ie;
 
-@JS("Browser.ielt9")
+@JS("L.Browser.ielt9")
 external bool get ielt9;
 
-@JS("Browser.edge")
+@JS("L.Browser.edge")
 external bool get edge;
 
-@JS("Browser.webkit")
+@JS("L.Browser.webkit")
 external bool get webkit;
 
-@JS("Browser.android")
+@JS("L.Browser.android")
 external bool get android;
 
-@JS("Browser.android23")
+@JS("L.Browser.android23")
 external bool get android23;
 
-@JS("Browser.androidStock")
+@JS("L.Browser.androidStock")
 external bool get androidStock;
 
-@JS("Browser.opera")
+@JS("L.Browser.opera")
 external bool get opera;
 
-@JS("Browser.chrome")
+@JS("L.Browser.chrome")
 external bool get chrome;
 
-@JS("Browser.gecko")
+@JS("L.Browser.gecko")
 external bool get gecko;
 
-@JS("Browser.safari")
+@JS("L.Browser.safari")
 external bool get safari;
 
-@JS("Browser.opera12")
+@JS("L.Browser.opera12")
 external bool get opera12;
 
-@JS("Browser.win")
+@JS("L.Browser.win")
 external bool get win;
 
-@JS("Browser.ie3d")
+@JS("L.Browser.ie3d")
 external bool get ie3d;
 
-@JS("Browser.webkit3d")
+@JS("L.Browser.webkit3d")
 external bool get webkit3d;
 
-@JS("Browser.gecko3d")
+@JS("L.Browser.gecko3d")
 external bool get gecko3d;
 
-@JS("Browser.any3d")
+@JS("L.Browser.any3d")
 external bool get any3d;
 
-@JS("Browser.mobile")
+@JS("L.Browser.mobile")
 external bool get mobile;
 
-@JS("Browser.mobileWebkit")
+@JS("L.Browser.mobileWebkit")
 external bool get mobileWebkit;
 
-@JS("Browser.mobileWebkit3d")
+@JS("L.Browser.mobileWebkit3d")
 external bool get mobileWebkit3d;
 
-@JS("Browser.msPointer")
+@JS("L.Browser.msPointer")
 external bool get msPointer;
 
-@JS("Browser.pointer")
+@JS("L.Browser.pointer")
 external bool get pointer;
 
-@JS("Browser.touch")
+@JS("L.Browser.touch")
 external bool get touch;
 
-@JS("Browser.mobileOpera")
+@JS("L.Browser.mobileOpera")
 external bool get mobileOpera;
 
-@JS("Browser.mobileGecko")
+@JS("L.Browser.mobileGecko")
 external bool get mobileGecko;
 
-@JS("Browser.retina")
+@JS("L.Browser.retina")
 external bool get retina;
 
-@JS("Browser.canvas")
+@JS("L.Browser.canvas")
 external bool get Browser_canvas;
 
-@JS("Browser.svg")
+@JS("L.Browser.svg")
 external bool get Browser_svg;
 
-@JS("Browser.vml")
+@JS("L.Browser.vml")
 external bool get vml;
 
-@JS("Util.extend")
+@JS("L.Util.extend")
 external D /* D&S1 */ extend_1<D /* extends object */, S1 /* extends object */>(D dest, [S1 src]);
 
-@JS("Util.extend")
+@JS("L.Util.extend")
 external D /* D&S1&S2 */ extend_2<D /* extends object */, S1 /* extends object */, S2 /* extends object */>(D dest, S1 src1, S2 src2);
 
-@JS("Util.extend")
+@JS("L.Util.extend")
 external D /* D&S1&S2&S3 */ extend_3<D /* extends object */, S1 /* extends object */, S2 /* extends object */, S3 /* extends object */>(D dest, S1 src1, S2 src2, S3 src3);
 
-@JS("Util.extend")
+@JS("L.Util.extend")
 external dynamic extend_4(dynamic dest, [dynamic src1, dynamic src2, dynamic src3, dynamic src4, dynamic src5]);
 
-@JS("Util.create")
+@JS("L.Util.create")
 external dynamic create(Object? proto, [PropertyDescriptorMap properties]);
 
-@JS("Util.bind")
+@JS("L.Util.bind")
 external void Function() Util_bind(void Function([dynamic, dynamic, dynamic, dynamic, dynamic]) fn, [dynamic obj1, dynamic obj2, dynamic obj3, dynamic obj4, dynamic obj5]);
 
-@JS("Util.stamp")
+@JS("L.Util.stamp")
 external num Util_stamp(dynamic obj);
 
-@JS("Util.throttle")
+@JS("L.Util.throttle")
 external void Function() throttle(void Function() fn, num time, dynamic context);
 
-@JS("Util.wrapNum")
+@JS("L.Util.wrapNum")
 external num wrapNum(num num, List<num> range, [bool includeMax]);
 
-@JS("Util.falseFn")
+@JS("L.Util.falseFn")
 external bool falseFn();
 
-@JS("Util.formatNum")
+@JS("L.Util.formatNum")
 external num formatNum(num num, [NumOrBool digits]);
 
-@JS("Util.trim")
+@JS("L.Util.trim")
 external String trim(String str);
 
-@JS("Util.splitWords")
+@JS("L.Util.splitWords")
 external List<String> splitWords(String str);
 
-@JS("Util.setOptions")
+@JS("L.Util.setOptions")
 external dynamic Util_setOptions(dynamic obj, dynamic options);
 
-@JS("Util.getParamString")
+@JS("L.Util.getParamString")
 external String getParamString(dynamic obj, [String existingUrl, bool uppercase]);
 
-@JS("Util.template")
+@JS("L.Util.template")
 external String template(String str, dynamic data);
 
-@JS("Util.isArray")
+@JS("L.Util.isArray")
 external bool isArray(dynamic obj);
 
-@JS("Util.indexOf")
+@JS("L.Util.indexOf")
 external num indexOf(List<dynamic> array, dynamic el);
 
-@JS("Util.requestAnimFrame")
+@JS("L.Util.requestAnimFrame")
 external num requestAnimFrame(void Function(num) fn, [dynamic context, bool immediate]);
 
-@JS("Util.cancelAnimFrame")
+@JS("L.Util.cancelAnimFrame")
 external void cancelAnimFrame(num id);
 
-@JS("Util.lastId")
+@JS("L.Util.lastId")
 external num get lastId;
-@JS("Util.lastId")
+@JS("L.Util.lastId")
 external set lastId(num value);
 
-@JS("Util.emptyImageUrl")
+@JS("L.Util.emptyImageUrl")
 external String get emptyImageUrl;
-@JS("Util.emptyImageUrl")
+@JS("L.Util.emptyImageUrl")
 external set emptyImageUrl(String value);
 
-@JS("extend")
+@JS("L.extend")
 external IndexedTypeOfUtilExtend get extend;
 
-@JS("bind")
+@JS("L.bind")
 external IndexedTypeOfUtilBind get bind;
 
-@JS("stamp")
+@JS("L.stamp")
 external IndexedTypeOfUtilStamp get stamp;
 
-@JS("setOptions")
+@JS("L.setOptions")
 external IndexedTypeOfUtilSetOptions get setOptions;
 
-@JS("noConflict")
+@JS("L.noConflict")
 external dynamic noConflict();
 
 // ---------------------------------------------------------------------------

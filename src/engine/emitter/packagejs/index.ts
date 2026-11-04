@@ -40,7 +40,16 @@ const TYPE_DEFINITIONS_HEADER = [
  * `js_facade_gen` (see `def_files/js_facade_gen_test_cases.md`), with named
  * degradations instead of inline `dynamic` comments.
  */
-export function createPackageJsBackend(): Backend {
+export interface PackageJsOptions {
+  /**
+   * Global object that module libraries without `export as namespace` are
+   * reached through, e.g. `THREE` for three.js's classic build. Their
+   * declarations then bind `THREE.<name>` instead of bare globals.
+   */
+  jsRoot?: string;
+}
+
+export function createPackageJsBackend(options: PackageJsOptions = {}): Backend {
   return {
     id: "package:js",
     renderLibraries(
@@ -55,7 +64,7 @@ export function createPackageJsBackend(): Backend {
         const draft =
           cached && !session!.dirty.has(input.sourceFile)
             ? cached
-            : renderLibrary(input, index);
+            : renderLibrary(input, index, options);
         session?.cache.set(input.sourceFile, draft);
         drafts.set(input.sourceFile, draft);
       }
@@ -183,7 +192,11 @@ function resolveExports(
   return hidden;
 }
 
-function renderLibrary(input: LibraryInput, index: ProgramIndex): LibraryDraft {
+function renderLibrary(
+  input: LibraryInput,
+  index: ProgramIndex,
+  options: PackageJsOptions = {},
+): LibraryDraft {
   const plan = new LibraryPlan(input.outputPath);
   const context: EmitContext = {
     plan,
@@ -191,6 +204,7 @@ function renderLibrary(input: LibraryInput, index: ProgramIndex): LibraryDraft {
     file: input.sourceFile,
     scope: new Map(),
     outputPath: input.outputPath,
+    ...((namespaceRoot(input) ?? options.jsRoot) ? { jsRoot: (namespaceRoot(input) ?? options.jsRoot)! } : {}),
     ...(input.supportPath ? { shared: { path: input.supportPath, used: new Set<string>() } } : {}),
   };
   const diagnostics: BackendDiagnostic[] = [];
@@ -275,6 +289,12 @@ function renderLibrary(input: LibraryInput, index: ProgramIndex): LibraryDraft {
   return { content, diagnostics, publicNames, reExports: directives };
 }
 
+/** The first `export as namespace` alias the source file declares. */
+function namespaceRoot(input: LibraryInput): string | undefined {
+  const aliases = input.program.namespaceExports.get(input.sourceFile);
+  return aliases && aliases.size > 0 ? [...aliases].sort()[0] : undefined;
+}
+
 function emitFacet(
   facet: SymbolFacet,
   context: EmitContext,
@@ -296,9 +316,9 @@ function emitFacet(
   }
   switch (facet.ir.kind) {
     case IRDeclKind.Class:
-      return emitClass(facet, context);
+      return emitClass(facet, { ...context, currentFQN: fqn });
     case IRDeclKind.Interface:
-      return emitInterface(facet, context);
+      return emitInterface(facet, { ...context, currentFQN: fqn });
     case IRDeclKind.Function:
       return emitFunction(facet, context);
     case IRDeclKind.Variable:

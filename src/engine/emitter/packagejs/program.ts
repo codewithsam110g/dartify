@@ -36,6 +36,7 @@ export class ProgramIndex {
     { owned: Map<string, SymbolFacet>; aliases: Set<SymbolFacet> }
   >();
   private filesIndex?: Map<string, (readonly Symbol[])[]>;
+  private shapeList?: { fqn: string; facet: SymbolFacet }[];
 
   constructor(
     public readonly symbols: ReadonlyMap<string, readonly Symbol[]>,
@@ -48,6 +49,22 @@ export class ProgramIndex {
     const target = this.computeTarget(fqn);
     this.targets.set(fqn, target ?? null);
     return target;
+  }
+
+  /** Every structural-shape interface in the program, computed once. */
+  shapes(): { fqn: string; facet: SymbolFacet }[] {
+    if (!this.shapeList) {
+      this.shapeList = [];
+      for (const [fqn, group] of this.symbols) {
+        for (const symbol of group) {
+          for (const facet of symbol.facets) {
+            if (isShapeCandidate(facet)) this.shapeList.push({ fqn, facet });
+          }
+        }
+      }
+      this.shapeList.sort((a, b) => a.fqn.localeCompare(b.fqn));
+    }
+    return this.shapeList;
   }
 
   /** The emitted type facet for an FQN: class, interface, enum or alias. */
@@ -153,6 +170,24 @@ export class ProgramIndex {
       facet,
     };
   }
+}
+
+/**
+ * A named, non-generic, property-only object shape (an `@anonymous`
+ * interface): TypeScript accepts any value with those properties, so classes
+ * that structurally provide them are emitted as implementing it (structural
+ * conformance, `E-43`).
+ */
+export function isShapeCandidate(facet: SymbolFacet): boolean {
+  if (!facet.emit || facet.synthetic || facet.namespace !== "type") return false;
+  if (facet.ir.kind !== IRDeclKind.Interface) return false;
+  const shape = facet.ir as IRInterface;
+  if (shape.typeParams.length > 0) return false;
+  if (shape.methods.length > 0 || shape.callSignatures.length > 0) return false;
+  if (shape.constructSignatures.length > 0 || shape.indexSignatures.length > 0) return false;
+  if (shape.setAccessors.length > 0) return false;
+  const members = [...shape.properties, ...shape.getAccessors].filter((member) => !member.isStatic);
+  return members.length >= 2 && members.length === shape.properties.length + shape.getAccessors.length;
 }
 
 export function enumValueType(declaration: IREnum): "num" | "String" | "Object" {

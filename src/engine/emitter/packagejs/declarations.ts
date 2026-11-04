@@ -18,6 +18,7 @@ import { IRTypeAlias } from "@ir/typealias";
 import { IRVariable } from "@ir/variable";
 import { enumValueType } from "./program";
 import { aliasUnionDisplay, isPlatformType } from "./types";
+import { BROWSER_TYPES } from "./browserTypes";
 import { codeSpan, dartDocLines, dartString } from "./text";
 import {
   EmitContext,
@@ -35,7 +36,8 @@ export interface EmitDiagnostic {
   code:
     | "ANONYMOUS_DEFAULT_NOT_BOUND"
     | "CONST_ENUM_MEMBER_WITHOUT_VALUE"
-    | "HERITAGE_DROPPED";
+    | "HERITAGE_DROPPED"
+    | "NATIVE_NAME_CONFLICT";
   name: string;
   message: string;
 }
@@ -85,13 +87,18 @@ function unquote(name: string): string {
 }
 
 /** The JavaScript object path of a top-level facet. */
-export function jsPath(facet: SymbolFacet): string {
+export function jsPath(facet: SymbolFacet, context?: EmitContext): string {
   const segments = facet.origin.scopes.flatMap((scope) => {
     if (scope.kind === "global") return [];
     if (scope.kind === "namespace") return scope.jsSegments.map(unquote);
     return [scope.specifier];
   });
-  return [...segments, unquote(jsName(facet.ir))].join(".");
+  // A module that declares `export as namespace L` is reached at runtime
+  // through the global `L` (UMD), so its declarations bind `L.<name>`
+  // (`E-42`). `declare global` declarations stay global.
+  const isGlobal = facet.origin.scopes.some((scope) => scope.kind === "global");
+  const root = !isGlobal && facet.origin.fileIsModule ? context?.jsRoot : undefined;
+  return [...(root ? [root] : []), ...segments, unquote(jsName(facet.ir))].join(".");
 }
 
 function jsAnnotation(path: string, indent = ""): string {
@@ -683,6 +690,133 @@ function originalOf(type: IRType): string {
   return type.originalText ?? type.name;
 }
 
+const NATIVE_NAMES: ReadonlySet<string> = new Set(
+  Object.values(BROWSER_TYPES).flatMap((names) => Object.keys(names)),
+);
+
+/**
+ * dart2js rejects a non-static interop class bound to the same JavaScript
+ * name as a class it implements natively (`AudioContext`, `WebGLProgram`).
+ * That happens when a module library's exports are addressed as bare
+ * globals; `--js-root` (for example `THREE`) qualifies them.
+ */
+function nativeConflict(path: string, name: string): EmitDiagnostic[] {
+  return !path.includes(".") && NATIVE_NAMES.has(path)
+    ? [{
+        code: "NATIVE_NAME_CONFLICT",
+        name,
+        message: `${name} binds the bare global '${path}', which dart2js reserves for its native class; generate with --js-root <global> for module libraries`,
+      }]
+    : [];
+}
+
+interface ProvidedProperty {
+  type: IRType;
+  context: EmitContext;
+  optional: boolean;
+  readonly: boolean;
+}
+
+/** Instance properties and getters a declaration has, own first, then inherited. */
+function providedProperties(
+  declaration: IRClass | IRInterface,
+  context: EmitContext,
+  into = new Map<string, ProvidedProperty>(),
+  seen = new Set<IRClass | IRInterface>(),
+): Map<string, ProvidedProperty> {
+  if (seen.has(declaration)) return into;
+  seen.add(declaration);
+  const setters = new Set(declaration.setAccessors.filter((s) => !s.isStatic).map((s) => jsName(s)));
+  for (const property of declaration.properties) {
+    if (property.isStatic || into.has(jsName(property))) continue;
+    into.set(jsName(property), {
+      type: property.type,
+      context,
+      optional: property.isOptional,
+      readonly: property.isReadonly,
+    });
+  }
+  for (const getter of declaration.getAccessors) {
+    if (getter.isStatic || into.has(jsName(getter))) continue;
+    into.set(jsName(getter), { type: getter.type, context, optional: false, readonly: !setters.has(jsName(getter)) });
+  }
+  for (const parent of parentsOf(declaration)) {
+    const target = heritageTarget(parent, context);
+    const ir = target?.facet.ir;
+    if (!ir || (ir.kind !== IRDeclKind.Class && ir.kind !== IRDeclKind.Interface)) continue;
+    const parentIR = ir as IRClass | IRInterface;
+    providedProperties(
+      parentIR,
+      withSubstitution({ ...context, scope: new Map(context.scope) }, parentIR.typeParams, parent.genericArgs, context),
+      into,
+      seen,
+    );
+  }
+  return into;
+}
+
+/**
+ * Structural conformance (`E-43`): TypeScript accepts a `Vector3` wherever a
+ * `Vector3Like` (`{ x; y; z }`) is expected; Dart needs the class to declare
+ * it. Returns the shape interfaces this declaration provably satisfies and
+ * does not already inherit: every shape property is present, no less
+ * optional, writable when the shape's is, and of a provably compatible type,
+ * and the shape has strictly fewer properties than the declaration provides.
+ */
+function structuralConformances(
+  declaration: IRClass | IRInterface,
+  context: EmitContext,
+): IRType[] {
+  const self = context.currentFQN;
+  if (!self) return [];
+  const provided = providedProperties(declaration, context);
+  if (provided.size < 2) return [];
+  const result: IRType[] = [];
+  for (const shape of context.index.shapes()) {
+    if (shape.fqn === self) continue;
+    if (reachesSupertype(self, shape.fqn, context) || reachesSupertype(shape.fqn, self, context)) continue;
+    const ir = shape.facet.ir as IRInterface;
+    // The shape's full property set, inherited included, on both sides.
+    const required = [...providedProperties(ir, context)].map(([name, property]) => ({
+      name,
+      type: property.type,
+      context: property.context,
+      optional: property.optional,
+      readonly: property.readonly,
+    }));
+    // Strict subset by name: conformance edges always go from more members to
+    // fewer, so they can never form a cycle (equal shapes stay unrelated).
+    if (required.length >= provided.size) continue;
+    const fits = required.every((member) => {
+      const own = provided.get(member.name);
+      if (!own) return false;
+      if (own.optional && !member.optional) return false;
+      if (own.readonly && !member.readonly) return false;
+      // A writable shape property would need a `covariant` setter for any
+      // narrowing; require the identical type instead.
+      if (!member.readonly) {
+        return emitType(own.type, own.context) === emitType(member.type, member.context);
+      }
+      return provableSubtype(own.type, own.context, member.type, member.context);
+    });
+    if (!fits) continue;
+    const name = ir.dartName ?? ir.name;
+    result.push({
+      kind: TypeKind.TypeReference,
+      name,
+      isNullable: false,
+      originalText: name,
+      reference: {
+        writtenName: name,
+        lookup: { kind: "checker", candidates: [shape.fqn] },
+        resolvedFQN: shape.fqn,
+        resolvedDartName: name,
+      },
+    });
+  }
+  return result;
+}
+
 function computeHeritage(
   extendsTypes: readonly IRType[],
   implementsTypes: readonly IRType[],
@@ -881,13 +1015,13 @@ export function emitClass(
 ): EmittedDeclaration {
   const declaration = facet.ir as IRClass;
   const name = dartName(declaration);
-  const path = jsPath(facet);
+  const path = jsPath(facet, context);
   const inner = withTypeParams(context, declaration.typeParams);
   const typeParams = emitTypeParams(declaration.typeParams, inner);
   const typeArgs = typeArguments(declaration.typeParams);
   const heritage = computeHeritage(
     declaration.extends ? [declaration.extends] : [],
-    declaration.implements,
+    [...declaration.implements, ...structuralConformances(declaration, inner)],
     inner,
     true,
   );
@@ -1009,11 +1143,14 @@ export function emitClass(
   lines.push(...sink.topLevel);
   return {
     lines,
-    diagnostics: heritage.dropped.map((text) => ({
-      code: "HERITAGE_DROPPED" as const,
-      name,
-      message: `${name}: ${text} has no Dart class to inherit from`,
-    })),
+    diagnostics: [
+      ...heritage.dropped.map((text) => ({
+        code: "HERITAGE_DROPPED" as const,
+        name,
+        message: `${name}: ${text} has no Dart class to inherit from`,
+      })),
+      ...(true ? nativeConflict(path, name) : []),
+    ],
   };
 }
 
@@ -1147,8 +1284,13 @@ export function emitInterface(
     };
   }
 
-  const path = jsPath(facet);
-  const heritage = computeHeritage(declaration.extends, [], inner, false);
+  const path = jsPath(facet, context);
+  const heritage = computeHeritage(
+    declaration.extends,
+    structuralConformances(declaration, inner),
+    inner,
+    false,
+  );
   const sink: MemberSink = { body: [], extension: [], topLevel: [] };
   const scoped = memberContext(declaration, inner);
 
@@ -1204,11 +1346,14 @@ export function emitInterface(
   lines.push(...sink.topLevel);
   return {
     lines,
-    diagnostics: heritage.dropped.map((text) => ({
-      code: "HERITAGE_DROPPED" as const,
-      name,
-      message: `${name}: ${text} has no Dart class to inherit from`,
-    })),
+    diagnostics: [
+      ...heritage.dropped.map((text) => ({
+        code: "HERITAGE_DROPPED" as const,
+        name,
+        message: `${name}: ${text} has no Dart class to inherit from`,
+      })),
+      ...(hasRuntimeBinding ? nativeConflict(path, name) : []),
+    ],
   };
 }
 
@@ -1218,7 +1363,7 @@ export function emitFunction(facet: SymbolFacet, context: EmitContext): EmittedD
   return {
     lines: [
       ...docs(declaration),
-      jsAnnotation(jsPath(facet)),
+      jsAnnotation(jsPath(facet, context)),
       `external ${emitType(declaration.returnType, inner)} ${dartName(declaration)}${emitTypeParams(declaration.typeParams, inner)}(${formatParameters(declaration.parameters, inner)});`,
     ],
     diagnostics: [],
@@ -1230,7 +1375,7 @@ export function emitVariable(facet: SymbolFacet, context: EmitContext): EmittedD
   const declaration = facet.ir as IRVariable;
   const name = dartName(declaration);
   const type = emitType(declaration.type, context);
-  const annotation = jsAnnotation(jsPath(facet));
+  const annotation = jsAnnotation(jsPath(facet, context));
   const lines = [...docs(declaration), annotation, `external ${type} get ${name};`];
   if (!declaration.isConst && declaration.declarationKind !== "const") {
     lines.push(annotation, `external set ${name}(${type} value);`);
@@ -1321,7 +1466,7 @@ export function emitEnum(facet: SymbolFacet, context: EmitContext): EmittedDecla
   const diagnostics: EmitDiagnostic[] = [];
   const body: string[] = [];
   const topLevel: string[] = [];
-  const path = jsPath(facet);
+  const path = jsPath(facet, context);
 
   if (declaration.isConst) {
     for (const member of declaration.members) {

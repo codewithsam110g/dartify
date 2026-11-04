@@ -46,3 +46,4 @@ jobs:
           sdk: stable
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:dart
+      - run: pnpm test:e2e

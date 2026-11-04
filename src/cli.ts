@@ -25,6 +25,7 @@ interface CliOptions {
   verbose: boolean;
   dryRun: boolean;
   watch: boolean;
+  jsRoot?: string;
 }
 
 const argv = yargs(hideBin(process.argv))
@@ -63,6 +64,10 @@ const argv = yargs(hideBin(process.argv))
     type: "boolean",
     describe: "Rebuild incrementally whenever an input changes",
     default: false,
+  })
+  .option("js-root", {
+    type: "string",
+    describe: "Global that module libraries are reached through (e.g. THREE)",
   })
   .option("tsconfig", {
     alias: "p",
@@ -184,6 +189,7 @@ async function processFiles(
     tsConfigFilePath: options.tsconfig
       ? path.resolve(process.cwd(), options.tsconfig)
       : undefined,
+    ...(options.jsRoot ? { jsRoot: options.jsRoot } : {}),
   };
   let transpiler: Transpiler = new Transpiler(transpilerOptions);
   const report = await transpiler.transpile();
@@ -233,6 +239,7 @@ async function watchFiles(files: string[], options: CliOptions): Promise<void> {
     files,
     outDir: options.output,
     tsConfigFilePath: options.tsconfig ? path.resolve(process.cwd(), options.tsconfig) : undefined,
+    ...(options.jsRoot ? { jsRoot: options.jsRoot } : {}),
   });
   const report = (label: string, build: Awaited<ReturnType<typeof session.build>>) => {
     const failures = build.analysis.generation.length;

@@ -29,6 +29,10 @@ export interface EmitContext {
    * collects the support names this library referenced.
    */
   shared?: { path: string; used: Set<string> };
+  /** The `export as namespace` global this library's module is reached through. */
+  jsRoot?: string;
+  /** FQN of the declaration being emitted. */
+  currentFQN?: string;
 }
 
 /** A use of a name from the shared support library, if there is one. */

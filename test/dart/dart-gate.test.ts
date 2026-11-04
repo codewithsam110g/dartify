@@ -61,6 +61,8 @@ describe.skipIf(!ENABLED)("Dart acceptance gate", () => {
       await new Transpiler({
         files: files.map((file) => resolve(file)),
         outDir: join(root, "lib", set),
+        // three's typings are ES modules; its browser global is THREE.
+        ...(set === "three" ? { jsRoot: "THREE" } : {}),
       }).transpile();
     }
     // Every js_facade_gen reference case must also analyze (S6.1).

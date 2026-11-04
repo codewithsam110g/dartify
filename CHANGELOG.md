@@ -25,6 +25,9 @@ The drop-in replacement for the archived `js_facade_gen`, targeting
   callable-interface typedefs, `@anonymous` factories with inherited fields,
   typed index operators, polyfilled rest parameters, `Promise<T>` with
   `toFuture()`, JSDoc as dartdoc, escaped `@JS` strings.
+- Multi-library runs share one `dartify_support.dart` (`Promise`,
+  `PromiseToFuture`, `JSBigInt`), re-exported by each library that uses it, so
+  a `Promise` from one generated library is accepted by another (`E-40`).
 - Named degradations for unions, unresolved references, unmapped host types
   and unrepresentable syntax; list unions take their upper bound; utility
   aliases `Partial`/`Required`/`Readonly`/`NonNullable` lower to their argument.

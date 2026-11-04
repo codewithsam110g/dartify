@@ -26,50 +26,33 @@ historical releases or old architecture names.
   - [x] Assign every new/reopened finding to the pre-S5 barrier, S5, or S6 in
     `PLAN.md`; do not treat green snapshots as closure evidence.
 
-## Before Stage 5
+## Before Stage 5 — done
 
-Follow `PRE_STAGE5_PLAN.md` as the decision-complete execution ledger. Keep its
-checkboxes and evidence synchronized with this summary.
+`PRE_STAGE5_PLAN.md` tasks 4.11–4.17 are complete: run-owned compiler state,
+module-export/const-enum/anonymous-default identity, `never` intersections,
+external-module visibility, deterministic legal names, TypeScript host
+identity, the executable Dart gate, and the Node/coverage/CI contracts.
 
-- [x] Remove process-global run state and complete snapshot isolation (`R-14`,
-  `L-10`, `R-13`):
-  - [x] Make `Transpiler` options-only; create the project, resolved-file maps,
-    fallback records, symbol table, namespace aliases, and diagnostics per call.
-  - [x] Pass narrow dependencies into generation/linking/emission and return an
-    owned linked program; never introduce another global context/service locator.
-  - [x] Return symbol-generation diagnostics to programmatic and CLI callers;
-    remove global logging policy.
-  - [x] Add transactional symbol mutation and deeply detached consumer reads.
-  - [x] Migrate tests off `transpilerContext`, keep graph tooling report-only,
-    then delete `src/context.ts` and `src/reset.ts`.
-  - [x] Prove sequential, cross-instance, and same-instance overlapping calls;
-    nested mutation isolation; and unchanged single-run output.
-- [x] Preserve module-export/anonymity/const-enum facts and correct impossible
-  intersections (`P-15`–`P-17`, `T-18`).
-- [x] Enforce external-module visibility and deterministic/legal semantic names
-  (`L-19`, `E-29`, `E-30`).
-- [ ] Replace the false expectations identified by `X-14` and establish a
-  categorized Dart analyzer/compiler/runtime fixture gate.
-- [x] Declare the dependency-compatible Node range and repair or remove the
-  nonfunctional coverage command (`X-15`, `X-16`).
-- [x] Preserve checker-confirmed TypeScript host/stdlib reference identity
-  without adding host declarations to generated dependency edges (`I-15`).
-- [ ] Begin the Stage 5 `package:js` emitter rebuild only after this barrier.
+## v1 work — done
 
-## Later v1 Work
+- [x] Rebuild the `package:js` emitter behind a backend seam (S5).
+- [x] Emit cross-file imports and barrel re-exports from linked identity.
+- [x] Port and SDK-validate the browser/IndexedDB/WebGL/SVG/audio/typed-data
+  registry; apply it by host identity.
+- [x] Emit generics, heritage, constructors, callable interfaces and JSDoc.
+- [x] Give every standard utility type a verified lowering or named fallback (`E-36`).
+- [x] Make the `js_facade_gen` reference cases executable (67/90 parity, 16 improved).
+- [x] Reproduce the js_facade_gen bindings shipped in h3 (63/63).
+- [x] Validate h3, Leaflet and three.js with `dart analyze` (0 errors/warnings) in CI.
 
-- [ ] Rebuild the `package:js` emitter after semantic identities stabilize.
-- [ ] Emit cross-file imports from linked dependencies.
-- [ ] Port and SDK-validate the original full browser/IndexedDB/WebGL/SVG/audio/
-  typed-data mapping tables; apply them by host identity, never leaf text.
-- [ ] Emit generics, heritage, constructors, callable interfaces, and JSDoc.
-- [ ] Give every standard utility type a verified lowering or named documented
-  fallback; never emit unresolved leaves such as `Record<K, V>` (`E-36`).
-- [ ] Complete the extracted `js_facade_gen` conformance suite.
-- [ ] Validate h3, Leaflet, and three.js output at their assigned gates.
+## Release
+
+- [ ] Optional `1.0.0-beta.0` under the npm `next` tag (S6.9).
+- [ ] Merge `refactor/orchestration` to `main` and publish `1.0.0` (S6.10).
 
 ## Post-v1
 
-- [ ] Add a `dart:js_interop` backend behind a CLI flag.
+- [ ] Add a `dart:js_interop` backend behind a CLI flag (v2).
 - [ ] Evaluate advanced utility and mapped types with the TypeScript checker.
-- [ ] Integrate browser-type substitutions from modern Dart web packages.
+- [ ] Emit external-module augmentations (currently modeled and suppressed).
+- [ ] Share backend support declarations across generated libraries (`E-40`).

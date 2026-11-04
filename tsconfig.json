@@ -19,7 +19,6 @@
       "@engine/*": ["src/engine/*"],
       "@emitter/*": ["src/engine/emitter/*"],
       "@parser/*": ["src/engine/parser/*"],
-      "@utils/*": ["src/utils/*"],
 
       // Type system
       "@typeParser/*": ["src/engine/parser/type/*"],

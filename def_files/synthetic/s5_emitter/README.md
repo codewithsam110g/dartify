@@ -38,14 +38,19 @@ the real verbose CLI report and write inspectable Dart files to
 symbols, 41 facets, and 36/36 resolved edges. Two external augmentations are
 suppressed with explicit diagnostics.
 
-Dart analysis currently reports 34 errors: 12 missing cross-file imports
+Before S5, Dart analysis reported 34 errors: 12 missing cross-file imports
 (`E-08`), eight generic/`Record` lowering errors (`E-03`/`E-36`), two typed-array
 substitution errors (S5.3), and 12 malformed quoted-member annotation errors
-(`E-13`). These are expected S5 targets, not accepted final output. Building
-this fixture also exposed analyzer-invisible `E-23`: `Consumer.options` links
-to `foundation::Toolkit|Options` but currently emits as bare `Options`, which
-Dart silently resolves to the consumer's local `Alpha.Options`. S5.2 must emit
-a prefixed `foundation.Options` reference and lock that exact assertion.
+(`E-13`), plus the analyzer-invisible `E-23` capture of `Consumer.options`.
+
+## After S5
+
+All four libraries analyze with **zero errors and zero warnings**
+(`pnpm test:dart`, set `s5`). `Consumer.options` is emitted as the prefixed
+`foundation.Options` while the local `Options` stays unqualified, `Record` is a
+named documented fallback, typed arrays import `dart:typed_data`, and quoted
+members bind through escaped `@JS` names. The golden is the reviewed S5
+output.
 
 The fixture additionally exposed a `this`-type redirect gap; `P-07` now carries
 a linkable owner identity and the golden proves both fluent returns resolve

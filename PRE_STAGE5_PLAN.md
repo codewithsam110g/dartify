@@ -1,5 +1,9 @@
 # Pre-Stage-5 Correctness Barrier
 
+> **Status: complete.** All seven tasks landed; S5 and S6 followed. The
+> executable Dart gate is `pnpm test:dart` (opt-in locally, required in CI).
+> `test:dart:pre-s5` named below became `test:dart`.
+
 ## Purpose and Scope
 
 Complete tasks 4.11–4.17 before rebuilding the Stage 5 emitter. This barrier
@@ -108,16 +112,16 @@ Commit: `feat(ir): preserve TypeScript host type provenance`
 
 Commit: `test(gates): execute Dart analyzer and interop probes`
 
-- [ ] Add opt-in `pnpm test:dart:pre-s5`; do not make the default Node suite
+- [x] Add opt-in `pnpm test:dart:pre-s5`; do not make the default Node suite
   require a Dart SDK.
-- [ ] Generate temporary Dart packages and run machine-readable
+- [x] Generate temporary Dart packages and run machine-readable
   `dart analyze`, `dart compile js`, and Node runtime probes.
-- [ ] Keep h3 clean apart from the accepted `package:js` deprecation. Store an
+- [x] Keep h3 clean apart from the accepted `package:js` deprecation. Store an
   exact categorized S5-fixture baseline mapped to finding IDs; unknown, newly
   introduced, and unexpectedly missing categories fail the gate.
-- [ ] Exercise successful overload dispatch and explicit known-failure probes
+- [x] Exercise successful overload dispatch and explicit known-failure probes
   for S5-owned rest dispatch and constructability.
-- [ ] Remove unit expectations that bless impossible intersections or
+- [x] Remove unit expectations that bless impossible intersections or
   list-as-rest JavaScript dispatch.
 
 ### 4.16 — Runtime, coverage, and CI contracts

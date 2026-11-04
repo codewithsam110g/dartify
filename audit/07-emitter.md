@@ -3,6 +3,16 @@
 Covers `src/engine/phase/emitterPhase.ts`, `src/engine/emitter/old/*`,
 `src/engine/emitter/shared/shared.ts`.
 
+> **S5 resolution.** `emitter/old/*` and `emitter/shared/*` were deleted and
+> replaced by the `package:js` backend in `src/engine/emitter/packagejs/`
+> behind `src/engine/emitter/backend.ts`. Every finding in this file is now
+> `[FIXED]` in `FINDINGS.md` except `E-40` (per-library support declarations)
+> and the accepted `E-41` (collision suffix style). The file/line references
+> below describe the deleted transitional emitter and are kept as the
+> historical requirements the rewrite satisfied. Measured result: h3, Leaflet,
+> the fixtures, 90 conformance cases and 420 three.js libraries analyze with
+> zero errors and warnings (`pnpm test:dart`).
+
 **Context:** the author intends to rewrite this layer once the linker, symbol
 table, overload and augmentation work lands. The current emitter was designed
 for the 5-pass, single-file architecture and was adapted rather than rebuilt.

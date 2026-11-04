@@ -318,7 +318,7 @@ the locked phase APIs, task order, commit boundaries, and acceptance commands.
 | 4.12 | ✅ Preserve anonymous default exports, export assignments, and const-enum identity in IR/module semantics | `P-15`–`P-17` |
 | 4.13 | ✅ Normalize impossible intersections without widening and prevent terminal-name fallback across unrelated external modules | `T-18`, `L-19` |
 | 4.14 | ✅ Make alias/collision allocation insertion-stable and revalidate every scope-derived Dart identifier | `E-29`, `E-30` |
-| 4.15 | Replace false unit expectations and add categorized Dart analyzer plus dart2js/runtime fixture probes | `X-14` |
+| 4.15 | ✅ Replace false unit expectations and add categorized Dart analyzer plus dart2js/runtime fixture probes | `X-14` |
 | 4.16 | ✅ Declare the dependency-compatible Node floor and make the coverage command executable or remove it | `X-15`, `X-16` |
 | 4.17 | ✅ Preserve checker-confirmed TypeScript standard-library/host identity on references without turning host declarations into generated-file dependency edges | `I-15` |
 
@@ -407,24 +407,24 @@ only after reviewing the complete Dart diff and re-running the analyzer.
 
 | # | Task | Findings |
 |---|---|---|
-| 5.1 | Backend interface: a type-emitter + statement-emitter string-table pair. Rename the `@typeEmitter` alias off `emitter/old/` | `E-11b` |
-| 5.2 | **Build one deterministic import planner for generated siblings and SDK libraries; allocate collision-safe prefixes, then qualify every foreign use site from linked identity** | `E-08`, `E-23` |
-| 5.3 | Port and validate the original browser-type library/name registries for `dart:html`, `dart:indexed_db`, `dart:web_gl`, `dart:web_sql`, `dart:svg`, `dart:web_audio`, and `dart:typed_data`; match only checker-confirmed host identities | `I-15`, v1 compatibility |
-| 5.4 | Type params on all declarations and signatures, with constraints; define an explicit documented policy for TypeScript default type arguments, which Dart cannot spell directly | `E-03` |
-| 5.5 | `extends` / `implements` incl. generic args (§14.5) | `E-04` |
-| 5.6 | Named constructors for overloaded constructors | `E-02` |
-| 5.7 | Factory constructors for hoisted anonymous types — `formatNamedParameters` already exists | `E-07` |
-| 5.8 | Variables as getter/setter pairs; getter-only for `const` (§1.1, §1.9) | `E-05`, `P-05` |
-| 5.9 | Enums as plain classes with uniform `num` statics (§7) | `E-06` |
-| 5.10 | Callable interfaces → `typedef`, into the S1 type-definitions section (§3.6-3.8) | `I-05`, `E-16` |
-| 5.11 | Index signatures using real key/value types, including class signatures preserved by S3 | `E-14`, `E-34` |
-| 5.12 | Named multi-member union fallbacks, intersections, tuples, literal values, and explicit `object`/`undefined` lowering | `E-18`, `T-09`, `E-12`, `E-19` |
-| 5.13 | JSDoc → `///`, `{@link x}` → `[x]`, strip `@param`/`@return` (§11) | `I-06` |
-| 5.14 | Central Dart-string escaping for every JS annotation; scoped quote removal; legal keyword-safe library directives | `E-13`, `E-32`, `E-33` |
-| 5.15 | Lower rest parameters with true JavaScript argument dispatch rather than one list argument | `E-31` |
-| 5.16 | Prevent implicit construction of non-constructable runtime interfaces; emit only explicit construct signatures | `E-35` |
-| 5.17 | Drop the redundant readonly branch while rebuilding declaration emitters | `E-15` |
-| 5.18 | Recognize checker-confirmed standard utility aliases; lower verified cases and emit named documented fallbacks for the rest—never unresolved Dart leaves | `I-15`, `E-36` |
+| 5.1 | ✅ Backend interface: a type-emitter + statement-emitter string-table pair. Rename the `@typeEmitter` alias off `emitter/old/` | `E-11b` |
+| 5.2 | ✅ **Build one deterministic import planner for generated siblings and SDK libraries; allocate collision-safe prefixes, then qualify every foreign use site from linked identity** | `E-08`, `E-23` |
+| 5.3 | ✅ Port and validate the original browser-type library/name registries for `dart:html`, `dart:indexed_db`, `dart:web_gl`, `dart:web_sql`, `dart:svg`, `dart:web_audio`, and `dart:typed_data`; match only checker-confirmed host identities | `I-15`, v1 compatibility |
+| 5.4 | ✅ Type params on all declarations and signatures, with constraints; define an explicit documented policy for TypeScript default type arguments, which Dart cannot spell directly | `E-03` |
+| 5.5 | ✅ `extends` / `implements` incl. generic args (§14.5) | `E-04` |
+| 5.6 | ✅ Named constructors for overloaded constructors | `E-02` |
+| 5.7 | ✅ Factory constructors for hoisted anonymous types — `formatNamedParameters` already exists | `E-07` |
+| 5.8 | ✅ Variables as getter/setter pairs; getter-only for `const` (§1.1, §1.9) | `E-05`, `P-05` |
+| 5.9 | ✅ Enums as plain classes with uniform `num` statics (§7) | `E-06` |
+| 5.10 | ✅ Callable interfaces → `typedef`, into the S1 type-definitions section (§3.6-3.8) | `I-05`, `E-16` |
+| 5.11 | ✅ Index signatures using real key/value types, including class signatures preserved by S3 | `E-14`, `E-34` |
+| 5.12 | ✅ Named multi-member union fallbacks, intersections, tuples, literal values, and explicit `object`/`undefined` lowering | `E-18`, `T-09`, `E-12`, `E-19` |
+| 5.13 | ✅ JSDoc → `///`, `{@link x}` → `[x]`, strip `@param`/`@return` (§11) | `I-06` |
+| 5.14 | ✅ Central Dart-string escaping for every JS annotation; scoped quote removal; legal keyword-safe library directives | `E-13`, `E-32`, `E-33` |
+| 5.15 | ✅ Lower rest parameters with true JavaScript argument dispatch rather than one list argument | `E-31` |
+| 5.16 | ✅ Prevent implicit construction of non-constructable runtime interfaces; emit only explicit construct signatures | `E-35` |
+| 5.17 | ✅ Drop the redundant readonly branch while rebuilding declaration emitters | `E-15` |
+| 5.18 | ✅ Recognize checker-confirmed standard utility aliases; lower verified cases and emit named documented fallbacks for the rest—never unresolved Dart leaves | `I-15`, `E-36` |
 
 ### 5.2–5.3 platform mapping and import contract
 
@@ -455,20 +455,49 @@ preferred import prefixes.
 **Done when:** h3 and the complete Leaflet output (`leaflet.dart` plus
 `geojson.dart`) pass `dart analyze` with zero errors (`X-09`).
 
+**✅ Done.** h3, complete Leaflet, the S5 fixture, every synthetic and legacy
+fixture, all 90 js_facade_gen reference cases and **all 420 three.js
+libraries** pass `dart analyze` with zero errors and zero warnings; the only
+output is the accepted `dart:html`/`dart:svg` deprecation info. The backend is
+`src/engine/emitter/packagejs/` behind the `Backend` seam in
+`src/engine/emitter/backend.ts`. Policies decided while building it:
+
+- **Constructors** are `external` generative constructors (overloads become
+  `external factory Name.overloadN`), so `extends` works without
+  js_facade_gen's `fakeConstructor$`; a subclass without constructors inherits
+  its superclass's signatures. Interfaces never `extend`.
+- **Overrides**: TypeScript checks structurally, Dart nominally. An override
+  whose type is not provably a subtype of *every* overridden declaration takes
+  the nearest provable ancestor's type; parameters get `covariant`, and short
+  parameter lists are padded to the parent's arity.
+- **Default type arguments** are applied at use sites when a reference passes
+  fewer arguments; a reference with none stays raw. Only class-like bounds are
+  emitted (primitive/degraded bounds become comments).
+- **Degradations** (unions, unresolved references, unmapped host types,
+  unrepresentable syntax) are backend-minted `dynamic` typedefs allocated after
+  the whole library is known; a union of lists is a list of the members' upper
+  bound. An author alias that is itself a union is the named degradation.
+- **Imports** are `show`-imports unless a name is supplied twice, declared
+  locally or shadowed by a member, in which case that library is prefixed
+  (including self- and `dart:core` qualification). Barrel `export *` gets
+  `hide` for names two sources supply, matching TypeScript.
+- **Promise** is a per-library interop class with `toFuture()`, following
+  js_facade_gen's decision not to map it to `Future`.
+
 ---
 
 ## S6 — Conformance and ship
 
 | # | Task | Findings |
 |---|---|---|
-| 6.1 | Make `def_files/js_facade_gen_test_cases.md` executable — ~120 snippet→expected pairs on `test-helper.ts` primitives. **Plus the h3 golden file** — see "h3 is the real gate" below | `X-04` |
-| 6.2 | `dart analyze` in CI over generated h3 / leaflet / three.js output | `X-09` |
-| 6.3 | Publish **"N/M js_facade_gen cases passing"** as the headline metric | — |
-| 6.4 | Reverify the 4.11 structured diagnostic/CLI-exit policy against the final conformance corpus | S6 release gate |
-| 6.5 | Reconnect `log.ts` as `--emit-ir` (one JSON per phase) as a `tools/` consumer, or delete it and fix the docs | `R-08`, `D-05` |
-| 6.6 | README: state the `package:js` target deliberately; document `pnpm graph` | — |
-| 6.7 | Reconfirm final bundle composition/size after deletion; post-S3 already proves dead code is tree-shaken | `D-06` |
-| 6.8 | Move `src/legacy/**` to `docs/history/` or a git tag | `D-04` |
+| 6.1 | ✅ Make `def_files/js_facade_gen_test_cases.md` executable — ~120 snippet→expected pairs on `test-helper.ts` primitives. **Plus the h3 golden file** — see "h3 is the real gate" below | `X-04` |
+| 6.2 | ✅ `dart analyze` in CI over generated h3 / leaflet / three.js output | `X-09` |
+| 6.3 | ✅ Publish **"N/M js_facade_gen cases passing"** as the headline metric | — |
+| 6.4 | ✅ Reverify the 4.11 structured diagnostic/CLI-exit policy against the final conformance corpus | S6 release gate |
+| 6.5 | ✅ Reconnect `log.ts` as `--emit-ir` (one JSON per phase) as a `tools/` consumer, or delete it and fix the docs | `R-08`, `D-05` |
+| 6.6 | ✅ README: state the `package:js` target deliberately; document `pnpm graph` | — |
+| 6.7 | ✅ Reconfirm final bundle composition/size after deletion; post-S3 already proves dead code is tree-shaken | `D-06` |
+| 6.8 | ✅ Move `src/legacy/**` to `docs/history/` or a git tag | `D-04` |
 | 6.9 | *(optional)* `1.0.0-beta.0` under the npm `next` tag; soak | — |
 | 6.10 | Merge to `main`, publish **`1.0.0`** | — |
 
@@ -520,8 +549,9 @@ Re-measure the baseline table in `audit/FINDINGS.md` at the end of each stage.
 | S3 decls | ☑ **done** | Complete metadata/signature IR; six semantic acceptance tests; census 2,530 declarations / 26,240 parsed types with 0 missing locations; suite **222 passed**, S2/S3 corpus gates and 1,650-file stress clean; h3 `dart analyze` clean |
 | S4 semantics | ☑ **done** | Canonical semantic bindings, supported merges, overload/identifier/namespace naming, explicit module scopes, CLI diagnostics, 34-test S4 gate; historical acceptance in `audit/S4-EVIDENCE.md` |
 | Post-S4 audit | ☑ **done** | 107 TypeScript files read; 16 new findings plus partial `L-10`, followed by platform-design finding `I-15`; prerequisite work is tasks 4.11–4.17 |
-| S5 emitter | ☐ blocked on 4.11–4.17 | Pre-S5 fixture/golden ready: 40 symbols, 36 resolved edges, 34 analyzer errors mapped to planned tasks |
-| S6 ship | ☐ not started | |
+| Pre-S5 barrier | ☑ **done** | 4.11–4.17: run-owned state, module exports, `never`/visibility, deterministic names, host identity, executable Dart gate, Node/coverage/CI contracts |
+| S5 emitter | ☑ **done** | h3, Leaflet, S5 fixture, synthetic/legacy fixtures, 90 conformance cases and 420 three.js libraries: 0 analyzer errors/warnings (three.js was 8,342 errors); dart2js runtime probe passes; suite **294 passed** |
+| S6 ship | ☑ **6.1–6.8 done**; 6.9–6.10 pending a publish decision | js_facade_gen cases **67/90 parity, 16 improved, 2 differ, 5 out of scope**; h3 golden **63/63**; `pnpm test:dart` in CI; bundle 252 KB; version 1.0.0 |
 
 When a finding is resolved, mark it `[FIXED]` in `audit/FINDINGS.md` and keep
 the ID — plan tasks and commit messages reference them.

@@ -21,7 +21,7 @@ planning, so `PLAN.md` is sequenced by real dependency rather than by guess.
 | [`04-parser-type.md`](04-parser-type.md) | `engine/parser/type/*.ts` |
 | [`05-ir.md`](05-ir.md) | `ir/*.ts` |
 | [`06-symbol-linker.md`](06-symbol-linker.md) | `symbol/*`, `phase/symbolGeneration`, `phase/linkerPhase` |
-| [`07-emitter.md`](07-emitter.md) | `phase/emitterPhase`, `emitter/old/*` |
+| [`07-emitter.md`](07-emitter.md) | `phase/emitterPhase`, the deleted `emitter/old/*` (requirements the S5 `packagejs` backend satisfied) |
 | [`08-dead-legacy.md`](08-dead-legacy.md) | `engine/passes/*`, `engine/transformers/*`, `legacy/*` |
 | [`09-tests-tooling.md`](09-tests-tooling.md) | `test/*`, configs, `log.ts`, `utils/*` |
 | [`FINDINGS.md`](FINDINGS.md) | **Consolidated, severity-ranked index of every finding** |
@@ -44,10 +44,12 @@ ported without unsafe leaf-name matching.
 That follow-up also added `E-36`: standard utility aliases currently emit as
 unresolved Dart names, so S5 owns a valid lowering-or-fallback policy.
 
-Task 4.11 is decision-complete: it deletes the temporary `context.ts`/`reset.ts`
-singleton, moves all mutable compiler state to each invocation, returns phase
-diagnostics and an owned linked program, and couples `R-14` remediation with
-`L-10`/`R-13` rather than introducing another global service locator.
+The pre-S5 barrier (4.11–4.17), S5 and S6.1–S6.8 are complete: `I-15` and
+`E-36` are fixed, `R-14`/`L-10`/`R-13` were resolved by deleting the global
+context, and the remaining open IDs are the low-severity items listed in
+`FINDINGS.md` plus `E-40`. Findings discovered while building the backend
+(`R-15`, `E-37`–`E-41`, `P-18`) have their own section in `FINDINGS.md`, which
+also carries the post-S5/S6 baseline.
 The complete 4.11–4.17 execution order, API contracts, commit boundaries, and
 acceptance gates are maintained in [`../PRE_STAGE5_PLAN.md`](../PRE_STAGE5_PLAN.md).
 

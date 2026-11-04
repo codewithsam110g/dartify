@@ -1,6 +1,8 @@
 # Dart Bindgen
 
-**A modern, robust, and performant TypeScript declaration (`.d.ts`) to Dart JS-interop binding generator.**
+**A TypeScript declaration (`.d.ts`) to Dart JS-interop binding generator — a
+drop-in replacement for the archived `js_facade_gen`, written by an h3
+maintainer to replace the tool h3's own Dart web bindings depend on.**
 
 [![npm version](https://img.shields.io/npm/v/dart_bindgen.svg)](https://www.npmjs.com/package/dart_bindgen)
 [![license](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -8,53 +10,72 @@
 
 ---
 
-## ⚠️ Beta Version Notice
+## Why it targets `package:js` (on purpose)
 
-**`dart_bindgen` is currently in active development and should be considered beta software.**
+`js_facade_gen` is archived and tells you not to use it, yet it still
+generates load-bearing bindings for packages such as h3's Dart web support.
+Those codebases depend on `package:js` and `dart:html` well beyond the
+generated files, so **swapping the generator and re-running it** is near-zero
+friction, while migrating to `dart:js_interop` is a project.
 
-`v0.5.0` is the current npm release. The orchestration branch is the active
-post-release line and is being completed directly toward v1.0.0. However,
-please be aware that:
+v1 therefore emits `package:js` bindings deliberately, not out of staleness.
+A `dart:js_interop` backend is planned for v2 behind a CLI flag; the compiler's
+IR is target-agnostic and v2 is a second backend, not a second compiler.
 
-*   **APIs are not yet stable:** The generated code and CLI usage may change as we approach v1.0.
-*   **Bugs are expected:** While core features are well-tested, you may encounter issues with the new transformer logic or esoteric TypeScript types.
-*   **Features are incomplete:** External-module augmentation merging and
-    emitted cross-file Dart imports are still on the roadmap.
+## What v1 delivers
 
-Your feedback, bug reports, and contributions are more valuable than ever. Thank you for being part of the journey!
+Measured on this repository's corpora (Dart SDK 3.13, `package:js` 0.6.7):
 
----
+| Gate | Result |
+|---|---|
+| h3 (`h3.d.ts`) | `dart analyze`: 0 errors, 0 warnings |
+| h3 golden — the js_facade_gen output that ships in h3 | **63/63 declarations reproduced** |
+| Leaflet (`leaflet.d.ts` + `geojson.d.ts`) | 0 errors, 0 warnings (was 239 issues) |
+| three.js (`Three.Core.d.ts`, 420 libraries) | 0 errors, 0 warnings (was 8,342 errors) |
+| js_facade_gen reference cases (90) | **67 parity, 16 deliberately improved, 2 differ, 5 out of scope** — all analyzer-clean |
+| dart2js runtime probe | overloads, rest arguments, named constructors, extension renames, index operators, anonymous factories, promises |
+| 1,654-file stress corpus | no throws, no returned errors, no emission-error markers |
 
-## Why `dart_bindgen`?
+The only analyzer output on these sets is the expected `dart:html`
+deprecation info.
 
-For Dart developers working with the web, the official `js_facade_gen` was foundational but is now deprecated. It struggles with modern TypeScript, often falling back to `dynamic` and sacrificing Dart's core strength: type safety.
+### Strictly better than the tool it replaces
 
-**`dart_bindgen` is a complete, modern successor designed for the future of Dart on the web.**
+- **Named degradations instead of inline `dynamic /*…*/`.** Anything Dart
+  cannot spell becomes a documented typedef, stated once:
 
-*   **Intelligent & Type-Safe:** Unsupported TypeScript constructs become named, documented aliases rather than anonymous degradation.
-*   **Whole-program linking:** Checker-backed reference targets, persisted dependency edges, honest ambiguity and missing states, and module-resolution reports make multi-file analysis inspectable.
-*   **Robust & Hardened:** Unit, smoke, linker, resolution and opt-in real-corpus gates protect the active pipeline.
-*   **Modern Architecture:** Uses `symbol generation → linker → emission` around a language-independent IR, built on [`ts-morph`](https://ts-morph.com/).
+  ```dart
+  /// A JavaScript union of `String | List<num>`; Dart has no union types.
+  typedef H3IndexInput = dynamic;
+  ```
 
----
+  Use sites say `H3IndexInput`; one edit upgrades all of them.
+- **Real generics, heritage and imports.** Type parameters and bounds, `extends`
+  / `implements` with restated members, covariant overrides, and
+  collision-safe cross-file imports (`import 'a.dart' show X;`, prefixed only
+  when a name would be captured).
+- **Correct runtime dispatch.** Overloads keep exact signatures (`f_1`, `f_2`
+  bound to JavaScript `f`), overloaded constructors become named factories,
+  rest parameters reach JavaScript as separate arguments, enums cannot be
+  instantiated, const enums become compile-time constants.
+- **Platform types by identity.** `HTMLElement` → `dart:html` `HtmlElement`,
+  `Uint8Array` → `dart:typed_data` `Uint8List` and ~500 more (the reference
+  tool's registry, re-validated against the current SDK) — matched on the
+  TypeScript checker's declaration identity, never on spelling, so your own
+  `HtmlElement` is never confused with the platform's.
+- **Barrels become libraries.** `export * from "./x"` becomes
+  `export 'x.dart';`, with names two sources both supply hidden as TypeScript
+  does.
+- `Promise<T>` is a typed interop class: `await load().toFuture()`.
 
-## Getting Started
+## Getting started
 
-**Prerequisites:** [Node.js](https://nodejs.org/) (which includes npm).
-
-### Installation
-
-Install `dart_bindgen` globally using npm to make it available as a command-line tool.
+**Prerequisites:** Node.js `^20.19.0 || ^22.12.0 || >=23`.
 
 ```bash
 npm install -g dart_bindgen
 ```
 
-### Usage
-
-The CLI is designed to be simple and flexible, accepting one or more glob patterns to find your `.d.ts` files.
-
-**CLI Options**
 ```bash
 Usage: dart_bindgen [options]
 
@@ -63,61 +84,56 @@ Options:
   -o, --output <directory>        Output directory for generated .dart files
   -p, --tsconfig <path>           Use a tsconfig for authoritative module resolution
   -l, --enable-logs               Enable phase and module-resolution logging
-  -v, --verbose                   Print structured linker details; implies -l
+  -v, --verbose                   Print structured linker and emission details; implies -l
       --dry-run                   Show what would be processed without writing files
   -h, --help                      Show help
       --version                   Show version number
 ```
 
-**Examples**
-
 ```bash
-# Process all .d.ts files in the current directory and subdirectories
-dart_bindgen -d "**/*.d.ts"
+# Generate bindings for every .d.ts under types/ into ./generated
+dart_bindgen -d "types/**/*.d.ts" -o ./generated
 
-# Process files from multiple specific locations and output them to a 'generated' folder
-dart_bindgen -d "src/types/**/*.d.ts" -d "vendor/lib.d.ts" -o ./generated
-
-# Show phase and module-resolution logs
-dart_bindgen -d "path/to/my-lib.d.ts" -l
-
-# Add every resolved/missing/ambiguous linker edge and failure chain
-# (-v implies log mode, and the boolean flags compose as -lv)
+# Show resolution, linking and emission diagnostics in full
 dart_bindgen -d "path/to/my-lib.d.ts" -lv
-
-# See which files would be processed without actually generating any code
-dart_bindgen -d "**/*.d.ts" --dry-run
 ```
 
----
+The generated libraries need `package:js` in your `pubspec.yaml`:
 
-## Motivation
+```yaml
+dependencies:
+  js: ^0.6.7
+```
 
-`dart_bindgen` was born out of real-world necessity. While modernizing the Flutter/Dart bindings for H3, it became evident that existing tooling couldn't provide the type-safe, modern bindings that Dart developers expect.
+The input contract is declaration files: ambient and exported declarations,
+declaration merging, module/global augmentation and type syntax.
+Implementation code is out of scope.
 
-Rather than patching a decade-old system, `dart_bindgen` was created to be the tool we wish we had: one that understands modern TypeScript, respects Dart's powerful type system, and is fast and reliable enough for any project.
+## Developing
 
----
+```bash
+pnpm install
+pnpm test                 # unit, smoke, conformance and h3-golden tests
+pnpm test:dart            # dart analyze baseline + dart2js runtime probe (needs a Dart SDK)
+pnpm test:stress          # the full 1,654-file corpus (opt-in, minutes)
+pnpm exec tsc --noEmit
+pnpm build
+```
 
-## Roadmap & Contribution
+Two internal instruments consume the compiler's output without being part of
+it (they are not in the published bundle):
 
-The project now moves directly from the published v0.5.0 to v1.0.0. Stage 2's
-truthful multi-file link layer, Stage 3 declaration IR, and Stage 4 semantic
-layer are complete, including the post-S4 deep-review corrections. The
-line-by-line post-S4 audit is complete and records the prerequisite correctness
-barrier before Stage 5 rebuilds the `package:js` emitter over canonical
-bindings and Dart-visible names. See [`ROADMAP.md`](ROADMAP.md) for the public overview,
-[`PLAN.md`](PLAN.md) for the stage sequence, and
-[`STAGE4_PLAN.md`](STAGE4_PLAN.md) for the implemented S4 contract.
+```bash
+pnpm graph -d "def_files/leaflet/*.d.ts" -o graph.svg   # dependency graph; red nodes are broken links
+pnpm ir -d "def_files/h3/h3.d.ts" -o h3.ir.json          # the linked IR as JSON
+```
 
-You can help! This is a solo-developer project, and community involvement is vital.
+See [`ROADMAP.md`](ROADMAP.md) for direction, [`PLAN.md`](PLAN.md) for the
+staged plan, and [`audit/FINDINGS.md`](audit/FINDINGS.md) for every known
+defect with a stable ID. Bug reports and pull requests are welcome:
 
-*   [View the Roadmap Issue](https://github.com/codewithsam110g/dartify/issues/1)
 *   [Create a Bug Report or Issue](https://github.com/codewithsam110g/dartify/issues/new)
 *   [Start a Discussion](https://github.com/codewithsam110g/dartify/discussions)
-*   Check out the source and suggest improvements or fixes.
-
-We welcome pull requests!
 
 ---
 

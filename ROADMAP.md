@@ -1,9 +1,10 @@
 # Roadmap
 
-**The next release is `1.0.0`.**
+**The next release is `1.0.0`, and the code for it is complete on
+`refactor/orchestration`.** Publishing it is the remaining step (PLAN.md
+S6.9–S6.10).
 
-The engineering detail lives in [`PLAN.md`](PLAN.md); the decision-complete S4
-handoff lives in [`STAGE4_PLAN.md`](STAGE4_PLAN.md); and the defect inventory it
+The engineering detail lives in [`PLAN.md`](PLAN.md); the defect inventory it
 is sequenced from lives in [`audit/`](audit/README.md). This file is the short
 version.
 
@@ -11,138 +12,66 @@ version.
 
 ## Where things stand
 
-`0.5.0` is what npm serves today. Since then the project has been rebuilt on
-`refactor/orchestration`: the 5-pass pipeline was replaced by a three-phase
-architecture — **symbol generation → linker → emission** — around a global
-symbol table.
+`0.5.0` is what npm serves today. Since then the project has been rebuilt as a
+three-phase compiler, **symbol generation → linker → emission**, around a
+target-agnostic IR:
 
-That change exists to solve the problems the previous two architectures could
-not: overload resolution, declaration augmentation, and cross-file imports are
-whole-program questions, and there was previously no phase that saw the whole
-program. Now there is.
+- **S0–S4** made the IR lossless, the link graph truthful, and the semantic
+  layer own merging, overloads and naming.
+- **The pre-S5 barrier** removed all process-global state (every compiler run
+  owns its project, symbol table and diagnostics), preserved module exports,
+  const enums and TypeScript host-type identity, normalized impossible
+  intersections to `Never`, stopped bare-name links across unrelated modules,
+  and made generated names order-independent.
+- **S5** rebuilt the `package:js` emitter once, behind a backend seam.
+- **S6** made the `js_facade_gen` reference cases and the shipped h3 bindings
+  executable gates, added a Dart analyzer + dart2js runtime gate and CI.
 
-Stages S0–S4 are complete. The link layer now carries checker-backed targets on
-IR reference sites, persists resolved graph edges, distinguishes missing from
-ambiguous and direct from indirect failure, resolves extensionless declaration
-imports conservatively, and exposes resolution/link reports to the CLI and
-graph tooling. Leaflet closes at 1,050/1,050 edges; three.js resolves 8,184
-edges with zero ambiguity while retaining 31 honest misses from two absent
-external type packages. The declaration layer now retains generics and their
-constraints/defaults, shared parameter/signature shapes, call and construct
-overloads, documentation, source locations, modifiers, enum initializer
-semantics, variable declaration kinds, and class index signatures. An opt-in
-census over h3, Leaflet, three.js and the S3 fixture found **2,530 input
-declarations** with zero missing source locations. The current post-semantic
-view contains 2,342 facets and 25,268 parsed type nodes. S4 adds an
-atomic facet-based semantic table, positional anonymous identities and
-same-file canonicalization, explicit module/global scopes, supported
-declaration merges, stable overload names, Dart identifier legality, namespace
-collision allocation, target-name rewrites, and visible suppression/conflict
-diagnostics. A post-S4 deep review additionally hardened unsupported merge
-preservation, synthetic provenance, backend/helper name allocation, library
-identifiers, and real JavaScript dispatch for renamed class overloads. The
-obsolete 1,684-line five-pass implementation is deleted.
+Measured results:
 
-S4 closes its Dart-owned analyzer categories: h3 remains unchanged and has zero
-errors, the four semantic fixtures have no duplicate/keyword/syntax failures,
-complete Leaflet currently reports 237 issues (223 errors, 14 warnings) with
-zero duplicates, and
-three.js has zero duplicate, syntax, or identifier errors in the original S4
-acceptance categories. The complete post-S4 audit has now read all 107 source,
-test/tool, and historical TypeScript files. It found 16 new issues and reopened
-`L-10`: process-global state, module export/visibility loss, and parser
-normalization errors must be corrected before S5; emitter defects are assigned
-to S5 with executable Dart gates.
-
-The global-state correction is intentionally architectural. The temporary
-`context.ts` singleton and its reset helper will be deleted. Every compilation
-will own its TypeScript project, resolution records, symbol graph, namespace
-aliases, and diagnostics; phases receive explicit inputs and produce an owned
-linked program. This protects concurrent library/CLI use and gives S5 imports
-and future backends a stable value to consume instead of hidden ambient state.
-
-The current Dart backend is still the transitional `emitter/old/*`
-string-template implementation: some paths work, some deliberately preserve
-legacy degradation, and several declaration features are not emitted at all.
-The internal `render()` API only means "produce strings without writing them";
-it is not the emitter overhaul. S3 made the IR lossless, S4 performs
-whole-program semantic rewrites, and **S5 rebuilds the emitter once** on top of
-those completed layers.
-
----
-
-## Why there is no 0.6
-
-The earlier `v0.6 → v0.9 → v1.0` ladder was drawn against the 5-pass
-architecture and a single-file world view. Both are gone, and most of what those
-releases promised is now either already built or restructured beyond
-recognition. Shipping four more point releases against a plan that no longer
-describes the program would be four more announcements that it still isn't
-ready.
-
-So the version numbers collapse. `main` keeps `0.5.0` until v1 replaces it
-wholesale.
+| | |
+|---|---|
+| h3 | 0 analyzer errors/warnings; reproduces all 63 declarations of the js_facade_gen bindings h3 ships today |
+| Leaflet (2 libraries) | 0 errors/warnings |
+| three.js (420 libraries) | 0 errors/warnings |
+| js_facade_gen reference cases | 67/90 parity, 16 improved, 2 differ, 5 out of scope |
+| runtime | dart2js probe passes: overloads, rest args, constructors, renames, index operators, factories, promises |
 
 ---
 
 ## v1.0.0 — the drop-in replacement
 
-**Goal: `js_facade_gen` users swap the tool, rerun the command, and get strictly
-better output.**
+`js_facade_gen` users swap the tool, rerun the command, and get strictly
+better output. v1 targets **`package:js`** deliberately: those codebases depend
+on `package:js` and `dart:html` beyond the generated files, and swapping a
+generator is an afternoon where a `dart:js_interop` migration is a project.
 
-`js_facade_gen` is archived, and its users have codebases where `package:js` and
-`dart:html` dependencies extend well past the generated bindings. Swapping a
-generator is an afternoon; migrating an application to `dart:js_interop` is a
-project. v1 therefore targets **`package:js`** — deliberately, not by inertia —
-including the `dart:html` and `dart:typed_data` substitution imports the
-original tool produced.
+What v1 does:
 
-The compatibility source is the original 980-line browser-type registry, not
-only the three examples in the extracted fixture. Stage 5 will review and
-SDK-validate its HTML, IndexedDB, WebGL, Web SQL, SVG, Web Audio, and typed-data
-mappings and renames. TypeScript host-library provenance must survive parsing
-first (`I-15`), so substitutions cannot accidentally capture a user or generic
-type with the same spelling. The same deterministic import planner will qualify
-generated-library and Dart SDK references with collision-safe prefixes.
-
-What lands:
-
-- **Every type is named.** No bare `dynamic`. Constructs Dart cannot represent —
-  `keyof`, conditional types, mapped types, template literals, `infer` — become
-  real typedefs carrying their TypeScript source in a doc comment, so the origin
-  shows up on IDE hover:
-  ```dart
-  /// Unrepresentable in Dart: `keyof Box<string>`
-  typedef KeyOfBoxString = dynamic;
-  ```
-- **Correct cross-file imports**, generated from the linker's dependency graph.
-- **Overload resolution and declaration augmentation** — including the
-  `interface` + `var` merging that TypeScript definitions lean on constantly.
-- **Generics, inheritance and `implements`** carried through to the output.
-- **Standard utility types remain valid Dart.** Common TypeScript utilities get
-  either a verified lowering or a named documented fallback in v1; unresolved
-  identifiers such as `Record<K, V>` are not acceptable.
-- **Dart keyword escaping** and namespace collision renaming.
-- **Acceptance gate:** generated bindings for real libraries—including both
-  generated Leaflet files—pass `dart analyze` with zero errors, and the ~120-case `js_facade_gen`
-  conformance suite runs in CI with a published pass count.
-
----
+- **Every degradation is named.** `keyof`, conditional and mapped types,
+  unions, unresolved references and unmapped host types become documented
+  typedefs stated once, not `dynamic` comments at every use site.
+- **Correct cross-file imports** from the linker's graph, with collision-safe
+  prefixes; barrels become `export` libraries.
+- **Overloads, augmentation, generics, inheritance and `implements`**, lowered so
+  dart2js dispatches correctly.
+- **Platform types by checker identity**: the reference tool's `dart:html`,
+  `dart:svg`, `dart:web_gl`, `dart:web_audio`, `dart:indexed_db`,
+  `dart:web_sql` and `dart:typed_data` registry, re-validated against the
+  current Dart SDK.
+- **Standard utilities stay valid Dart**: `Partial`/`Readonly`/`Required` lower
+  to their argument; others (`Record`, `Omit`, …) are named fallbacks.
 
 ## v2.0.0 — modern interop
 
-A **`dart:js_interop` backend behind a CLI flag.**
-
-The IR is output-language agnostic, so a backend is a pair of string tables —
-one type emitter, one statement emitter. v2 is a second pair, not a second
-compiler. The same seam admits other target languages entirely.
-
----
+A **`dart:js_interop` backend behind a CLI flag.** The backend seam
+(`src/engine/emitter/backend.ts`) consumes the same owned `LinkedProgram`; v2
+is a second backend, not a second compiler. Platform types will map to
+`package:web` instead of `dart:html`.
 
 ## Later
 
-- Exhaustive `ts.TypeChecker` evaluation of utility types (`Partial`,
-  `Readonly`, `Record`, `Omit`, `Pick`) so v1's safe named fallbacks can resolve
-  to precise shapes where the checker can prove them.
-- Pre-populating the symbol table from `package:web` so browser types are
-  imported rather than regenerated.
+- Checker evaluation of utility and mapped types (`Record`, `Omit`, `Pick`),
+  so v1's named fallbacks can resolve to precise shapes where provable.
+- Emitting external-module augmentations (modeled and visibly suppressed
+  today).

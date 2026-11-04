@@ -2,7 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.0.0] — unreleased
+
+The drop-in replacement for the archived `js_facade_gen`, targeting
+`package:js`. Every gate below is measured on this repository's corpora.
+
+### package:js backend (S5)
+
+- New `Backend` seam (`src/engine/emitter/backend.ts`) consuming the owned
+  `LinkedProgram`; the v1 backend lives in `src/engine/emitter/packagejs/`.
+  The transitional `emitter/old` is deleted.
+- Cross-file imports from linked identity, `show`-imported unless a name would
+  be captured, otherwise prefixed (including self and `dart:core`). Barrel
+  files become `export` libraries with ambiguity `hide`s.
+- Platform types by checker identity: js_facade_gen's browser registry (500
+  SDK-validated entries) for `dart:html`, `dart:svg`, `dart:web_gl`,
+  `dart:web_audio`, `dart:indexed_db`, `dart:web_sql`, `dart:typed_data`.
+- Type parameters and bounds; `extends`/`implements`; external generative
+  constructors with named overload factories; inherited constructors;
+  covariant and parent-typed override correction.
+- Getter/setter variables, uninstantiable enum classes, const-enum constants,
+  callable-interface typedefs, `@anonymous` factories with inherited fields,
+  typed index operators, polyfilled rest parameters, `Promise<T>` with
+  `toFuture()`, JSDoc as dartdoc, escaped `@JS` strings.
+- Named degradations for unions, unresolved references, unmapped host types
+  and unrepresentable syntax; list unions take their upper bound; utility
+  aliases `Partial`/`Required`/`Readonly`/`NonNullable` lower to their argument.
+- lib.dom.d.ts analysis 100 s → 6.5 s (`R-15`).
+
+### Conformance and gates (S6)
+
+- `test/conformance/`: the 90 js_facade_gen reference cases run as executable
+  tests — 67 parity, 16 deliberately improved, 2 differ, 5 out of scope.
+- `test/conformance/h3-golden.test.ts`: all 63 declarations of the
+  js_facade_gen bindings shipped in h3 are reproduced.
+- `pnpm test:dart`: categorized `dart analyze` baseline over h3, Leaflet,
+  three.js (420 libraries), fixtures and every conformance case — 0 errors, 0
+  warnings — plus a dart2js runtime probe. Runs in CI.
+- The CLI prints backend and module-export diagnostics; `pnpm ir` dumps the
+  linked IR; `src/legacy` moved to `docs/history/legacy`.
+
+## [Unreleased — pre-S5 barrier]
 
 ### Declaration identity and type truth (tasks 4.12–4.13)
 

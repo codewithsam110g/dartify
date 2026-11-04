@@ -14,10 +14,10 @@ Read `AGENTS.md` for repository conventions, then use these project records:
 - `audit/FINDINGS.md` — stable finding IDs and current status.
 - `def_files/js_facade_gen_test_cases.md` — reference-tool behavior.
 
-S0-S4, the targeted deep-review corrections, and the full post-S4 audit are
-complete. Resolve the prerequisite barrier in `PLAN.md` before S5 rebuilds the
-`package:js` backend. Do not reintroduce output concerns into parsing or
-linking.
+S0–S5 and S6.1–S6.8 are complete; the `package:js` backend lives in
+`src/engine/emitter/packagejs/` behind the `Backend` seam. Do not reintroduce
+output concerns into parsing or linking: a backend consumes the owned
+`LinkedProgram` and nothing else.
 
 ## Development
 
@@ -31,11 +31,15 @@ pnpm exec tsc --noEmit
 pnpm build
 ```
 
-Stage gates are `pnpm test:s2`, `pnpm test:s3`, `pnpm test:s4`, and
-`pnpm test:stress`. Run the
-source CLI with `pnpm dev -d "def_files/h3/h3.d.ts" -o output -lv`. Generated
-h3 bindings must remain `dart analyze` clean; use Leaflet and three.js for
-multi-file and namespace behavior.
+Stage gates are `pnpm test:s2`, `pnpm test:s3`, `pnpm test:s4`,
+`pnpm test:s5:fixture` and `pnpm test:stress`. `pnpm test:dart` is the Dart
+acceptance gate: it needs a Dart SDK on `PATH`, compares a categorized
+`dart analyze` census with `test/dart/baseline.json`, and runs a dart2js
+runtime probe; CI runs it on every push. Run the source CLI with
+`pnpm dev -d "def_files/h3/h3.d.ts" -o output -lv`. The js_facade_gen
+reference cases (`test/conformance/`) and the shipped h3 golden run in the
+default suite; update `test/conformance/ledger.json` deliberately when a case
+changes status.
 
 ## Change Requirements
 

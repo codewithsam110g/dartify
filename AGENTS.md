@@ -4,9 +4,9 @@
 
 `dartify` (published as `dart_bindgen`) converts TypeScript `.d.ts` files into Dart `package:js` bindings. Its live pipeline is `src/cli.ts` → `src/transpiler.ts` → symbol generation, linker, and emission in `src/engine/phase/`. Parsers live in `src/engine/parser/`; models and resolution live in `src/ir/`, `src/symbol/`, and `src/resolution/`.
 
-Stage 4 is complete in the live semantic layer under `src/engine/semantic/`; `STAGE4_PLAN.md` records its model and `audit/S4-EVIDENCE.md` records acceptance.
+Stage 4 is complete in the live semantic layer under `src/engine/semantic/`; `STAGE4_PLAN.md` records its model and `audit/S4-EVIDENCE.md` records acceptance. Stage 5's `package:js` backend lives in `src/engine/emitter/packagejs/` behind the `Backend` seam in `src/engine/emitter/backend.ts`.
 
-Tests are grouped in `test/type/`, `test/decl/`, and `test/linker/`; snapshots belong in `test/__snapshots__/`. `def_files/` contains third-party and synthetic fixtures; do not edit third-party data. Keep `tools/graph.ts` outside the shipped pipeline. `src/legacy/` is a deliberate historical exhibit and should not be casually cleaned up.
+Tests are grouped in `test/type/`, `test/decl/`, `test/linker/`, `test/conformance/` (js_facade_gen cases and the h3 golden) and `test/dart/` (the opt-in Dart gate); snapshots belong in `test/__snapshots__/`. `def_files/` contains third-party and synthetic fixtures; do not edit third-party data. Keep `tools/graph.ts` and `tools/ir.ts` outside the shipped pipeline. `docs/history/legacy/` is a deliberate historical exhibit and should not be casually cleaned up.
 
 ## Build, Test, and Development Commands
 
@@ -18,12 +18,13 @@ Use the pinned pnpm 10 toolchain.
 - `pnpm test` runs Vitest; `pnpm test:watch` watches changes.
 - `pnpm exec tsc --noEmit` must report zero errors.
 - `pnpm test:s2`, `pnpm test:s3`, `pnpm test:s4`, and `pnpm test:stress` run stage and corpus gates.
-- `pnpm test:s5:fixture` locks the pre-S5 multi-file Dart and verbose CLI baseline.
+- `pnpm test:s5:fixture` locks the multi-file Dart and verbose CLI golden.
+- `pnpm test:dart` runs the categorized `dart analyze` baseline and the dart2js runtime probe (needs a Dart SDK).
 - `pnpm fixture:s5` emits that fixture to `output/s5_emitter/` and prints the real verbose CLI report.
-- `pnpm graph -d "<glob>" -o graph.svg` renders the dependency graph.
+- `pnpm graph -d "<glob>" -o graph.svg` renders the dependency graph; `pnpm ir -d "<glob>" -o ir.json` dumps the linked IR.
 - `pnpm test:update` updates snapshots; inspect Dart diffs first.
 
-Generated h3 output must pass `dart analyze`; also use Leaflet and three.js for cross-file, namespace, generic, and heritage behavior.
+Generated output must pass `pnpm test:dart` (h3, Leaflet, three.js, fixtures and every conformance case at the exact baseline).
 
 ## Coding Style & Naming Conventions
 

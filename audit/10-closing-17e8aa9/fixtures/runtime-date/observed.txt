@@ -1,0 +1,2 @@
+now().year threw: JSObject
+yearOf threw: JSObject

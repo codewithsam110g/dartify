@@ -194,7 +194,7 @@ Reopened as partial by this audit (rows above left unchanged, per the never-renu
 
 | ID | Tier / severity | Finding | Where | Ev. |
 |---|---|---|---|---|
-| `CA-01` | S1 / high | TypeScript `Date` is bound as Dart `DateTime`, which fails at runtime in both directions under dart2js | src/engine/emitter/packagejs/types.ts:555-556 (host(), case "Date") | ✅ |
+| `CA-01` | S1 / high | TypeScript `Date` is bound as Dart `DateTime`, which silently produces wrong values under dart2js | src/engine/emitter/packagejs/types.ts:555-556 (host(), case "Date") | ✅ |
 | `CA-02` | S1 / medium | Watch mode diverges from a cold build when a module file's `declare global` declarations change | src/watch.ts:193-243 (dirty propagation: dependents by import, isScript), src/watch.ts:357-369 (seedFiles) | ✅ |
 | `CA-03` | S1 / medium | Barrel re-exports are silently lost or renamed: import-then-export, `export * as ns`, and `export { A as B }` | src/symbol/exports.ts:110-135 | ✅ |
 | `CA-07` | S1 / medium | Cross-file global declaration merging is unsupported: partial duplicate classes and `dynamic` use sites | src/symbol/fqn.ts:110-117 (FQN includes file), src/symbol/resolve.ts:215-233 (checker candidates -> ambiguous), src/engine/semantic/merge.ts (per-FQN merge) | ✅ |
@@ -562,3 +562,5 @@ work is sequenced as `PLAN.md` tasks 4.11–4.17.
 | watch rebuild (`pnpm bench`, median of 5, each verified against a cold build) | h3 ~35 ms · Leaflet ~19–94 ms · three.js idle ~42 ms, leaf/core edit ~53 ms |
 | three.js cold | 4.2 s → ~2.3 s |
 
+| `CA-30` | S4 / low | The CLI is not invocation-compatible with js_facade_gen, and its semantics-changing flags are silently ignored | src/cli.ts:31-90 (yargs options, `-d` demanded, no positional inputs, no `.strict()`) | ✅ |
+| `CA-31` | S3 / low | Construct signatures on type-only interfaces are dropped without a diagnostic (and the class is marked `@anonymous`) | src/engine/emitter/packagejs/declarations.ts:1297-1313 (emitInterface: construct signatures emitted only when facet.namespace === 'both' | ✅ |

@@ -1,2 +1,10 @@
-now().year threw: JSObject
-yearOf threw: JSObject
+# dart2js 3.13.7 + Node 22; runner sets globalThis.self = globalThis (as test/e2e does),
+# then loads datelib.js, then the compiled main.dart.
+now().year = NaN
+yearOf(DateTime.utc(2030)) = not a Date: object
+
+# Correction note: the first delivery recorded "threw: JSObject" for both calls.
+# That run omitted globalThis.self, so the caught exception was the harness's
+# ReferenceError, not the Date mapping. With a correct harness nothing throws:
+# the binding silently returns NaN and passes a non-Date to JavaScript, whose
+# string result flows into a Dart `num` without a type check.

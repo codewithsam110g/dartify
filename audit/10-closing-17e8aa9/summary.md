@@ -7,21 +7,21 @@
 | Critical | 0 |
 | High | 1 |
 | Medium | 7 |
-| Low | 21 |
-| **Total** | **29** |
+| Low | 23 |
+| **Total** | **31** |
 
 | Category | Count | IDs |
 |---|---:|---|
-| Implementation | 15 | CA-01, CA-02, CA-03, CA-04, CA-05, CA-06, CA-09, CA-11, CA-13, CA-14, CA-15, CA-16, CA-23, CA-25, CA-28 |
-| Intent | 7 | CA-07, CA-08, CA-10, CA-21, CA-22, CA-26, CA-27 |
+| Implementation | 16 | CA-01, CA-02, CA-03, CA-04, CA-05, CA-06, CA-09, CA-11, CA-13, CA-14, CA-15, CA-16, CA-23, CA-25, CA-28, CA-31 |
+| Intent | 8 | CA-07, CA-08, CA-10, CA-21, CA-22, CA-26, CA-27, CA-30 |
 | Security | 4 | CA-12, CA-18, CA-19, CA-20 |
 | Deployment | 3 | CA-17, CA-24, CA-29 |
 | Inventory | 0 | — (every component has a traced consumer; `10_INVENTORY.md`) |
 
 | Confidence | Count |
 |---|---:|
-| Confirmed | 28 |
-| Probable | 1 (CA-27, a single benchmark run) |
+| Confirmed | 31 |
+| Probable | 0 |
 
 ## Suggested fix groups
 
@@ -32,10 +32,10 @@
    - CA-04, CA-05: reserve Object member names and the owner name in member allocation.
    - CA-03: emit or diagnose lost re-exports.
    - CA-19: upgrade Vitest.
-   - CA-21, CA-22, CA-24, CA-27: refresh the numbers, fix the `X-16` clash, write breaking-change and rollback notes, qualify the latency claims.
+   - CA-21, CA-22, CA-24, CA-27, CA-30: refresh the numbers, fix the `X-16` clash, write breaking-change and rollback notes, qualify the latency claims, document a js_facade_gen flag mapping and reject unknown flags.
 2. **Watch mode** (CA-02, CA-15): invalidate on global-visibility changes in module files, compute the watch root segment-wise, and add both scenarios to the differential suite.
 3. **Global merging and reporting** (CA-07, CA-08, CA-13): merge or diagnose cross-file globals, print link failures by default, fix cycle memoisation.
-4. **Input robustness** (CA-09, CA-10, CA-11, CA-12, CA-14, CA-16, CA-26): numeric separators, syntax-error reporting, URI escaping, control-token isolation, `.d.mts`/`.d.cts`, private-only constructors, `this` in generics.
+4. **Input robustness** (CA-09, CA-10, CA-11, CA-12, CA-14, CA-16, CA-26, CA-31): numeric separators, syntax-error reporting, URI escaping, control-token isolation, `.d.mts`/`.d.cts`, private-only constructors, `this` in generics.
 5. **CI, toolchain and tests** (CA-17, CA-18, CA-20, CA-23, CA-28, CA-29): pin Dart to the baseline SDK, pin actions by SHA with read-only permissions, refresh the lockfile, add regression tests for P-18, E-44 and E-20, execute the e2e oracle, commit the platform-table generator.
 
 ## Verdict
@@ -51,16 +51,17 @@ The v1 work is real and reproducible:
 For h3, the motivating consumer, the output is safe to adopt.
 
 The gaps:
-- One confirmed high finding (CA-01) contradicts "correct runtime dispatch" in a gated library (Leaflet).
+- One confirmed high finding (CA-01) contradicts "correct runtime dispatch" in a gated library (Leaflet): `Date` values silently come back as `NaN`.
 - Seven medium findings show the acceptance sentence ("zero analyzer errors") and "never degrade silently" hold on the gated corpora, not across the declared input contract. CA-06 is analyzer-clean output that crashes dart2js; CA-25 silently merges unrelated inline types; CA-02 makes watch mode differ from a cold build.
 
 Recommendation: fix CA-01, CA-06 and CA-25, and diagnose CA-03 and CA-04, before the S6.10 publish. Alternatively, publish the optional S6.9 `1.0.0-beta.0` under `next` with these findings listed as known issues.
 
 ## Unverified or uncovered
 
-- js_facade_gen CLI-invocation compatibility.
-- R-15 timing.
-- Line-by-line review of the snapshot files.
-- Latency on a quiet machine (CA-27).
+None within the approved scope. The earlier gaps are now closed: js_facade_gen CLI compatibility (CA-30), the R-15 timing, snapshot review, Node 20/24, live CI, full-history secrets and latency on an idle machine (CA-27, now confirmed). Residual limits are those any audit has: tests and synthetic fixtures do not prove behaviour on every real-world input, and nothing was published.
 
-**Independent verification in a fresh session is recommended** (`MASTER.md` F-7).
+## Process deviations
+
+The plan was approved retroactively, not before execution. Tracked files under `audit/` were changed and evidence was force-added past `.gitignore`, both with the owner's explicit permission. These are disclosed in `MASTER.md` §8.
+
+**Independent verification in a fresh session is recommended** (`MASTER.md` F-3).

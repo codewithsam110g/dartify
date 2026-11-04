@@ -30,7 +30,7 @@ Scope: every finding `audit/FINDINGS.md` marks fixed in the v1 window (pre-S5 ba
 | E-20 | TS abstract classes emit `abstract class` | ✅ [runtime] | ❌ no test | ✅ | CA-23 |
 | E-11b, E-15, E-21, R-08/D-05 | Deletions (`emitter/old`, `log.ts`) | ✅ files absent; `tools/ir.ts` present and outside bundle | n/a | ✅ | |
 | X-12 | Stress asserts on output | ✅ `stress.test.ts:46-85` [static], ran 1,661 files [runtime] | itself | ✅ | count drift (CA-21) |
-| R-15 | lib.dom 100 s → 6.5 s | code change present (`metadata.ts` line table) | ❌ | Unverified (not timed) | |
+| R-15 | lib.dom 100 s → 6.5 s | ✅ `analyze` 2.0 s, `render` 4.1 s on lib.dom (`logs/r15-libdom.txt`) | ❌ no perf test | ✅ | |
 | E-37 | Avoid Dart 3.13 analyzer crash shapes | ✅ three.js analyzes without a crash [runtime] | Dart gate ✅ | ✅ | |
 | E-38 | Barrel ambiguity `hide`s | ✅ | `decl-emitter.test.ts`, Dart gate ✅ | ✅ | |
 | P-18 | `this:` removed from function types | ✅ [runtime] | ❌ no test | ✅ | CA-23 |

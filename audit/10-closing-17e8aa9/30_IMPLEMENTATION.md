@@ -24,6 +24,7 @@ Correctness, edge cases, error handling, silent failures, concurrency, resource 
 | `src/ir/*` | 13 | 579 | Full (second pass) | read |
 | **`src/` total** | **73** | **12,606** | **12,071 lines read line by line; 535-line data table validated programmatically** | |
 | `test/**` (40 `.ts` files, 5,604 lines) | 40 | 5,604 | Every file: assertion census (tests, `expect` count, snapshot-only and weak assertions). Release gates and the isolation, watch, diagnostics, module-export, host-identity and decl-emitter tests read in full. Remaining unit tests reviewed by test name and assertion list | see "Test meaningfulness" below |
+| `test/__snapshots__/**` | 4 | 5,501 | Third pass: all 32 entries reviewed. Smoke snapshot's 3 Dart libraries (h3 365, Leaflet 3,260, probe 213 lines) extracted and re-analyzed (0 errors/warnings; 2 deprecation infos); probe library read in full. S5 fixture snapshot (464 lines, 5 libraries + verbose report) read in full. IR snapshots (`decl-parser` 7, `type-parser` 21 entries) read in full | findings CA-31, CA-23 (misnamed test) |
 | `tools/` | 4 | 354 | `ir.ts` full; `graph.ts`/`bench.ts` imports and usage; `bench.ts` executed | reachability + run |
 
 ## Executed checks
@@ -54,6 +55,8 @@ An independent CLI generation of h3, Leaflet and three.js (`--js-root THREE`), 4
 | CA-25 | medium | Distinct inline types hoist to the same anonymous FQN and merge into one wrong shape |
 | CA-26 | low | `this` in generic classes emitted raw; rationale stale; a test locks it |
 | CA-28 | low | e2e oracle `expected.cjs` never executed |
+| CA-30 | low | CLI is not invocation-compatible with js_facade_gen; its behaviour flags are silently ignored |
+| CA-31 | low | Construct signatures on type-only interfaces dropped silently; snapshots lock it |
 
 ## Areas examined and found correct (falsification record)
 
@@ -66,6 +69,8 @@ An independent CLI generation of h3, Leaflet and three.js (`--js-root THREE`), 4
 | h3 golden hides nullability changes | nullability-preserving rerun | 0/63 differ. **Falsified** |
 | Output escapes `-o` via `../` | `deriveOutputPath` reasoning | Contained; collisions throw. **Holds** |
 | Watch: `typeof` const / alias change across an import | differential probe | Matches cold. **Holds** |
+| A §3.8 callable interface's `external call()` would hit `Function.prototype.call` | dart2js probe, `fixtures/runtime-callable/` | Dispatches correctly. **Falsified** |
+| Harness validity of the dart2js probes | Re-ran every runtime probe with `globalThis.self = globalThis` (as test/e2e does) | The first `Date` run had mis-recorded a harness `ReferenceError` as a throw. Corrected: the `Date` binding silently returns NaN and wrong objects (CA-01 stands). CA-06 and CA-16 unchanged |
 | Concurrency (R-14) | `test/run-isolation.test.ts` passes; no module-level mutable run state found on read (`TypeParser` singleton is stateless) | **Holds** |
 
 ## Error handling and resource notes (not registered as findings)

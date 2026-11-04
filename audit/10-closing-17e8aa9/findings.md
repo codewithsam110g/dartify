@@ -4,7 +4,7 @@ Generated from `findings.json` (same content, severity order). IDs use the `CA-N
 
 | ID | Severity | Confidence | Category | Title |
 |---|---|---|---|---|
-| CA-01 | high | confirmed | implementation | TypeScript `Date` is bound as Dart `DateTime`, which fails at runtime in both directions under dart2js |
+| CA-01 | high | confirmed | implementation | TypeScript `Date` is bound as Dart `DateTime`, which silently produces wrong values under dart2js |
 | CA-02 | medium | confirmed | implementation | Watch mode diverges from a cold build when a module file's `declare global` declarations change |
 | CA-03 | medium | confirmed | implementation | Barrel re-exports are silently lost or renamed: import-then-export, `export * as ns`, and `export { A as B }` |
 | CA-04 | medium | confirmed | implementation | Members named like dart:core `Object` members produce analyzer errors (INVALID_OVERRIDE) |
@@ -27,24 +27,26 @@ Generated from `findings.json` (same content, severity order). IDs use the `CA-N
 | CA-20 | low | confirmed | security | Production transitive glob libraries carry high ReDoS advisories |
 | CA-21 | low | confirmed | intent | Documented gate numbers drifted from measured values |
 | CA-22 | low | confirmed | intent | Finding registry integrity: `X-16` is assigned to two different findings; `Where` columns point to deleted files |
-| CA-23 | low | confirmed | implementation | Several registered fixes work but have no regression test |
+| CA-23 | low | confirmed | implementation | Several registered fixes have no regression test, and one snapshot test does not test what it is named for |
 | CA-24 | low | confirmed | deployment | No upgrade or rollback notes for existing 0.5.0 users |
 | CA-26 | low | confirmed | intent | `this` in a generic class is emitted as the raw type; the rationale in the code is stale |
-| CA-27 | low | probable | intent | Watch-latency claims are only partly reproduced (Leaflet edit and three.js core edit) |
+| CA-27 | low | confirmed | intent | Watch-latency claims are only partly reproduced (Leaflet edit and three.js core edit) |
 | CA-28 | low | confirmed | implementation | The e2e oracle script is never executed by the suite |
 | CA-29 | low | confirmed | deployment | The platform-type registry has no committed generator or SDK validation script |
+| CA-30 | low | confirmed | intent | The CLI is not invocation-compatible with js_facade_gen, and its semantics-changing flags are silently ignored |
+| CA-31 | low | confirmed | implementation | Construct signatures on type-only interfaces are dropped without a diagnostic (and the class is marked `@anonymous`) |
 
-## CA-01 — TypeScript `Date` is bound as Dart `DateTime`, which fails at runtime in both directions under dart2js
+## CA-01 — TypeScript `Date` is bound as Dart `DateTime`, which silently produces wrong values under dart2js
 
 - **Severity:** high
 - **Confidence:** confirmed
 - **Category:** implementation
 - **Location:** src/engine/emitter/packagejs/types.ts:555-556 (host(), case "Date"); commit 17e8aa9 (introduced 6c75f9d)
 - **Violated requirement / intent:** README 'Correct runtime dispatch'; CLAUDE.md 'Analyzer-clean output is not sufficient evidence for JS dispatch'; design principle 1 (never degrade silently)
-- **Evidence and traced behaviour:** host() maps the checker-confirmed lib `Date` to `DateTime`. package:js does not convert a JS Date to a Dart DateTime (or back). dart2js probe: `external DateTime now()` returning `new Date(...)` throws on `.year`; passing `DateTime.utc(2030)` to `external num yearOf(DateTime d)` delivers a non-Date to JavaScript and throws. dart analyze reports nothing.
-- **Reproduction:** audit/10-closing-17e8aa9/fixtures/runtime-date/{datelib.d.ts,datelib.js,main.dart}; observed output in fixtures/runtime-date/observed.txt ('now().year threw: JSObject', 'yearOf threw: JSObject')
-- **Falsification attempted:** Checked whether js_facade_gen's reference cases or the repo's runtime/e2e probes cover Date (they do not), and whether package:js converts DateTime (it does not; dart2js run throws). The finding stands.
-- **Consequence:** Any binding that returns or accepts a Date compiles and analyzes cleanly but throws when used. Corpus: 13 occurrences in 5 files, including Leaflet `TileEvent.loaded?: Date` (a gated library).
+- **Evidence and traced behaviour:** host() maps the checker-confirmed lib `Date` to `DateTime`. package:js does not convert a JS Date to a Dart DateTime (or back), and package:js return values are not type-checked. dart2js probe (runner defines globalThis.self as test/e2e does): `now().year` on a returned JS Date prints `NaN`; `yearOf(DateTime.utc(2030))` delivers a non-Date object to JavaScript (`not a Date: object`), whose string result flows into a Dart `num` unchecked. dart analyze reports nothing.
+- **Reproduction:** audit/10-closing-17e8aa9/fixtures/runtime-date/ (README.md, datelib.d.ts, datelib.js, main.dart, observed.txt)
+- **Falsification attempted:** Checked whether the reference cases or the repo's runtime/e2e probes cover Date (they do not). The first probe run omitted globalThis.self and mis-recorded a harness ReferenceError as a throw; re-run with a correct harness shows silent wrong values instead (correction recorded in observed.txt). The finding stands and is more severe in kind (silent).
+- **Consequence:** Any binding that returns or accepts a Date compiles and analyzes cleanly but yields wrong values (NaN dates, wrong objects passed to JavaScript) without any error. Corpus: 13 occurrences in 5 files, including Leaflet `TileEvent.loaded?: Date` (a gated library).
 - **Remediation direction:** Lower `Date` to a named, documented interop type (for example a `@JS('Date')` class or a named dynamic typedef) rather than `DateTime`, and add a dart2js runtime probe case for Date in def_files/synthetic/runtime.
 - **Related / root cause:** CA-23; RC-1 host-type mapping chosen without a runtime probe
 
@@ -279,7 +281,7 @@ Generated from `findings.json` (same content, severity order). IDs use the `CA-N
 - **Category:** implementation
 - **Location:** src/engine/emitter/packagejs/declarations.ts:1031-1036 (emitClass constructor selection); commit 17e8aa9
 - **Violated requirement / intent:** E-35 intent (no implicit construction of non-constructable runtime types)
-- **Evidence and traced behaviour:** inheritedConstructors() filters private constructors; because declaration.constructors is non-empty, no external constructor is written either, so Dart supplies an implicit `Singleton()`. dart2js program calling `Singleton()` compiles and prints 'Singleton() constructed from Dart: JSObject'.
+- **Evidence and traced behaviour:** inheritedConstructors() filters private constructors; because declaration.constructors is non-empty, no external constructor is written either, so Dart supplies an implicit `Singleton()`. dart2js program calling `Singleton()` compiles and prints 'Singleton() constructed from Dart: JSObject'. Re-run with globalThis.self defined (correct harness): same result.
 - **Reproduction:** audit/10-closing-17e8aa9/fixtures/runtime-ambient/{priv_only.dart,probe.js,observed.txt}; input fixtures/backend/privatector/privatector.d.ts
 - **Falsification attempted:** Analyzer is clean; dart2js executed and the construction succeeded, which TypeScript forbids.
 - **Consequence:** Dart code can call a constructor TypeScript forbids.
@@ -356,14 +358,14 @@ Generated from `findings.json` (same content, severity order). IDs use the `CA-N
 - **Remediation direction:** Give the .gitignore finding a new ID (keep X-16 for coverage) and refresh stale locations.
 - **Related / root cause:** CA-21; RC-11 manually maintained registry
 
-## CA-23 — Several registered fixes work but have no regression test
+## CA-23 — Several registered fixes have no regression test, and one snapshot test does not test what it is named for
 
 - **Severity:** low
 - **Confidence:** confirmed
 - **Category:** implementation
-- **Location:** test/** (no case for P-18, E-44's NATIVE_NAME_CONFLICT diagnostic, or a TypeScript `abstract class` for E-20)
+- **Location:** test/** (no case for P-18, E-44's NATIVE_NAME_CONFLICT diagnostic, or a TypeScript `abstract class` for E-20); test/type/type-parser.test.ts ('Functions - Optional Parameter')
 - **Violated requirement / intent:** Closing-audit requirement: registered fixes are real, tested and complete
-- **Evidence and traced behaviour:** Runtime check at 17e8aa9: P-18 drops `this:` from function types, E-20 emits `abstract class Shape`, and E-44 reports NATIVE_NAME_CONFLICT. A search of test/ finds no assertion covering these paths.
+- **Evidence and traced behaviour:** Runtime check at 17e8aa9: P-18 drops `this:` from function types, E-20 emits `abstract class Shape`, and E-44 reports NATIVE_NAME_CONFLICT. A search of test/ finds no assertion covering these paths. Additionally, test/type/type-parser.test.ts 'Functions - Optional Parameter' snapshots `(a: string, b: number) => void`, which has no optional parameter, so optional function-type parameters are not covered by that test.
 - **Reproduction:** pnpm exec tsx audit/10-closing-17e8aa9/fixtures/untested-fixes.ts
 - **Falsification attempted:** Snapshots might cover them indirectly: the P-18 and E-44 shapes do not occur in the snapshot inputs; the E-20 TS abstract class does not either.
 - **Consequence:** Regressions in these paths would pass the suite.
@@ -401,13 +403,13 @@ Generated from `findings.json` (same content, severity order). IDs use the `CA-N
 ## CA-27 — Watch-latency claims are only partly reproduced (Leaflet edit and three.js core edit)
 
 - **Severity:** low
-- **Confidence:** probable
+- **Confidence:** confirmed
 - **Category:** intent
 - **Location:** README.md ('rebuilds take tens of milliseconds'), ROADMAP.md (h3 ~35 ms, Leaflet ≤ 94 ms, three.js ~53 ms), CHANGELOG/PLAN 6.12 ('rebuilds under 100 ms on h3, Leaflet and three.js')
 - **Violated requirement / intent:** Documented performance claims
-- **Evidence and traced behaviour:** `pnpm bench` at 17e8aa9 (Node 22.23.4): h3 leaf edit 37.3 ms; Leaflet leaf edit 132.3 ms, core edit 57.4 ms; three.js leaf edit 57.4 ms but core edit (Vector3) 730.9 ms. All 40 incremental builds were verified byte-for-byte by the tool.
+- **Evidence and traced behaviour:** `pnpm bench` at 17e8aa9, two runs (the second on an idle container): h3 leaf edit 37.3 / 34.6 ms; Leaflet leaf edit 132.3 / 158.4 ms and core edit 57.4 / 71.4 ms; three.js leaf edit 57.4 / 69.6 ms but core edit (Vector3) 730.9 / 807.7 ms. Every incremental build was verified byte-for-byte by the tool.
 - **Reproduction:** pnpm bench (output saved in logs/bench.txt)
-- **Falsification attempted:** Single run on a shared container with other jobs finishing; the three.js core edit is slow by design (shape and heritage changes re-render everything), which the docs do not mention.
+- **Falsification attempted:** Re-ran on an idle machine to rule out contention: same picture. The three.js core edit is slow by design (shape and heritage changes re-render everything), which the docs do not mention.
 - **Consequence:** Users editing widely inherited types see ~0.7 s rebuilds, not 'under 100 ms'.
 - **Remediation direction:** State per-edit-kind numbers (leaf vs core) and the full re-render policy in README/ROADMAP; re-measure on a quiet machine.
 - **Related / root cause:** CA-21; RC-11 manually maintained metrics
@@ -439,3 +441,31 @@ Generated from `findings.json` (same content, severity order). IDs use the `CA-N
 - **Consequence:** The documented maintenance procedure cannot be followed; SDK upgrades (dart:html deprecations) cannot re-validate the 500 entries reproducibly.
 - **Remediation direction:** Commit the generator/validator under tools/ and reference it from CLAUDE.md.
 - **Related / root cause:** CA-17; RC-9 reproducible toolchain
+
+## CA-30 — The CLI is not invocation-compatible with js_facade_gen, and its semantics-changing flags are silently ignored
+
+- **Severity:** low
+- **Confidence:** confirmed
+- **Category:** intent
+- **Location:** src/cli.ts:31-90 (yargs options, `-d` demanded, no positional inputs, no `.strict()`); README.md / ROADMAP.md ('swap the tool, rerun the command')
+- **Violated requirement / intent:** ROADMAP v1.0.0: 'js_facade_gen users swap the tool, rerun the command, and get strictly better output'; README 'drop-in replacement'
+- **Evidence and traced behaviour:** js_facade_gen's documented usage (archived README) is `dart_js_facade_gen <input d.ts>` (stdout) or `dart_js_facade_gen --destination=<dir> --base-path=<dir> <files...>`, plus --skip-formatting, --generate-html, --rename-conflicting-types, --explicit-static, --trust-js-types. `dart_bindgen` rejects both invocation forms ('Missing required argument: def-files', exit 1) and has no stdout mode. With `-d/-o`, all five reference flags are accepted and silently ignored (exit 0, no warning), although several change js_facade_gen's output semantics.
+- **Reproduction:** node dist/cli.js --destination=out --base-path=def_files/h3 def_files/h3/h3.d.ts; node dist/cli.js def_files/h3/h3.d.ts; node dist/cli.js -d def_files/h3/h3.d.ts -o out --trust-js-types --generate-html --explicit-static
+- **Falsification attempted:** Output-level drop-in is demonstrated (h3 golden 63/63, conformance ledger); only the command line differs. The CLI's own flags remain backward compatible with dartify 0.5.0.
+- **Consequence:** Existing build scripts must be rewritten; users relying on --trust-js-types or --generate-html get different output with no warning.
+- **Remediation direction:** Document a flag mapping in README; warn on (or reject with yargs `.strict()`) unknown flags; optionally accept positional inputs and `--destination`/`--base-path` aliases.
+- **Related / root cause:** CA-24; RC-13 release documentation
+
+## CA-31 — Construct signatures on type-only interfaces are dropped without a diagnostic (and the class is marked `@anonymous`)
+
+- **Severity:** low
+- **Confidence:** confirmed
+- **Category:** implementation
+- **Location:** src/engine/emitter/packagejs/declarations.ts:1297-1313 (emitInterface: construct signatures emitted only when facet.namespace === 'both'; propertyBag() returns undefined when constructSignatures exist); test/__snapshots__/smoke.test.ts.snap (probe `Constructable`) and s5-emitter-fixture snapshot (`Registry`) lock the behaviour
+- **Violated requirement / intent:** Design principle 1 (never degrade silently); E-35 policy 'only explicit construct signatures produce factories'
+- **Evidence and traced behaviour:** `interface Constructable { new (n: number): Box<number> }` emits `@JS() @anonymous abstract class Constructable {}`; `Registry`'s `new (value: T): Registry<T>` is likewise absent. No EmitDiagnostic, comment or typedef records the loss, and `@anonymous` declares an object literal although the runtime value is a constructor function.
+- **Reproduction:** Read test/__snapshots__/smoke.test.ts.snap (probe.d.ts section) or run pnpm dev -d def_files/synthetic/probe.d.ts
+- **Falsification attempted:** A value-backed constructor (`declare var X: { new(): X }`) is merged and emitted correctly (Widget in the S5 fixture); only type-only constructor interfaces are affected. The output analyzes cleanly.
+- **Consequence:** Dart users cannot construct through such values and are not told why; `XConstructor`-style typings degrade to empty classes.
+- **Remediation direction:** Emit a documented named degradation (or a comment plus a CONSTRUCT_SIGNATURE_DROPPED diagnostic), and do not mark constructor-shaped interfaces `@anonymous`.
+- **Related / root cause:** CA-23; RC-12 snapshot-locked behaviour

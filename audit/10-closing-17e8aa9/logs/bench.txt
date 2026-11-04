@@ -15,3 +15,20 @@ three.js — 421 libraries
   leaf edit          57.4 ms  (resolve 17.4, generate 1.8, link 18.1, render 17.9, write 2.3)  [1 file(s) rebuilt: src/helpers/AxesHelper.d.ts]
   core edit         730.9 ms  (resolve 19.3, generate 2.1, link 19.2, render 686.6, write 3.8)  [1 file(s) rebuilt: src/math/Vector3.d.ts]
 40 incremental builds verified byte-for-byte against cold compilations.
+
+# Second run, idle container (no other vitest/tsx/dart processes), Node 22.23.4
+h3 — 1 libraries
+  cold build        560.6 ms  (resolve 388, generate 151.9, link 3.2, render 15.9, write 1.5)
+  no change           2.7 ms  (resolve 1.9, generate 0, link 0.4, render 0.4, write 0)
+  leaf edit          34.6 ms  (resolve 8.4, generate 23.5, link 0.5, render 2.1, write 0)  [1 file(s) rebuilt: h3.d.ts]
+leaflet — 2 libraries
+  cold build        664.3 ms  (resolve 271.8, generate 256.5, link 20.5, render 112.9, write 2.6)
+  no change           6.9 ms  (resolve 1.5, generate 0, link 3.2, render 2, write 0.3)
+  leaf edit         158.4 ms  (resolve 28.2, generate 43.2, link 13.8, render 69.9, write 3.3)  [1 file(s) rebuilt: leaflet.d.ts]
+  core edit          71.4 ms  (resolve 6, generate 4.8, link 3.4, render 54.8, write 2.3)  [1 file(s) rebuilt: geojson.d.ts]
+three.js — 421 libraries
+  cold build         3345 ms  (resolve 826.4, generate 1568.1, link 97.3, render 767.5, write 85.6)
+  no change          38.4 ms  (resolve 12.7, generate 0.5, link 14.7, render 7.7, write 2.9)
+  leaf edit          69.6 ms  (resolve 20.4, generate 1.8, link 23.6, render 21.2, write 2.5)  [1 file(s) rebuilt: src/helpers/AxesHelper.d.ts]
+  core edit         807.7 ms  (resolve 17.3, generate 2.1, link 19.1, render 767.1, write 2.2)  [1 file(s) rebuilt: src/math/Vector3.d.ts]
+40 incremental builds verified byte-for-byte against cold compilations.

@@ -26,7 +26,7 @@ planning, so `PLAN.md` is sequenced by real dependency rather than by guess.
 | [`09-tests-tooling.md`](09-tests-tooling.md) | `test/*`, configs, `log.ts`, `utils/*` |
 | [`FINDINGS.md`](FINDINGS.md) | **Consolidated, severity-ranked index of every finding** |
 | [`POST-S4-AUDIT.md`](POST-S4-AUDIT.md) | File/line ledger for the mandatory audit before S5 |
-| [`10-closing-17e8aa9/`](10-closing-17e8aa9/MASTER.md) | Closing v1 audit of `17e8aa9`: request, plan, five passes, fix verification, `CA-01`–`CA-29` with reproducers and logs |
+| [`10-closing-17e8aa9/`](10-closing-17e8aa9/MASTER.md) | Closing v1 audit of `17e8aa9`: request, plan, five passes, fix verification, `CA-01`–`CA-31` with reproducers and logs |
 
 Start at `FINDINGS.md` if you want the summary; go to the area file for the
 per-line reasoning behind any given ID.

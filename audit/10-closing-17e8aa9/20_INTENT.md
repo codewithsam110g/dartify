@@ -28,7 +28,7 @@ Documented promises (README, ROADMAP, CHANGELOG, PLAN, CLAUDE.md, code comments)
 | 20 | Instruments outside the bundle (D-07) | 0 Viz/graphology matches in `dist`; `npm pack` ships 6 files | Verified correct | [runtime] |
 | 21 | Node floor `^20.19.0 \|\| ^22.12.0 \|\| >=23` (X-15) | Node 20.19.0 and 24.22.2 (downloaded to the scratchpad): `tsc` 0, 299 passed / 10 skipped, build OK, built CLI generates h3. Live CI run 12 for `17e8aa9`: Node 20.19.0, 22.12.0, 24.x and the Dart gate all success | Verified correct | `logs/node-matrix.txt`, `logs/live-ci.txt` [runtime + live] |
 | 22 | Watch rebuild h3 ~35 ms, Leaflet ≤ 94 ms, three.js ~53 ms; "under 100 ms" | h3 37 ms; Leaflet leaf 132 ms / core 57 ms; three.js leaf 57 ms / core 731 ms; 40 builds verified byte-for-byte | Incorrect (partly) | CA-27, `logs/bench.txt` [runtime] |
-| 23 | "Drop-in replacement: swap the tool, rerun the command" (README, ROADMAP) | Output parity is demonstrated (h3 golden, conformance). CLI invocation compatibility with js_facade_gen is neither documented nor verifiable offline | Unverified | follow-up F-3 |
+| 23 | "Drop-in replacement: swap the tool, rerun the command" (README, ROADMAP) | Output parity is demonstrated (h3 golden, conformance). The command is not: js_facade_gen's documented invocations (archived README) fail with exit 1, and its five behaviour flags are silently ignored | Incorrect (CLI level) | CA-30 [runtime + reference docs] |
 | 24 | Private members (`JS$_x` style) | Emitted, as js_facade_gen §2.13/§2.14 do | Verified correct (parity) | falsified suspicion [runtime] |
 | 25 | Registry: "never renumber or delete an ID" (CLAUDE.md) | `X-16` used twice | Incorrect | CA-22 [static] |
 | 26 | `browserTypes.ts` is generated; "regenerate and re-validate rather than hand-edit" (CLAUDE.md) | No generator or validator is committed; the table is internally consistent (500 entries, no duplicates) | Incorrect | CA-29 [static + runtime] |
@@ -43,3 +43,11 @@ The tool reads the given `.d.ts` files and their transitive imports, and writes 
 ## Documentation that is incorrect
 
 The numbers in CA-21 and the registry problems in CA-22. `test/stress.test.ts:6` still says "1,654-file corpus". The `transpiler.ts:530-538` docblock for `resolveAndCategorize` sits on `pruneUnreachable` (cosmetic, not registered).
+
+## Third pass (after the second stop-hook review)
+
+| # | Claim | Result | Label | Evidence |
+|---|---|---|---|---|
+| 30 | R-15: lib.dom analysis 100 s → 6.5 s | `analyze()` 2.0 s, `render()` 4.1 s on `def_files/lib.dom/lib.dom.d.ts` (29,610 lines, 2,010 symbols) | Verified correct | `logs/r15-libdom.txt` [runtime] |
+| 31 | Snapshot goldens describe correct output | Smoke Dart (h3, Leaflet, probe) re-analyzed: 0 errors/warnings. IR snapshots consistent with the parsers. One locked behaviour is a silent loss (CA-31); one test is misnamed (CA-23) | Verified, with exceptions | `30_IMPLEMENTATION.md` [runtime + static] |
+| 32 | js_facade_gen §3.8 callable interfaces (`call` method) dispatch correctly | dart2js probe: `counter.call(5)` and `counter(7)` match JavaScript | Verified correct (suspicion falsified) | `fixtures/runtime-callable/` [runtime] |

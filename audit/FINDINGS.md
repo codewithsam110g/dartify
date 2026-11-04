@@ -314,7 +314,7 @@ work is sequenced as `PLAN.md` tasks 4.11–4.17.
 | three.js analyzer before → after | 8,342 errors + 267 warnings → **0 / 0** |
 | js_facade_gen conformance | **67/90 parity, 16 improved, 2 differ, 5 out of scope** (`test/conformance/ledger.json`) |
 | h3 golden (js_facade_gen output shipped in h3) | **63/63** declarations reproduced |
-| stress | 1,654/1,654: 0 throws, 0 returned errors, 0 `// ERROR emitting` markers; 719 known empty outputs |
+| stress | 1,655/1,655 (1,654 + the runtime probe): 0 throws, 0 returned errors, 0 `// ERROR emitting` markers; 719 known empty outputs |
 | coverage (`pnpm test:coverage`) | 90.1% lines over `src/**` |
 | compiler / build | `tsc` clean / 252 KB bundle of live `src` only |
 | three.js end-to-end | ~7 s for 420 libraries |

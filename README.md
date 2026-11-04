@@ -34,7 +34,7 @@ Measured on this repository's corpora (Dart SDK 3.13, `package:js` 0.6.7):
 | three.js (`Three.Core.d.ts`, 420 libraries) | 0 errors, 0 warnings (was 8,342 errors) |
 | js_facade_gen reference cases (90) | **67 parity, 16 deliberately improved, 2 differ, 5 out of scope** — all analyzer-clean |
 | dart2js runtime probe | overloads, rest arguments, named constructors, extension renames, index operators, anonymous factories, promises |
-| 1,654-file stress corpus | no throws, no returned errors, no emission-error markers |
+| 1,655-file stress corpus | no throws, no returned errors, no emission-error markers |
 
 The only analyzer output on these sets is the expected `dart:html`
 deprecation info.

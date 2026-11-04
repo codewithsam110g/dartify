@@ -131,7 +131,7 @@ declarations a single-file run can bind (barrels and comment-only files).
 
 Current gates: 294 passed / 6 skipped; S2 2/2, S3 1/1, S4 53/53, S5 fixture
 3/3, Dart gate 2/2, conformance 67/90 parity + 16 improved + 2 differ + 5 out
-of scope, h3 golden 63/63, stress 1,654/1,654. The protected S3 input floor
+of scope, h3 golden 63/63, stress 1,655/1,655 (the runtime probe is the 1,655th file). The protected S3 input floor
 remains 2,530 declarations.
 
 The conformance ledger changes only deliberately: the test fails both when a

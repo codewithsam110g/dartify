@@ -499,7 +499,7 @@ output is the accepted `dart:html`/`dart:svg` deprecation info. The backend is
 | 6.7 | ✅ Reconfirm final bundle composition/size after deletion; post-S3 already proves dead code is tree-shaken | `D-06` |
 | 6.8 | ✅ Move `src/legacy/**` to `docs/history/` or a git tag | `D-04` |
 | 6.9 | *(optional)* `1.0.0-beta.0` under the npm `next` tag; soak | — |
-| 6.10 | Merge to `main`, publish **`1.0.0`** | — |
+| 6.10 | Merge to `main`, publish **`1.0.0`** — code-complete and gated; merging to `main` and `npm publish` are the owner's release decision | — |
 
 ---
 

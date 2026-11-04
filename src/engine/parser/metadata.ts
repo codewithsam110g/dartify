@@ -30,7 +30,26 @@ export function sourceLocationOf(node: ts.Node): IRSourceLocation {
 export function jsDocOf(node: ts.Node): string | undefined {
   const docs = (node as JSDocableNode).getJsDocs?.() ?? [];
   const text = docs.map((doc) => doc.getText()).join("\n");
-  return text || undefined;
+  return text || leadingBlockComment(node);
+}
+
+/**
+ * A plain `/* … *\/` comment that ends on the declaration's own line or the
+ * line directly above it documents that declaration (js_facade_gen §11.1,
+ * §3.5). Separated comments, such as license headers, do not. Returned in
+ * JSDoc form so one converter handles both.
+ */
+function leadingBlockComment(node: ts.Node): string | undefined {
+  const sourceFile = node.getSourceFile().compilerNode;
+  const ranges = ts.ts.getLeadingCommentRanges(sourceFile.text, node.getFullStart()) ?? [];
+  const last = ranges[ranges.length - 1];
+  if (!last || last.kind !== ts.ts.SyntaxKind.MultiLineCommentTrivia) return undefined;
+  const raw = sourceFile.text.slice(last.pos, last.end);
+  if (raw.startsWith("/**")) return undefined;
+  const endLine = ts.ts.getLineAndCharacterOfPosition(sourceFile, last.end).line;
+  const nodeLine = ts.ts.getLineAndCharacterOfPosition(sourceFile, node.getStart()).line;
+  if (nodeLine - endLine > 1) return undefined;
+  return `/**${raw.slice(2)}`;
 }
 
 export function nodeMetadata(node: ts.Node): IRNode {

@@ -98,9 +98,12 @@ export function parseParameters(
 ): IRParameter[] {
   return node
     .getParameters()
+    // TypeScript's `this:` pseudo-parameter is a type annotation, not an
+    // argument. In function *type* nodes it parses as an identifier.
     .filter(
       (parameter) =>
-        parameter.getNameNode().getKind() !== ts.SyntaxKind.ThisKeyword,
+        parameter.getNameNode().getKind() !== ts.SyntaxKind.ThisKeyword &&
+        parameter.getName() !== "this",
     )
     .map((parameter, index) =>
       parseParameter(

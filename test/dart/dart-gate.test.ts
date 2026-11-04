@@ -22,6 +22,7 @@ import { join, resolve, sep } from "path";
 import fg from "fast-glob";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { Transpiler } from "../../src/transpiler";
+import { runAllCases } from "../conformance/run";
 
 const ENABLED = process.env.DARTIFY_DART === "1";
 
@@ -62,6 +63,12 @@ describe.skipIf(!ENABLED)("Dart acceptance gate", () => {
         outDir: join(root, "lib", set),
       }).transpile();
     }
+    // Every js_facade_gen reference case must also analyze (S6.1).
+    mkdirSync(join(root, "lib", "conformance"), { recursive: true });
+    for (const result of await runAllCases()) {
+      const name = `case_${result.case.id.replace(/[^0-9a-z]+/gi, "_")}.dart`;
+      writeFileSync(join(root, "lib", "conformance", name), result.dart);
+    }
   }, 600_000);
 
   afterAll(() => {
@@ -78,7 +85,9 @@ describe.skipIf(!ENABLED)("Dart acceptance gate", () => {
       const failure = error as { stdout?: string; stderr?: string };
       output = `${failure.stdout ?? ""}\n${failure.stderr ?? ""}`;
     }
-    const census: Census = Object.fromEntries(Object.keys(FIXTURE_SETS).map((set) => [set, {}]));
+    const census: Census = Object.fromEntries(
+      [...Object.keys(FIXTURE_SETS), "conformance"].map((set) => [set, {}]),
+    );
     for (const line of output.split("\n")) {
       const fields = line.split("|");
       if (fields.length < 8) continue;

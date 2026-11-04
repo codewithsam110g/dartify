@@ -337,38 +337,35 @@ typedef H3Index = String;
 /// A JavaScript union of \`String | List<num>\`; Dart has no union types.
 typedef H3IndexInput = dynamic;
 
+/// Coordinates as an \`{i, j}\` pair
 @JS()
 @anonymous
-abstract class Anon_h3_CoordIJ {
-  external factory Anon_h3_CoordIJ({required num i, required num j});
+abstract class CoordIJ {
+  external factory CoordIJ({required num i, required num j});
   external num get i;
   external set i(num value);
   external num get j;
   external set j(num value);
 }
 
-/// Coordinates as an \`{i, j}\` pair
-typedef CoordIJ = Anon_h3_CoordIJ;
-
+/// Custom JS Error instance with an attached error code. Error codes come from the
+/// core H3 library and can be found [in the H3 docs](https://h3geo.org/docs/library/errors#table-of-error-codes).
 @JS()
 @anonymous
-abstract class Anon_h3_H3Error {
-  external factory Anon_h3_H3Error({required String message, required num code});
+abstract class H3Error {
+  external factory H3Error({required String message, required num code});
   external String get message;
   external set message(String value);
   external num get code;
   external set code(num value);
 }
 
-/// Custom JS Error instance with an attached error code. Error codes come from the
-/// core H3 library and can be found [in the H3 docs](https://h3geo.org/docs/library/errors#table-of-error-codes).
-typedef H3Error = Anon_h3_H3Error;
-
 /// Pair of lat,lng coordinates (or lng,lat if GeoJSON output is specified)
 typedef CoordPair = List<num>;
 
 /// Pair of lower,upper 32-bit ints representing a 64-bit value
 typedef SplitLong = List<num>;
+
 // ---------------------------------------------------------------------------
 // Type definitions
 //
@@ -740,8 +737,7 @@ class Point {
 
 @JS()
 @anonymous
-abstract class Coords extends Point {
-  external factory Coords({required num z});
+abstract class Coords implements Point {
   external num get z;
   external set z(num value);
 }
@@ -804,33 +800,33 @@ external Bounds bounds_1(PointExpression topLeft, PointExpression bottomRight);
 @JS("bounds")
 external Bounds bounds_2(ListPointOrBoundsLiteral points);
 
-typedef LeafletEventHandlerFn = void Function(LeafletEvent);
+typedef LeafletEventHandlerFn = void Function(LeafletEvent event);
 
-typedef LayersControlEventHandlerFn = void Function(LayersControlEvent);
+typedef LayersControlEventHandlerFn = void Function(LayersControlEvent event);
 
-typedef LayerEventHandlerFn = void Function(LayerEvent);
+typedef LayerEventHandlerFn = void Function(LayerEvent event);
 
-typedef ResizeEventHandlerFn = void Function(ResizeEvent);
+typedef ResizeEventHandlerFn = void Function(ResizeEvent event);
 
-typedef PopupEventHandlerFn = void Function(PopupEvent);
+typedef PopupEventHandlerFn = void Function(PopupEvent event);
 
-typedef TooltipEventHandlerFn = void Function(TooltipEvent);
+typedef TooltipEventHandlerFn = void Function(TooltipEvent event);
 
-typedef ErrorEventHandlerFn = void Function(ErrorEvent);
+typedef ErrorEventHandlerFn = void Function(ErrorEvent event);
 
-typedef LocationEventHandlerFn = void Function(LocationEvent);
+typedef LocationEventHandlerFn = void Function(LocationEvent event);
 
-typedef LeafletMouseEventHandlerFn = void Function(LeafletMouseEvent);
+typedef LeafletMouseEventHandlerFn = void Function(LeafletMouseEvent event);
 
-typedef LeafletKeyboardEventHandlerFn = void Function(LeafletKeyboardEvent);
+typedef LeafletKeyboardEventHandlerFn = void Function(LeafletKeyboardEvent event);
 
-typedef ZoomAnimEventHandlerFn = void Function(ZoomAnimEvent);
+typedef ZoomAnimEventHandlerFn = void Function(ZoomAnimEvent event);
 
-typedef DragEndEventHandlerFn = void Function(DragEndEvent);
+typedef DragEndEventHandlerFn = void Function(DragEndEvent event);
 
-typedef TileEventHandlerFn = void Function(TileEvent);
+typedef TileEventHandlerFn = void Function(TileEvent event);
 
-typedef TileErrorEventHandlerFn = void Function(TileErrorEvent);
+typedef TileErrorEventHandlerFn = void Function(TileErrorEvent event);
 
 @JS()
 @anonymous
@@ -1584,9 +1580,7 @@ abstract class InteractiveLayerOptions implements LayerOptions {
 
 @JS()
 @anonymous
-abstract class Anon_Layer_method_24_getEvents_return {
-  external factory Anon_Layer_method_24_getEvents_return();
-}
+abstract class Anon_Layer_method_24_getEvents_return {}
 extension Anon_Layer_method_24_getEvents_returnExtension on Anon_Layer_method_24_getEvents_return {
   external LeafletEventHandlerFn operator [](String key);
   external void operator []=(String key, LeafletEventHandlerFn value);
@@ -1672,7 +1666,7 @@ abstract class GridLayerOptions implements LayerOptions {
   external set keepBuffer(num? value);
 }
 
-typedef DoneCallback = void Function([Error_6a2353, HtmlElement]);
+typedef DoneCallback = void Function([Error_6a2353 error, HtmlElement tile]);
 
 @JS()
 @anonymous
@@ -1694,9 +1688,7 @@ abstract class Anon_InternalTiles_indexSig_0_value {
 
 @JS()
 @anonymous
-abstract class InternalTiles {
-  external factory InternalTiles();
-}
+abstract class InternalTiles {}
 extension InternalTilesExtension on InternalTiles {
   external Anon_InternalTiles_indexSig_0_value operator [](String key);
   external void operator []=(String key, Anon_InternalTiles_indexSig_0_value value);
@@ -2228,7 +2220,7 @@ class FeatureGroup<P> extends LayerGroup<P> {
 @JS("featureGroup")
 external FeatureGroup<P> featureGroup<P>([List<Layer> layers, LayerOptions options]);
 
-typedef StyleFunction<P> = PathOptions Function([GeojsonFeature]);
+typedef StyleFunction<P> = PathOptions Function([GeojsonFeature feature]);
 
 @JS()
 @anonymous
@@ -2509,9 +2501,7 @@ abstract class LayersOptions implements ControlOptions {
 
 @JS()
 @anonymous
-abstract class LayersObject {
-  external factory LayersObject();
-}
+abstract class LayersObject {}
 extension LayersObjectExtension on LayersObject {
   external Layer operator [](String key);
   external void operator []=(String key, Layer value);
@@ -2940,7 +2930,7 @@ abstract class ZoomAnimEvent implements LeafletEvent {
   external set noUpdate(bool value);
 }
 
-typedef EventHandlerFn = void Function(Event);
+typedef EventHandlerFn = void Function(Event event);
 
 /// A JavaScript union of \`LeafletMouseEvent | LeafletKeyboardEvent | LeafletEvent | Event\`; Dart has no union types.
 typedef PropagableEvent = dynamic;
@@ -2950,9 +2940,7 @@ external TypeOfDomEvent on_1(HtmlElement el, String types, EventHandlerFn fn, [d
 
 @JS()
 @anonymous
-abstract class Anon_DomEvent_on_overload_1_param_1_eventMap {
-  external factory Anon_DomEvent_on_overload_1_param_1_eventMap();
-}
+abstract class Anon_DomEvent_on_overload_1_param_1_eventMap {}
 extension Anon_DomEvent_on_overload_1_param_1_eventMapExtension on Anon_DomEvent_on_overload_1_param_1_eventMap {
   external EventHandlerFn operator [](String key);
   external void operator []=(String key, EventHandlerFn value);
@@ -3028,9 +3016,7 @@ abstract class DefaultMapPanes {
 
 @JS()
 @anonymous
-abstract class Anon_Map_method_35_getPanes_return_intersection_0 {
-  external factory Anon_Map_method_35_getPanes_return_intersection_0();
-}
+abstract class Anon_Map_method_35_getPanes_return_intersection_0 {}
 extension Anon_Map_method_35_getPanes_return_intersection_0Extension on Anon_Map_method_35_getPanes_return_intersection_0 {
   external HtmlElement operator [](String key);
   external void operator []=(String key, HtmlElement value);
@@ -3739,9 +3725,7 @@ abstract class Child implements Holder<String>, Named {
 
 @JS()
 @anonymous
-abstract class Dict {
-  external factory Dict();
-}
+abstract class Dict {}
 extension DictExtension on Dict {
   external num operator [](String key);
   external void operator []=(String key, num value);
@@ -3749,9 +3733,7 @@ extension DictExtension on Dict {
 
 @JS()
 @anonymous
-abstract class ReadonlyDict {
-  external factory ReadonlyDict();
-}
+abstract class ReadonlyDict {}
 extension ReadonlyDictExtension on ReadonlyDict {
   external String operator [](num key);
 }

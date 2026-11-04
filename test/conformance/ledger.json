@@ -1,0 +1,126 @@
+{
+  "comment": "Status of every js_facade_gen reference case (def_files/js_facade_gen_test_cases.md) under test/conformance/normalize.ts. parity: normalized output is identical. improved: dartify deliberately emits something more precise or more correct, stated in the note. differs: a known, accepted difference. outOfScope: not expressible as a single .d.ts snippet or not declaration syntax. Cases not listed must be at parity. `pnpm test` fails if a parity case regresses or a non-parity case starts matching (promote it).",
+  "cases": {
+    "1.5": {
+      "status": "parity",
+      "prelude": "interface A {}"
+    },
+    "1.7": {
+      "status": "parity",
+      "prelude": "interface A {}"
+    },
+    "2.2": {
+      "status": "parity",
+      "prelude": "declare class Y {}"
+    },
+    "2.3": {
+      "status": "parity",
+      "prelude": "interface Y {}\ninterface Z {}"
+    },
+    "2.4": {
+      "status": "parity",
+      "prelude": "declare class Y {}\ninterface Z {}"
+    },
+    "2.14": {
+      "status": "outOfScope",
+      "note": "Constructor parameter properties are implementation syntax; declaration files spell them as separate properties, which are covered by 2.6/2.13."
+    },
+    "2.16": {
+      "status": "improved",
+      "note": "Promise<T> is a typed interop class with a toFuture() extension instead of a hand-written private shadow class per method; await foo().toFuture()."
+    },
+    "2.17": {
+      "status": "improved",
+      "note": "Real Dart generic methods (Z<T>()) instead of dynamic /*T*/ comments (E-03)."
+    },
+    "2.18": {
+      "status": "improved",
+      "note": "Each overload keeps its exact signature as F_1/F_2/F_3 bound to JavaScript F through @JS extension members, instead of one merged dynamic signature."
+    },
+    "3.2": {
+      "status": "parity",
+      "prelude": "interface Y {}\ninterface Z {}"
+    },
+    "3.9": {
+      "status": "improved",
+      "note": "An invalid JavaScript property name is bound through a renamed extension member with an exact, escaped @JS name instead of being commented out."
+    },
+    "4.1": {
+      "status": "improved",
+      "note": "The interface+var merge is a concrete class with an external generative constructor, so it can also be extended; js_facade_gen emits an abstract class with a factory."
+    },
+    "4.2": {
+      "status": "improved",
+      "note": "js_facade_gen's expected output declares static and instance members both named b, which is a Dart compile error; dartify binds the static as a top-level X_b_2 getter/setter."
+    },
+    "4.3": {
+      "status": "improved",
+      "note": "The merge carries static members, so it is bound @JS(\"X\") rather than @anonymous, which could not reach X.d at runtime."
+    },
+    "5.1": {
+      "status": "differs",
+      "prelude": "declare namespace foo { interface Bar {} }",
+      "note": "Namespace members are flattened into the library (with collision-safe names), so the qualified reference foo.Bar resolves to the emitted class Bar."
+    },
+    "5.4": {
+      "status": "improved",
+      "note": "An inline object type becomes a real @anonymous class with a factory instead of dynamic /*{x: string, y: number}*/."
+    },
+    "5.5": {
+      "status": "improved",
+      "note": "An index-signature object becomes a class with typed operator []/[]= instead of dynamic /*JSMap of ...*/ (E-14)."
+    },
+    "5.14": {
+      "status": "improved",
+      "note": "f keeps its type parameter K; keyof/indexed access degrade to the named typedefs KeyOfA/IndexedAK instead of inline dynamic comments (E-16)."
+    },
+    "6.5": {
+      "status": "parity",
+      "prelude": "interface A {}\ninterface B {}\ninterface C {}"
+    },
+    "6.7": {
+      "status": "improved",
+      "note": "Real generics: List<T> sort<T, U>(List<T> xs) instead of dynamic /*T*/ comments (E-03)."
+    },
+    "7.1": {
+      "status": "improved",
+      "note": "Enums are abstract classes: a runtime enum object has no JavaScript constructor, so Dart must not allow Color() (E-35)."
+    },
+    "7.2": {
+      "status": "improved",
+      "note": "Uninstantiable abstract class, as 7.1."
+    },
+    "7.3": {
+      "status": "improved",
+      "note": "Uninstantiable abstract class, as 7.1."
+    },
+    "8.1": {
+      "status": "outOfScope",
+      "note": "Needs the module 'y' as a second input; import-equals of an absent module has no package:js meaning."
+    },
+    "8.2": {
+      "status": "outOfScope",
+      "note": "Needs module 'X' as a second input. Star re-exports become export directives (with ambiguity hides) in multi-file runs; covered by test/decl/decl-emitter.test.ts and three.js."
+    },
+    "8.3": {
+      "status": "outOfScope",
+      "note": "Needs module 'X' as a second input. Named re-exports become export ... show directives in multi-file runs."
+    },
+    "8.5": {
+      "status": "differs",
+      "note": "The third colliding top-level x is x_2, dartify's single collision-suffix style (E-29/E-30), where js_facade_gen used x2."
+    },
+    "9.1": {
+      "status": "improved",
+      "note": "The author's alias stays a named typedef (typedef MyNumber = num) instead of being inlined and commented out."
+    },
+    "11.4": {
+      "status": "outOfScope",
+      "note": "A documentation block with no declaration has nothing to attach to."
+    },
+    "12.1": {
+      "status": "improved",
+      "note": "The destructured parameter has a TypeScript default, so it is optional ([dynamic p_d]); js_facade_gen made it required Object."
+    }
+  }
+}

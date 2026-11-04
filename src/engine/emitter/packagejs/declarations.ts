@@ -114,6 +114,14 @@ function docs(node: { jsDoc?: string }, indent = ""): string[] {
 // Parameters
 
 function parameterName(parameter: IRParameter): string {
+  if (parameter.bindingPattern) {
+    // `{p = null, d = false}` → `p_d` (js_facade_gen §12.1).
+    const names = [
+      ...parameter.bindingPattern.text.matchAll(/(?:^|[{,[])\s*(?:\.\.\.)?([A-Za-z_$][\w$]*)/g),
+    ].map((match) => match[1]);
+    const joined = names.join("_").replace(/^_+/, "");
+    if (joined && /^[A-Za-z$][\w$]*$/.test(joined)) return joined;
+  }
   return dartName(parameter);
 }
 
@@ -684,14 +692,9 @@ function computeHeritage(
   const heritage: Heritage = { implementsClauses: [], dropped: [], implemented: [] };
   for (const type of extendsTypes) {
     const target = heritageTarget(type, context);
-    const extendable =
-      target &&
-      isConcreteClass !== undefined &&
-      (target.facet.ir.kind === IRDeclKind.Class ||
-        (target.facet.ir.kind === IRDeclKind.Interface &&
-          (target.facet.ir as IRInterface).constructSignatures.length === 0 &&
-          target.facet.namespace !== "both"));
-    if (extendable && !heritage.extendsClause && target.facet.ir.kind === IRDeclKind.Class) {
+    // Only a class extends, and only a class: an interface inherits through
+    // `implements`, which needs no superclass constructor.
+    if (isConcreteClass && target?.facet.ir.kind === IRDeclKind.Class && !heritage.extendsClause) {
       heritage.extendsClause = emitType(type, context);
     } else if (implementable(type, context) && (!isConcreteClass || target)) {
       heritage.implementsClauses.push(emitType(type, context));
@@ -1090,7 +1093,9 @@ function propertyBag(
   }
   for (const parent of declaration.extends) {
     const target = heritageTarget(parent, context);
-    if (!target || target.facet.ir.kind !== IRDeclKind.Interface) continue;
+    // A host or unresolved parent (`extends Array<T>`) is not an object
+    // literal, so a literal factory would construct the wrong thing (§14.5).
+    if (!target || target.facet.ir.kind !== IRDeclKind.Interface) return undefined;
     const parentIR = target.facet.ir as IRInterface;
     const inherited = propertyBag(
       parentIR,
@@ -1151,7 +1156,8 @@ export function emitInterface(
     sink.body.push(...constructorLines(name, declaration.constructSignatures, scoped.context, false));
   } else {
     const bag = propertyBag(declaration, scoped.context);
-    if (bag) {
+    // An empty interface has nothing to construct (§3.1).
+    if (bag && bag.fields.length + bag.omitted.length > 0) {
       const params = bag.fields.map(
         (field) => `${field.required ? "required " : ""}${field.type} ${field.name}`,
       );
@@ -1268,6 +1274,18 @@ export function emitTypeAlias(facet: SymbolFacet, context: EmitContext): Emitted
         ...docs(declaration),
         `/// A JavaScript union of ${codeSpan(unionDisplay)}; Dart has no union types.`,
         `typedef ${name}${typeParams} = dynamic;`,
+      ],
+      diagnostics: [],
+    };
+  }
+  if (declaration.type.kind === TypeKind.Function) {
+    // A named function typedef keeps parameter names (§5.12).
+    const fn = declaration.type;
+    const fnContext = withTypeParams(inner, fn.typeParams);
+    return {
+      lines: [
+        ...docs(declaration),
+        `typedef ${name}${typeParams} = ${fn.returnType ? emitType(fn.returnType, fnContext) : "void"} Function${emitTypeParams(fn.typeParams, fnContext)}(${formatParameters(fn.parameters ?? [], fnContext)});`,
       ],
       diagnostics: [],
     };

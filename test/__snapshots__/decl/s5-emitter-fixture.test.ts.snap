@@ -82,6 +82,7 @@ abstract class Remote {
 
 @JS("virtual-sdk.connect")
 external Promise<Remote> connect(String url);
+
 // ---------------------------------------------------------------------------
 // Type definitions
 //
@@ -432,6 +433,7 @@ abstract class Anon_withInline_overload_0_param_1_equivalent {
 /// Inline structural types must be hoisted and reused deterministically.
 @JS("withInline")
 external Anon_withInline_overload_0_return withInline(Anon_withInline_overload_0_param_0_options options, Anon_withInline_overload_0_param_1_equivalent equivalent);
+
 // ---------------------------------------------------------------------------
 // Type definitions
 //

@@ -178,7 +178,7 @@ function renderLibrary(input: LibraryInput, index: ProgramIndex): LibraryDraft {
   const emitOne = ({ symbol, facet }: { symbol: Symbol; facet: SymbolFacet }) => {
     let emitted: EmittedDeclaration;
     try {
-      emitted = emitFacet(facet, context);
+      emitted = emitFacet(facet, context, symbol.fqn);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       emitted = {
@@ -193,7 +193,7 @@ function renderLibrary(input: LibraryInput, index: ProgramIndex): LibraryDraft {
       });
     }
     for (const line of emitted.lines) declareTopLevel(plan, line);
-    body.push(...emitted.lines, "");
+    if (emitted.lines.length > 0) body.push(...emitted.lines, "");
     for (const diagnostic of emitted.diagnostics) {
       diagnostics.push({ ...diagnostic, file: input.sourceFile });
     }
@@ -233,8 +233,25 @@ function renderLibrary(input: LibraryInput, index: ProgramIndex): LibraryDraft {
   return { content, diagnostics, publicNames, reExports: directives };
 }
 
-function emitFacet(facet: SymbolFacet, context: EmitContext): EmittedDeclaration {
+function emitFacet(
+  facet: SymbolFacet,
+  context: EmitContext,
+  fqn: string,
+): EmittedDeclaration {
   if (facet.ir.modifiers.isAnonymousDefault) return emitAnonymousDefault(facet);
+  // §5.11: an alias that solely owns an object literal is emitted as the class.
+  if (context.index.isOwningAlias(facet)) return { lines: [], diagnostics: [] };
+  const owner = context.index.aliasOwnerOf(fqn);
+  if (owner) {
+    facet = {
+      ...facet,
+      ir: {
+        ...facet.ir,
+        dartName: owner.ir.dartName ?? owner.ir.name,
+        ...(owner.ir.jsDoc ? { jsDoc: owner.ir.jsDoc } : {}),
+      },
+    };
+  }
   switch (facet.ir.kind) {
     case IRDeclKind.Class:
       return emitClass(facet, context);

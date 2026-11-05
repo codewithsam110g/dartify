@@ -5,3 +5,5 @@ comes up. Once agreed (as proposed or changed), it moves to [decisions.md](decis
 
 Each entry: **HD-NN: title** (the findings it governs). The planner's recommendation, in a few lines; the options, where
 the choice is open.
+
+*None at the moment: HD-02–HD-12 were all agreed at the intake of the `17e8aa9` audits.*

@@ -58,5 +58,16 @@ done, a fresh, clean audit checks the fixes against [findings.md](findings.md).
 
 ## The split
 
-| Brief | Scope |
-|---|---|
+| Brief | Scope | Findings | Decisions | Status |
+|---|---|---|---|---|
+| HG-1 | Toolchain and CI first, so every later fix is tested on the final toolchain | CA-19, CA-20, CA-17, CA-18, VFY-001, VFY-002 | HD-08, HD-12 | Planned |
+| HG-2 | Input boundary and CLI reporting (high: DAR-001) | DAR-001, DAR-002, CA-14, CA-09, CA-08, CA-13, CA-30, DAR-023 | HD-03, HD-04, HD-07 | Planned |
+| HG-3 | Module and export identity (high: DAR-003) | DAR-003, CA-03, CA-06, CA-07 | HD-05, HD-06 | Planned |
+| HG-4 | Type and class fidelity (high: CA-01) | CA-01, DAR-009, DAR-010, DAR-011, DAR-021, DAR-015, CA-16, CA-26, CA-31 | HD-02, HD-11 | Planned |
+| HG-5 | Text and URI legality | CA-32, CA-11, CA-12, DAR-013, T-11 | — | Planned |
+| HG-6 | Name allocation | CA-04, CA-05, DAR-005, DAR-006, DAR-007, DAR-008, CA-25 | — | Planned |
+| HG-7 | Watch state | CA-02, DAR-016, DAR-017, CA-15 | — | Planned |
+| HG-8 | Records, tests and docs; every documented number re-measured last | CA-21, CA-22, CA-23, CA-24, CA-27, CA-28, CA-29 | HD-09, HD-10 | Planned |
+
+Duplicates (`CA-10`, `DAR-004`, `DAR-012`, `DAR-014`, `DAR-018`, `DAR-019`, `DAR-020`, `DAR-022`) close with their twin
+in the same brief. `CA-33` was fixed at D3 adoption. Briefs are written one at a time with `/d3-brief HG-N`.

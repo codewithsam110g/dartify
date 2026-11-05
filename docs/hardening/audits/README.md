@@ -7,8 +7,8 @@ folder outside the history. Findings an audit raises go into the [findings regis
 
 | # | Folder | Commit | Date | What | Outcome |
 |---|---|---|---|---|---|
-| 01 | `01-closing-17e8aa9` | `17e8aa9` | 2026-11 | Closing v1 audit (Claude session), `CA-01`–`CA-31`; verified with the release audit in a fresh session (adds `CA-32`, `CA-33`) | Awaiting `/d3-audit intake` (in `/audit/10-closing-17e8aa9/`) |
-| 02 | `02-release-17e8aa9` | `17e8aa9` | 2026-11 | Independent release audit (Codex session), `DAR-001`–`DAR-023`; the combined verified master report covers both | Awaiting `/d3-audit intake` (in `/audit/10-release-17e8aa9/`, `/audit/11-closing-verification.md`, `/audit/12-MASTER-REPORT.md`) |
+| 01 | [`01-closing-17e8aa9`](01-closing-17e8aa9/README.md) | `17e8aa9` | 2026-11 | Closing v1 audit (Claude session), `CA-01`–`CA-31`; verified with the release audit in a fresh session (adds `CA-32`, `CA-33`) | Imported 2026-11-05: 28 agree, 3 qualified, 1 duplicate, 1 already fixed; VFY-001, VFY-002 — [summary](01-closing-17e8aa9/summary.md) |
+| 02 | [`02-release-17e8aa9`](02-release-17e8aa9/README.md) | `17e8aa9` | 2026-11 | Independent release audit (Codex session), `DAR-001`–`DAR-023`; the combined verified master report covers both | Imported 2026-11-05: 16 agree, 7 duplicates of CA findings — [verification](02-release-17e8aa9/verification.md) |
 | — | — | after the gate | — | Closing audit: the fixes checked against the register | Planned |
 
 ## Each audit folder

@@ -1,0 +1,558 @@
+{
+  "audit": "audit/10-closing-17e8aa9",
+  "commit": "17e8aa932bd42aa9c667f40c2ac8567764799380",
+  "date": "2026-11-04",
+  "idScheme": "CA-NN (closing audit); chosen so it cannot collide with the project's E-/L-/P-/T-/R-/X-/W- registry",
+  "findings": [
+    {
+      "id": "CA-01",
+      "title": "TypeScript `Date` is bound as Dart `DateTime`, which silently produces wrong values under dart2js",
+      "severity": "high",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/engine/emitter/packagejs/types.ts:555-556 (host(), case \"Date\"); commit 17e8aa9 (introduced 6c75f9d)",
+      "violatedIntent": "README 'Correct runtime dispatch'; CLAUDE.md 'Analyzer-clean output is not sufficient evidence for JS dispatch'; design principle 1 (never degrade silently)",
+      "evidence": "host() maps the checker-confirmed lib `Date` to `DateTime`. package:js does not convert a JS Date to a Dart DateTime (or back), and package:js return values are not type-checked. dart2js probe (runner defines globalThis.self as test/e2e does): `now().year` on a returned JS Date prints `NaN`; `yearOf(DateTime.utc(2030))` delivers a non-Date object to JavaScript (`not a Date: object`), whose string result flows into a Dart `num` unchecked. dart analyze reports nothing.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/runtime-date/ (README.md, datelib.d.ts, datelib.js, main.dart, observed.txt)",
+      "falsification": "Checked whether the reference cases or the repo's runtime/e2e probes cover Date (they do not). The first probe run omitted globalThis.self and mis-recorded a harness ReferenceError as a throw; re-run with a correct harness shows silent wrong values instead (correction recorded in observed.txt). The finding stands and is more severe in kind (silent).",
+      "consequence": "Any binding that returns or accepts a Date compiles and analyzes cleanly but yields wrong values (NaN dates, wrong objects passed to JavaScript) without any error. Corpus: 13 occurrences in 5 files, including Leaflet `TileEvent.loaded?: Date` (a gated library).",
+      "remediation": "Lower `Date` to a named, documented interop type (for example a `@JS('Date')` class or a named dynamic typedef) rather than `DateTime`, and add a dart2js runtime probe case for Date in def_files/synthetic/runtime.",
+      "related": [
+        "CA-23"
+      ],
+      "rootCause": "RC-1 host-type mapping chosen without a runtime probe"
+    },
+    {
+      "id": "CA-02",
+      "title": "Watch mode diverges from a cold build when a module file's `declare global` declarations change",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/watch.ts:193-243 (dirty propagation: dependents by import, isScript), src/watch.ts:357-369 (seedFiles); commit 17e8aa9 (cf3de40)",
+      "violatedIntent": "W-01 / CLAUDE.md 'Watch caches must never change output'; watch.ts header 'Its output is identical to a fresh Transpiler.render()'",
+      "evidence": "Only importers of a changed module file, or every file when a *script* file changes, are regenerated and re-linked. A module file's `declare global { interface X }` is visible to files that never import it, so those files keep stale `resolvedFQN`s and stale render-cache entries.",
+      "reproduction": "pnpm exec tsx audit/10-closing-17e8aa9/fixtures/watch-global-move.ts (b.dart differs: cold `import 'c.dart' show Gfoo;` vs watch `typedef Gfoo = dynamic;`; single-file add also differs). fixtures/watch-global-augmentation.ts shows link report valid=1 (cold) vs 2 (watch). Logs: logs/watch-global-*.log",
+      "falsification": "Re-ran the documented differential suite (pnpm test:incremental: 5/5 pass) and two neighbouring scenarios (typeof const and alias change across an import), which do match. Only the non-import global-visibility path diverges.",
+      "consequence": "During a watch session, consumers of globals declared in module files keep degraded or stale bindings (dynamic instead of the real class, or missing imports) until they are edited or the session restarts; -lv link reports are wrong.",
+      "remediation": "Treat files containing `declare global` (or any globally visible declaration) like script files for invalidation, or track dependents through resolved checker targets as well as imports. Add the two scenarios to test/watch-differential.test.ts.",
+      "related": [
+        "CA-07"
+      ],
+      "rootCause": "RC-2 global visibility not modelled across files"
+    },
+    {
+      "id": "CA-03",
+      "title": "Barrel re-exports are silently lost or renamed: import-then-export, `export * as ns`, and `export { A as B }`",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/symbol/exports.ts:110-135; src/engine/emitter/packagejs/index.ts:368-396 (reExports); src/engine/phase/emitterPhase.ts:63-81; commit 17e8aa9",
+      "violatedIntent": "README 'Barrels become libraries'; design principle 1 (never degrade silently)",
+      "evidence": "(a) `import { A } from './a'; export { A };` records a named export with no specifier; linkModuleExports looks for `A` in the barrel file itself, finds nothing, emits no diagnostic, and the barrel library is not emitted. (b) `export * as ns from './a'` is skipped by reExports() and produces no library. (c) `export { A as Renamed } from './a'` emits `export 'a.dart' show A;`, so the public name `Renamed` does not exist in Dart. The CLI prints no emission diagnostic for any of them.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/barrels/*.d.ts; see logs/backend-probes.txt (no reexport-import.dart or nsexport.dart emitted; rename.dart contains `export 'a.dart' show A;`)",
+      "falsification": "Confirmed that `export * from` and `export { A } from` (same name) work, as the docs claim; only the three listed forms fail.",
+      "consequence": "Consumers importing a barrel get missing libraries or different names than the TypeScript API, with exit code 0 and no warning.",
+      "remediation": "Resolve specifier-less named exports through the checker's alias target; emit a typedef or diagnostic for renamed exports (Dart cannot rename on export); emit a MODULE_EXPORT_UNSUPPORTED diagnostic for namespace re-exports.",
+      "related": [
+        "CA-08"
+      ],
+      "rootCause": "RC-3 module-export linking keyed by file-local terminal names"
+    },
+    {
+      "id": "CA-04",
+      "title": "Members named like dart:core `Object` members produce analyzer errors (INVALID_OVERRIDE)",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/engine/semantic/names.ts:294-321 (allocateMemberGroups), src/engine/semantic/keywords.ts:106-128 (legalDartName); commit 17e8aa9",
+      "violatedIntent": "PLAN.md 'The v1 acceptance test': output passes dart analyze with zero errors",
+      "evidence": "Member allocation escapes reserved words only; `toString(base: number)`, `hashCode: string`, `runtimeType: number`, `noSuchMethod(x: number)` are emitted verbatim and conflict with Object's signatures.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/objmembers/objmembers.d.ts -> 5x ERROR INVALID_OVERRIDE (logs/backend-probes.txt)",
+      "falsification": "A compatible override (`toString(precision?: number)`, as in Leaflet's LatLng) is valid Dart and analyzes cleanly; the defect needs a non-optional parameter or an incompatible property type, which valid TypeScript permits (e.g. bignum `toString(base)`).",
+      "consequence": "Libraries declaring such members fail the v1 acceptance criterion with hard analyzer errors.",
+      "remediation": "Treat Object members as reserved in member allocation unless the emitted signature is a valid override: rename to `JS$toString` etc. with `@JS('toString')` through the extension path already used for renamed members.",
+      "related": [
+        "CA-05"
+      ],
+      "rootCause": "RC-4 member identifier legality ignores Dart class-member constraints"
+    },
+    {
+      "id": "CA-05",
+      "title": "A member that shares its enclosing type's name produces analyzer errors",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/engine/semantic/names.ts:294-321; src/engine/emitter/packagejs/declarations.ts (emitProperty/emitMethod); commit 17e8aa9",
+      "violatedIntent": "PLAN.md v1 acceptance test (zero analyzer errors)",
+      "evidence": "`interface Item { Item: number }` and `class Node2 { Node2(): void }` emit members named like the class; Dart reports MEMBER_WITH_CLASS_NAME, INVALID_FACTORY_NAME_NOT_A_CLASS, CONSTRUCTOR_WITH_RETURN_TYPE, DUPLICATE_CONSTRUCTOR.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/selfname/selfname.d.ts (logs/backend-probes.txt)",
+      "falsification": "None of the gated corpora contain this shape (they analyze clean); the defect is real for valid TypeScript input.",
+      "consequence": "Uncompilable library for inputs that use this (rare) pattern.",
+      "remediation": "Reserve the owner's Dart name during member allocation and route the renamed member through the extension with `@JS('<name>')`.",
+      "related": [
+        "CA-04"
+      ],
+      "rootCause": "RC-4 member identifier legality ignores Dart class-member constraints"
+    },
+    {
+      "id": "CA-06",
+      "title": "Ambient external modules bind `@JS(\"<module specifier>.<name>\")`; non-identifier specifiers crash dart2js",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/engine/emitter/packagejs/declarations.ts:90-102 (jsPath, externalModule scope -> scope.specifier); commit 17e8aa9",
+      "violatedIntent": "Design principle 1; README 'Correct runtime dispatch'",
+      "evidence": "`declare module \"@scope/pkg\" { export class Widget ... export function make() }` in a script file emits `@JS(\"@scope/pkg.make\")`. `dart analyze` reports 'No issues found!', but `dart compile js` of a program calling `make()` crashes the compiler ('Internal Error: The compiler crashed ... Error in MiniJsParser'). `--js-root` does not apply (fileIsModule is false) and there is no diagnostic. h3 works only because its specifier `h3` is also its browser global.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/runtime-ambient/{amb_only.dart,observed.txt} (bindings generated from fixtures/backend/ambient/ambient.d.ts)",
+      "falsification": "Checked h3 (specifier equals the global; e2e passes) and module augmentations (suppressed with a diagnostic). Executed dart2js 3.13.7: the compiler crashes on the generated binding, so the failure is confirmed, and it is a build-time crash rather than the runtime failure first predicted.",
+      "consequence": "Analyzer-clean bindings that make dart2js crash for any program using them, for ambient modules named like scoped or slashed npm packages. The v1 acceptance test (dart analyze) passes while the code cannot be compiled.",
+      "remediation": "Emit a diagnostic when a specifier is not a JS identifier path, and allow `--js-root` (or a per-module root option) to supply the global for ambient modules.",
+      "related": [
+        "CA-01"
+      ],
+      "rootCause": "RC-1 runtime binding decisions without a runtime probe"
+    },
+    {
+      "id": "CA-07",
+      "title": "Cross-file global declaration merging is unsupported: partial duplicate classes and `dynamic` use sites",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "intent",
+      "location": "src/symbol/fqn.ts:110-117 (FQN includes file), src/symbol/resolve.ts:215-233 (checker candidates -> ambiguous), src/engine/semantic/merge.ts (per-FQN merge); commit 17e8aa9",
+      "violatedIntent": "CLAUDE.md input contract 'Support ... declaration merging, module/global augmentation'; design principle 1",
+      "evidence": "Two script files each declaring `interface Settings` (TypeScript merges them globally) produce two partial `Settings` classes in two libraries; `configure(settings: Settings)` becomes `configure(Settings_cdbad5 settings)` with `typedef Settings_cdbad5 = dynamic`. The link is ambiguous; the default CLI prints '0 unresolved references' and exits 0.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/globalmerge/part{1,2}.d.ts (logs/backend-probes.txt; -lv shows the ambiguous edge)",
+      "falsification": "Checked STAGE4_PLAN's merge matrix: it is per-FQN and never states that cross-file global merging is unsupported. Same-file merging works.",
+      "consequence": "Common DefinitelyTyped patterns (global interfaces augmented in several files, e.g. Window/JQuery plugins) lose typing and members are split across libraries.",
+      "remediation": "Merge globally visible declarations across files into one canonical symbol (or document the limitation and emit a diagnostic at default verbosity).",
+      "related": [
+        "CA-02",
+        "CA-08"
+      ],
+      "rootCause": "RC-2 global visibility not modelled across files"
+    },
+    {
+      "id": "CA-08",
+      "title": "Default CLI output omits link failures (missing/ambiguous type references)",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "intent",
+      "location": "src/cli.ts:196-227; src/reporting/linker.ts:42-46; commit 17e8aa9",
+      "violatedIntent": "Design principle 1 (never degrade silently); R-02 intent (CLI always prints the unresolved count)",
+      "evidence": "processFiles prints semantic warnings, emission diagnostics and *module* resolution counts. LinkReport.broken is printed only with -l. A run with a broken link prints 'Module resolution: 0 unresolved references' and exits 0.",
+      "reproduction": "pnpm dev -d \"audit/10-closing-17e8aa9/fixtures/backend/globalmerge/*.d.ts\" -o /tmp/x",
+      "falsification": "Degradations are still named and documented inside the generated file, so the output itself is not silent; only the console summary is.",
+      "consequence": "Users and CI scripts see a clean run while some types degraded to dynamic.",
+      "remediation": "Always print the broken-symbol count (and ambiguous edge count) with a pointer to -lv.",
+      "related": [
+        "CA-03",
+        "CA-07"
+      ],
+      "rootCause": "RC-5 console summary covers module resolution only"
+    },
+    {
+      "id": "CA-09",
+      "title": "A bigint literal type with numeric separators (`1_000n`) aborts the whole run",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/engine/parser/type/literals.ts:259-261 and :313-315 (BigInt(raw text)); commit 17e8aa9",
+      "violatedIntent": "Input contract (valid declaration syntax); proportionate failure",
+      "evidence": "BigInt('1_000') throws SyntaxError; the statement fails with STATEMENT_DECLARATION_ERROR and transpile() blocks every write (GENERATION_FAILED). Number('1_000') returns NaN silently for the number case.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/bigintsep/bigintsep.d.ts -> 'Cannot convert 1_000 to a BigInt', exit 1, no files",
+      "falsification": "Not present in the 1,661-file corpus (stress passes), so prevalence is low.",
+      "consequence": "One valid literal prevents output for the whole program.",
+      "remediation": "Strip `_` separators before BigInt()/Number(), or use the checker's literal value.",
+      "related": [],
+      "rootCause": "RC-6 literal values parsed from raw source text (see open T-11)"
+    },
+    {
+      "id": "CA-10",
+      "title": "The CLI/programmatic path does not report TypeScript syntax errors; malformed input yields plausible output and exit 0",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "intent",
+      "location": "src/transpiler.ts:171-222 (analyzeProgram) vs :331-350 (transpileFromString); commit 17e8aa9",
+      "violatedIntent": "transpileFromString comment 'Surface syntax errors rather than silently producing empty output'; design principle 1",
+      "evidence": "Only transpileFromString collects pre-emit diagnostics. `interface Broken { a: string` (missing brace) via the CLI writes broken.dart and exits 0 with no warning.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/cli/broken.d.ts",
+      "falsification": "The TypeScript parser's recovery happened to keep the member here; other malformed inputs can lose declarations without notice.",
+      "consequence": "Typos in hand-written declaration files go unnoticed.",
+      "remediation": "Report syntactic diagnostics of input files in AnalysisReport and print them in the CLI.",
+      "related": [
+        "CA-08"
+      ],
+      "rootCause": "RC-5 console summary coverage"
+    },
+    {
+      "id": "CA-11",
+      "title": "File names containing `'` or `$` produce invalid Dart import/export directives",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/engine/emitter/packagejs/library.ts:211,217 (import '${uri}'); src/engine/emitter/packagejs/index.ts:123-127 (export '${uri}'); commit 17e8aa9",
+      "violatedIntent": "E-32 intent (central Dart-string escaping for every emitted string)",
+      "evidence": "URIs are interpolated raw into single-quoted Dart strings. `my lib.d.ts` importing `./it's` and `./cost$x` yields UNTERMINATED_STRING_LITERAL, URI_WITH_INTERPOLATION and cascade errors.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/filenames/ (logs/backend-probes.txt)",
+      "falsification": "A space in a file name analyzes cleanly; only quote and `$` fail.",
+      "consequence": "Uncompilable output for unusual but legal file names.",
+      "remediation": "Escape or percent-encode URIs (dartString or Uri-encode path segments) for import/export directives.",
+      "related": [],
+      "rootCause": "RC-7 emitted strings outside the central escaper"
+    },
+    {
+      "id": "CA-12",
+      "title": "Private-use characters in source text are interpreted as backend placeholder tokens",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "security",
+      "location": "src/engine/emitter/packagejs/library.ts:18-22,270-272; src/engine/emitter/packagejs/index.ts:106; commit 17e8aa9",
+      "violatedIntent": "Generated output faithfully reflects input; trust boundary between input text and emitter control tokens",
+      "evidence": "Import/support/exports placeholders are U+E000-E004 and U+E010-E011 and are replaced with regexes over the whole library text, including docs and names copied from input. A doc comment containing `\\uE0000\\uE001Foo\\uE002` is rewritten to `Foo`.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/pua/pua.d.ts (logs/backend-probes.txt doc line)",
+      "falsification": "Input needs deliberate private-use characters; in a library with imports the same sequence can add a name to an import's `show` list.",
+      "consequence": "Crafted or corrupted input can alter generated code or documentation; integrity issue, not code execution.",
+      "remediation": "Escape or strip these code points from copied text before emission, or use placeholder tokens that cannot occur in input.",
+      "related": [
+        "CA-11"
+      ],
+      "rootCause": "RC-7 emitted strings outside the central escaper"
+    },
+    {
+      "id": "CA-13",
+      "title": "Link report memoisation misreports symbols inside a reference cycle",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/engine/phase/linkerPhase.ts:238-293 (checkDeps); commit 17e8aa9",
+      "violatedIntent": "LinkReport as the honest link measure (S2, L-08)",
+      "evidence": "When checkDeps re-enters an in-progress node it returns LinkedResolved, and the caller caches that provisional answer. With A -> B, B -> A, A -> Missing, B is reported LinkedResolved although it depends on broken A (order-dependent).",
+      "reproduction": "pnpm exec tsx audit/10-closing-17e8aa9/fixtures/link-cycle-report.ts (logs/link-cycle-report.log)",
+      "falsification": "Emission does not read LinkResult, so generated Dart is unaffected.",
+      "consequence": "-lv reports and the dependency graph (red nodes) under-count broken symbols.",
+      "remediation": "Compute states over strongly connected components, or do not cache provisional results produced while a cycle member is in progress.",
+      "related": [
+        "CA-08"
+      ],
+      "rootCause": "RC-5 reporting accuracy"
+    },
+    {
+      "id": "CA-14",
+      "title": "`.d.mts` / `.d.cts` inputs are silently dropped",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/cli.ts:122 (endsWith('.d.ts')); commit 17e8aa9",
+      "violatedIntent": "Input contract: declaration files",
+      "evidence": "Explicit `-d mod.d.mts` alone exits 1 with 'No .d.ts files found'. Mixed with .d.ts inputs, .d.mts/.d.cts files are filtered without a message.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/cli/mts/",
+      "falsification": "Files reached through imports are still resolved by TypeScript; only explicit inputs are filtered.",
+      "consequence": "Packages that ship only .d.mts/.d.cts entry points cannot be bound directly.",
+      "remediation": "Accept .d.mts/.d.cts (mapping output to .dart) or warn when explicit inputs are skipped.",
+      "related": [],
+      "rootCause": "RC-8 CLI input handling"
+    },
+    {
+      "id": "CA-15",
+      "title": "Watch mode computes its root directory by string prefix, not by path segment",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/cli.ts:256-260; commit 17e8aa9",
+      "violatedIntent": "Watch mode rebuilds whenever an input changes",
+      "evidence": "reduce() keeps `common` while `directory.startsWith(common)`. With inputs in <tmp>/types and <tmp>/types2 the CLI printed 'Watching .../types'; editing types2/b.d.ts caused 0 rebuilds, editing types/a.d.ts caused 1.",
+      "reproduction": "node audit/10-closing-17e8aa9/fixtures/watch-root-prefix.cjs (logs/watch-root-prefix.log)",
+      "falsification": "Executed with a real `dartify -w` process; inputs under a single directory are unaffected.",
+      "consequence": "Some inputs are silently not watched.",
+      "remediation": "Reuse resolvedInputRoot() (segment-wise) from transpiler.ts.",
+      "related": [
+        "CA-02"
+      ],
+      "rootCause": "RC-8 CLI input handling"
+    },
+    {
+      "id": "CA-16",
+      "title": "A class whose constructors are all private/protected gets Dart's implicit public constructor",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/engine/emitter/packagejs/declarations.ts:1031-1036 (emitClass constructor selection); commit 17e8aa9",
+      "violatedIntent": "E-35 intent (no implicit construction of non-constructable runtime types)",
+      "evidence": "inheritedConstructors() filters private constructors; because declaration.constructors is non-empty, no external constructor is written either, so Dart supplies an implicit `Singleton()`. dart2js program calling `Singleton()` compiles and prints 'Singleton() constructed from Dart: JSObject'. Re-run with globalThis.self defined (correct harness): same result.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/runtime-ambient/{priv_only.dart,probe.js,observed.txt}; input fixtures/backend/privatector/privatector.d.ts",
+      "falsification": "Analyzer is clean; dart2js executed and the construction succeeded, which TypeScript forbids.",
+      "consequence": "Dart code can call a constructor TypeScript forbids.",
+      "remediation": "Emit an unreachable private Dart constructor (`external Name._();`) or make the class abstract when no public constructor exists.",
+      "related": [],
+      "rootCause": "RC-4 Dart class-member rules"
+    },
+    {
+      "id": "CA-17",
+      "title": "CI installs Dart `stable` while the analyzer baseline is an exact census for Dart 3.13",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "deployment",
+      "location": ".github/workflows/ci.yml:41-43; test/dart/baseline.json:2; commit 17e8aa9",
+      "violatedIntent": "Reproducible acceptance gate (X-09, S6.2)",
+      "evidence": "baseline.json says 'Dart SDK 3.13'; the gate fails on any changed count or category. setup-dart `sdk: stable` follows new releases. The configuration mismatch is a fact; its impact was not reproduced: `pnpm test:dart` also passes unchanged under Dart 3.14.0-315.3.beta and 3.15.0-106.0.dev.",
+      "reproduction": "PATH=<dart-3.14-beta>/bin:$PATH pnpm test:dart (2/2 pass); same for 3.15 dev",
+      "falsification": "Attempted: the next two SDK lines do not change the census. The risk remains for future lints/deprecations, but nothing is broken today.",
+      "consequence": "A new Dart release (new deprecations or lints) turns CI red without a code change, or changes what the gate certifies.",
+      "remediation": "Pin the SDK in CI to the baseline's version and bump both together.",
+      "related": [
+        "CA-18"
+      ],
+      "rootCause": "RC-9 CI pinning"
+    },
+    {
+      "id": "CA-18",
+      "title": "CI hardening: actions pinned to mutable tags and no explicit `permissions:`",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "security",
+      "location": ".github/workflows/ci.yml (actions/checkout@v4, pnpm/action-setup@v4, actions/setup-node@v4, dart-lang/setup-dart@v1; no permissions block)",
+      "violatedIntent": "Supply-chain best practice",
+      "evidence": "Static read of the workflow.",
+      "reproduction": "Read .github/workflows/ci.yml",
+      "falsification": "The workflow publishes nothing and has no secrets, which limits impact; the token's default scope depends on repository settings (not verifiable from the tree).",
+      "consequence": "A compromised action tag would run with the job's token.",
+      "remediation": "Pin actions by commit SHA and set `permissions: contents: read`.",
+      "related": [
+        "CA-17"
+      ],
+      "rootCause": "RC-9 CI pinning"
+    },
+    {
+      "id": "CA-19",
+      "title": "Lockfile pins dev tooling with critical advisories (Vitest UI arbitrary file read/execute, tinypool RCE gadgets)",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "security",
+      "location": "pnpm-lock.yaml (vitest 3.2.4, tinypool); package.json devDependencies; CLAUDE.md documents `pnpm test:ui`",
+      "violatedIntent": "Dependency risk management",
+      "evidence": "pnpm audit: 53 advisories in the full tree (3 critical, 26 high). Critical: vitest <3.2.6 GHSA-5xrq-8626-4rwp (Vitest UI server, which `pnpm test:ui` starts), tinypool GHSA-5gmw-xhrv-c9v3 / GHSA-85c8-ppgw-ccpr.",
+      "reproduction": "pnpm audit",
+      "falsification": "None ship in the npm package (dev-only); exposure needs the UI server listening or attacker-controlled worker options.",
+      "consequence": "Contributors running the documented UI command expose local files to a malicious web page or network peer while it runs.",
+      "remediation": "Upgrade vitest/@vitest/* to >=3.2.6 (and tinypool) and re-run the gates.",
+      "related": [
+        "CA-20"
+      ],
+      "rootCause": "RC-10 dependency currency"
+    },
+    {
+      "id": "CA-20",
+      "title": "Production transitive glob libraries carry high ReDoS advisories",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "security",
+      "location": "pnpm-lock.yaml: ts-morph > @ts-morph/common > minimatch/@isaacs/brace-expansion, tinyglobby > picomatch; fast-glob > micromatch > picomatch",
+      "violatedIntent": "Dependency risk management",
+      "evidence": "pnpm audit --prod: 9 advisories (6 high, 3 moderate), all ReDoS/DoS or matching errors in glob matching (logs/pnpm-audit-prod.txt).",
+      "reproduction": "pnpm audit --prod",
+      "falsification": "Glob patterns come from the user running the CLI, so the DoS is self-inflicted; the published package ships no lockfile, so npm installs resolve patched versions where ranges allow.",
+      "consequence": "Low for end users; the repository's own CI and dev environment run the pinned vulnerable versions.",
+      "remediation": "Refresh the lockfile (`pnpm update`) and re-run the gates.",
+      "related": [
+        "CA-19"
+      ],
+      "rootCause": "RC-10 dependency currency"
+    },
+    {
+      "id": "CA-21",
+      "title": "Documented gate numbers drifted from measured values",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "intent",
+      "location": "CLAUDE.md (gates paragraph, corpus table), README.md ('1,655-file stress corpus'), PLAN.md S6 row ('bundle 252 KB'), audit/FINDINGS.md post-S5/S6 baseline, test/stress.test.ts:6 ('1,654-file')",
+      "violatedIntent": "CLAUDE.md maintenance contract (re-measure baselines)",
+      "evidence": "Measured at 17e8aa9: def_files has 1,661 tracked .d.ts (1,654 + runtime probe + 6 watch fixtures), stress reports 720/1661 empty (docs: 1,655 and 719); test:s4 54/54 (docs: 53/53); bundle chunk 262.7 KB + cli 15.3 KB + watch 16.1 KB (docs: 252 KB); coverage 90.43% lines (docs: 90.1%).",
+      "reproduction": "logs/gates.txt",
+      "falsification": "All gates pass; only the recorded numbers are stale.",
+      "consequence": "Readers cannot tell a regression from drift; the 'exact' numbers in CLAUDE.md are not exact.",
+      "remediation": "Re-measure and update the numbers in one commit; consider generating them from gate output.",
+      "related": [
+        "CA-22"
+      ],
+      "rootCause": "RC-11 manually maintained metrics"
+    },
+    {
+      "id": "CA-22",
+      "title": "Finding registry integrity: `X-16` is assigned to two different findings; `Where` columns point to deleted files",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "intent",
+      "location": "audit/FINDINGS.md:107 and :183 (two X-16 rows); rows such as E-14, E-19, E-31 citing `emitter/old/*`",
+      "violatedIntent": "CLAUDE.md 'never renumber or delete an ID'; stable IDs referenced by commits",
+      "evidence": "X-16 is the coverage-provider finding (4.16) and also the `.gitignore` Dart-fixture finding. Several FIXED rows still cite `src/engine/emitter/old/...` paths that S5 deleted.",
+      "reproduction": "grep -n 'X-16' audit/FINDINGS.md",
+      "falsification": "Not applicable (documentation fact).",
+      "consequence": "Commit messages and CHANGELOG references to X-16 are ambiguous.",
+      "remediation": "Give the .gitignore finding a new ID (keep X-16 for coverage) and refresh stale locations.",
+      "related": [
+        "CA-21"
+      ],
+      "rootCause": "RC-11 manually maintained registry"
+    },
+    {
+      "id": "CA-23",
+      "title": "Several registered fixes have no regression test, and one snapshot test does not test what it is named for",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "test/** (no case for P-18, E-44's NATIVE_NAME_CONFLICT diagnostic, or a TypeScript `abstract class` for E-20); test/type/type-parser.test.ts ('Functions - Optional Parameter')",
+      "violatedIntent": "Closing-audit requirement: registered fixes are real, tested and complete",
+      "evidence": "Runtime check at 17e8aa9: P-18 drops `this:` from function types, E-20 emits `abstract class Shape`, and E-44 reports NATIVE_NAME_CONFLICT. A search of test/ finds no assertion covering these paths. Additionally, test/type/type-parser.test.ts 'Functions - Optional Parameter' snapshots `(a: string, b: number) => void`, which has no optional parameter, so optional function-type parameters are not covered by that test.",
+      "reproduction": "pnpm exec tsx audit/10-closing-17e8aa9/fixtures/untested-fixes.ts",
+      "falsification": "Snapshots might cover them indirectly: the P-18 and E-44 shapes do not occur in the snapshot inputs; the E-20 TS abstract class does not either.",
+      "consequence": "Regressions in these paths would pass the suite.",
+      "remediation": "Add focused cases to test/decl/decl-emitter.test.ts.",
+      "related": [
+        "CA-01"
+      ],
+      "rootCause": "RC-12 coverage of registered fixes"
+    },
+    {
+      "id": "CA-24",
+      "title": "No upgrade or rollback notes for existing 0.5.0 users",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "deployment",
+      "location": "CHANGELOG.md [1.0.0] section; README.md",
+      "violatedIntent": "Release readiness (S6.10); 'drop-in replacement' positioning",
+      "evidence": "1.0.0 changes the generated API relative to 0.5.0 (for example h3 `Anon_h3_CoordIJ` -> `CoordIJ`, fields -> getter/setter pairs, overload names `f_1`/`f_2`, constructors), but CHANGELOG has no breaking-changes or migration section, and no rollback (dist-tag) note exists.",
+      "reproduction": "Read CHANGELOG.md",
+      "falsification": "CLI flags are backward compatible with 0.5.0 (all old flags still exist).",
+      "consequence": "Users regenerating with 1.0.0 meet unannounced source-level breaks in their Dart code.",
+      "remediation": "Add a 'Breaking changes since 0.5.0' section and a release/rollback checklist (npm dist-tag `next`, deprecate).",
+      "related": [],
+      "rootCause": "RC-13 release documentation"
+    },
+    {
+      "id": "CA-25",
+      "title": "Distinct inline object types can hoist to the same anonymous FQN and be merged into one wrong shape",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/engine/parser/type/typeLiterals.ts (anonymous name from scopeFQN with non-[A-Za-z0-9_] characters stripped and `|` mapped to `_`); src/engine/semantic/merge.ts (same-FQN interface merge); commit 17e8aa9",
+      "violatedIntent": "P-13 / P-14 (anonymous identities must not collide); design principle 1 (never degrade silently)",
+      "evidence": "`interface A { x: { p: string } }` and `interface A$ { x: { q: number } }` both hoist to `Anon_A_property_0_x`, because `$` is stripped. The two facets share one FQN, the semantic pass merges them (merges=1), and both `A.x` and `A$.x` are typed as `{p: String, q: num}` with a factory requiring both. No diagnostic; analyzer-clean.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/anoncollide/anoncollide.d.ts (pnpm dev -d ... -lv shows merges=1 and both references resolving to the same Anon_ FQN)",
+      "falsification": "Equal shapes would be canonicalised legitimately; the probe uses deliberately different shapes. Collisions need owner/scope names differing only in stripped characters (`$`, non-ASCII letters), which valid JavaScript identifiers allow.",
+      "consequence": "Silently wrong member sets and required factory parameters on both types.",
+      "remediation": "Derive the hoisted FQN from an injective encoding of the scope path (escape rather than strip), or append a hash of the raw scope; keep the readable Dart name separate from the FQN key.",
+      "related": [
+        "CA-12"
+      ],
+      "rootCause": "RC-14 lossy name sanitisation used as identity"
+    },
+    {
+      "id": "CA-26",
+      "title": "`this` in a generic class is emitted as the raw type; the rationale in the code is stale",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "intent",
+      "location": "src/engine/parser/type/thisType.ts (docblock: 'type parameters are not emitted yet (E-03) ... Revisit when E-03 lands'); test/type/tier-a.test.ts 'drops type arguments on a generic owner'",
+      "violatedIntent": "E-03 (type parameters emitted, fixed in S5); CLAUDE.md maintenance contract (stale comments)",
+      "evidence": "`class Box<T> { clone(): this }` emits `external Box clone();` (raw `Box`, i.e. `Box<dynamic>`) while the class itself is `class Box<T>`. The comment justifying this refers to E-03 as unfixed, and a unit test locks the behaviour.",
+      "reproduction": "audit/10-closing-17e8aa9/fixtures/backend/thisgeneric/thisgeneric.d.ts",
+      "falsification": "Raw types are analyzer-valid; the cost is lost type arguments, not an error.",
+      "consequence": "Fluent APIs on generic classes lose their element type in Dart.",
+      "remediation": "Emit `Box<T>` using the owner's type parameters, update the docblock and the tier-a expectation.",
+      "related": [
+        "CA-21"
+      ],
+      "rootCause": "RC-11 manually maintained rationale"
+    },
+    {
+      "id": "CA-27",
+      "title": "Watch-latency claims are only partly reproduced (Leaflet edit and three.js core edit)",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "intent",
+      "location": "README.md ('rebuilds take tens of milliseconds'), ROADMAP.md (h3 ~35 ms, Leaflet ≤ 94 ms, three.js ~53 ms), CHANGELOG/PLAN 6.12 ('rebuilds under 100 ms on h3, Leaflet and three.js')",
+      "violatedIntent": "Documented performance claims",
+      "evidence": "`pnpm bench` at 17e8aa9, two runs (the second on an idle container): h3 leaf edit 37.3 / 34.6 ms; Leaflet leaf edit 132.3 / 158.4 ms and core edit 57.4 / 71.4 ms; three.js leaf edit 57.4 / 69.6 ms but core edit (Vector3) 730.9 / 807.7 ms. Every incremental build was verified byte-for-byte by the tool.",
+      "reproduction": "pnpm bench (output saved in logs/bench.txt)",
+      "falsification": "Re-ran on an idle machine to rule out contention: same picture. The three.js core edit is slow by design (shape and heritage changes re-render everything), which the docs do not mention.",
+      "consequence": "Users editing widely inherited types see ~0.7 s rebuilds, not 'under 100 ms'.",
+      "remediation": "State per-edit-kind numbers (leaf vs core) and the full re-render policy in README/ROADMAP; re-measure on a quiet machine.",
+      "related": [
+        "CA-21"
+      ],
+      "rootCause": "RC-11 manually maintained metrics"
+    },
+    {
+      "id": "CA-28",
+      "title": "The e2e oracle script is never executed by the suite",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "test/e2e/e2e.test.ts:1-12,73 (compares with committed main.expected); test/e2e/*/expected.cjs (not referenced by any code)",
+      "violatedIntent": "e2e.test.ts header: main.expected is computed by expected.cjs 'so the oracle never depends on dartify'",
+      "evidence": "No code runs expected.cjs; the test compares dart2js output with the committed main.expected. Running each expected.cjs by hand today reproduces main.expected exactly for h3, three and leaflet.",
+      "reproduction": "cd test/e2e/<lib> && node -e 'globalThis.self=globalThis;require(\"./setup.cjs\");require(\"./expected.cjs\")' | diff - main.expected",
+      "falsification": "Consistent today; the risk is future drift (for example a library upgrade) going unnoticed.",
+      "consequence": "A stale main.expected would make e2e certify outputs the JavaScript library no longer produces.",
+      "remediation": "Have the e2e test run expected.cjs and compare against both main.expected and the Dart output.",
+      "related": [
+        "CA-23"
+      ],
+      "rootCause": "RC-12 test integrity"
+    },
+    {
+      "id": "CA-29",
+      "title": "The platform-type registry has no committed generator or SDK validation script",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "deployment",
+      "location": "src/engine/emitter/packagejs/browserTypes.ts header ('Regenerate rather than hand-edit'); CLAUDE.md:54",
+      "violatedIntent": "CLAUDE.md 'It is generated: regenerate and re-validate rather than hand-edit'",
+      "evidence": "A NUL-safe search of every tracked file finds BROWSER_TYPES only in the table itself, its two consumers, CLAUDE.md, PLAN.md and audit/07-emitter.md. No script produces or validates it against a Dart SDK.",
+      "reproduction": "git ls-files -z | xargs -0 grep -ln 'BROWSER_TYPES\\|dart_libraries_for_browser_types'",
+      "falsification": "The table itself is consistent: 500 entries, no key mapped to two libraries, matching the documented count.",
+      "consequence": "The documented maintenance procedure cannot be followed; SDK upgrades (dart:html deprecations) cannot re-validate the 500 entries reproducibly.",
+      "remediation": "Commit the generator/validator under tools/ and reference it from CLAUDE.md.",
+      "related": [
+        "CA-17"
+      ],
+      "rootCause": "RC-9 reproducible toolchain"
+    },
+    {
+      "id": "CA-30",
+      "title": "The CLI is not invocation-compatible with js_facade_gen, and its semantics-changing flags are silently ignored",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "intent",
+      "location": "src/cli.ts:31-90 (yargs options, `-d` demanded, no positional inputs, no `.strict()`); README.md / ROADMAP.md ('swap the tool, rerun the command')",
+      "violatedIntent": "ROADMAP v1.0.0: 'js_facade_gen users swap the tool, rerun the command, and get strictly better output'; README 'drop-in replacement'",
+      "evidence": "js_facade_gen's documented usage (archived README) is `dart_js_facade_gen <input d.ts>` (stdout) or `dart_js_facade_gen --destination=<dir> --base-path=<dir> <files...>`, plus --skip-formatting, --generate-html, --rename-conflicting-types, --explicit-static, --trust-js-types. `dart_bindgen` rejects both invocation forms ('Missing required argument: def-files', exit 1) and has no stdout mode. With `-d/-o`, all five reference flags are accepted and silently ignored (exit 0, no warning), although several change js_facade_gen's output semantics.",
+      "reproduction": "node dist/cli.js --destination=out --base-path=def_files/h3 def_files/h3/h3.d.ts; node dist/cli.js def_files/h3/h3.d.ts; node dist/cli.js -d def_files/h3/h3.d.ts -o out --trust-js-types --generate-html --explicit-static",
+      "falsification": "Output-level drop-in is demonstrated (h3 golden 63/63, conformance ledger); only the command line differs. The CLI's own flags remain backward compatible with dartify 0.5.0.",
+      "consequence": "Existing build scripts must be rewritten; users relying on --trust-js-types or --generate-html get different output with no warning.",
+      "remediation": "Document a flag mapping in README; warn on (or reject with yargs `.strict()`) unknown flags; optionally accept positional inputs and `--destination`/`--base-path` aliases.",
+      "related": [
+        "CA-24"
+      ],
+      "rootCause": "RC-13 release documentation"
+    },
+    {
+      "id": "CA-31",
+      "title": "Construct signatures on type-only interfaces are dropped without a diagnostic (and the class is marked `@anonymous`)",
+      "severity": "low",
+      "confidence": "confirmed",
+      "category": "implementation",
+      "location": "src/engine/emitter/packagejs/declarations.ts:1297-1313 (emitInterface: construct signatures emitted only when facet.namespace === 'both'; propertyBag() returns undefined when constructSignatures exist); test/__snapshots__/smoke.test.ts.snap (probe `Constructable`) and s5-emitter-fixture snapshot (`Registry`) lock the behaviour",
+      "violatedIntent": "Design principle 1 (never degrade silently); E-35 policy 'only explicit construct signatures produce factories'",
+      "evidence": "`interface Constructable { new (n: number): Box<number> }` emits `@JS() @anonymous abstract class Constructable {}`; `Registry`'s `new (value: T): Registry<T>` is likewise absent. No EmitDiagnostic, comment or typedef records the loss, and `@anonymous` declares an object literal although the runtime value is a constructor function.",
+      "reproduction": "Read test/__snapshots__/smoke.test.ts.snap (probe.d.ts section) or run pnpm dev -d def_files/synthetic/probe.d.ts",
+      "falsification": "A value-backed constructor (`declare var X: { new(): X }`) is merged and emitted correctly (Widget in the S5 fixture); only type-only constructor interfaces are affected. The output analyzes cleanly.",
+      "consequence": "Dart users cannot construct through such values and are not told why; `XConstructor`-style typings degrade to empty classes.",
+      "remediation": "Emit a documented named degradation (or a comment plus a CONSTRUCT_SIGNATURE_DROPPED diagnostic), and do not mark constructor-shaped interfaces `@anonymous`.",
+      "related": [
+        "CA-23"
+      ],
+      "rootCause": "RC-12 snapshot-locked behaviour"
+    }
+  ]
+}

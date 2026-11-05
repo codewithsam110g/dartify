@@ -20,13 +20,9 @@ export default defineConfig({
     // Update snapshots with --update flag
     // Run: npm test -- --update or vitest --update
 
-    // Parallel execution for faster testing
+    // Parallel execution for faster testing. Vitest 4 removed `poolOptions`;
+    // workers are parallel by default, so only the pool kind stays.
     pool: "threads",
-    poolOptions: {
-      threads: {
-        singleThread: false,
-      },
-    },
 
     // Test timeout for large files
     testTimeout: 30000,

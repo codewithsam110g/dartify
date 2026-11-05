@@ -15,7 +15,8 @@ import {
   formatSemanticWarning,
   formatVerboseLinkReport,
 } from "./reporting/linker";
-import pkg from "../package.json";
+// Named import so the bundler keeps only `version`, not scripts/devDependencies.
+import { version } from "../package.json";
 
 interface CliOptions {
   defFiles: string[];
@@ -86,7 +87,7 @@ const argv = yargs(hideBin(process.argv))
   .example('dart_bindgen -d "types/**/*.d.ts" -o ./generated -w', "Watch and rebuild on change")
   .help()
   .alias("help", "h")
-  .version(pkg.version)
+  .version(version)
   .parseSync() as CliOptions;
 
 async function main(options: CliOptions): Promise<void> {

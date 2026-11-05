@@ -70,7 +70,7 @@ deprecation info.
 
 ## Getting started
 
-**Prerequisites:** Node.js `^20.19.0 || ^22.12.0 || >=23`.
+**Prerequisites:** Node.js `^22.12.0 || >=24`.
 
 ```bash
 npm install -g dart_bindgen

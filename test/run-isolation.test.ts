@@ -48,7 +48,10 @@ describe("4.11 run-owned pipeline state", () => {
       expect(result.content).toContain(own);
       expect(result.content).not.toContain(other);
     });
-  });
+    // 20 concurrent runs share one event loop, and coverage instrumentation on
+    // a 4-CPU CI runner measured 32.8 s against the 30 s global testTimeout.
+    // The explicit budget is ~3.5x that; the work is not reduced.
+  }, 120_000);
 
   test("overlapping analyze/render/transpile calls on one instance are independent", async () => {
     await withFiles(

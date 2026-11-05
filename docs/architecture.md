@@ -89,8 +89,8 @@ libraries whose fingerprints changed; the contract is differential (D-16).
 | Dependency | Used for | Why this one | Decision |
 |---|---|---|---|
 | `ts-morph` (≥ 28) | Parsing and the type checker | AST + checker in one; ≥ 28 ships the tuple `OptionalTypeNode` fix the author filed upstream (`T-10`) | D-28 |
-| `yargs` 18 | CLI | Sets the Node floor | D-28 |
-| `tsup` | ESM bundle for Node 20 | | D-28 |
+| `yargs` 18 | CLI | Its own Node floor is lower than ours; ours is set by D-32 | D-28, D-32 |
+| `tsup` | ESM bundle for Node 22 | | D-28 |
 | `vitest` | All test tiers | | |
 | Dart SDK 3.13 + `package:js` 0.6.7 | Analyzer census and dart2js probes (test-only) | The baseline SDK | D-14, D-22 |
 | `@viz-js/viz` | `tools/graph.ts` only (dev) | | D-13 |

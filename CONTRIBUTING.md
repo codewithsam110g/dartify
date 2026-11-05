@@ -26,8 +26,8 @@ output concerns into parsing or linking: a backend consumes the owned
 
 ## Development
 
-Use Node `^20.19.0 || ^22.12.0 || >=23` (the floor set by `yargs@18`, declared
-in `engines`) and the pinned pnpm 10 toolchain:
+Use Node `^22.12.0 || >=24` (the floor is set by D-32 and declared in
+`engines`; `yargs@18`'s own floor is lower) and the pinned pnpm 10 toolchain:
 
 ```sh
 pnpm install

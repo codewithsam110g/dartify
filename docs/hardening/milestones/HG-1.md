@@ -64,3 +64,5 @@ direct dependency. No change to the production dependency ranges in `package.jso
 7. `pnpm test:stress` passes once at the end (1,655 files), since the toolchain under it changed.
 
 ## History
+
+- fix1 (2026-11-05): vitest 5.1.0 declares no Node 20 support while `engines` and CI promised Node ≥ 20.19. The user chose to drop Node 20 (**D-32**) and keep vitest 5. Follow-up to the same implementer: `engines`, CI matrix (22.12.0 / 24.x / 26.x), tsup target, Node-version mentions in README/CONTRIBUTING/architecture, and code comments citing finding IDs replaced by decision IDs or plain reasons (decisions.md rule).

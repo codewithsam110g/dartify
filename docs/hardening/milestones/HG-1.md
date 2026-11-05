@@ -1,6 +1,6 @@
 # HG-1 brief: toolchain and CI
 
-**Status:** Approved
+**Status:** Done (2026-11-05, merged into `refactor/orchestration`, `838c4e5`)
 **Implementer:** a fresh `implementer` (Sonnet 5.5, high)
 **Branch:** `hg-1`, in a worktree the planner creates from `refactor/orchestration`.
 **Decisions:** D-14, D-28, **HD-08**, **HD-12**.
@@ -66,3 +66,4 @@ direct dependency. No change to the production dependency ranges in `package.jso
 ## History
 
 - fix1 (2026-11-05): vitest 5.1.0 declares no Node 20 support while `engines` and CI promised Node ≥ 20.19. The user chose to drop Node 20 (**D-32**) and keep vitest 5. Follow-up to the same implementer: `engines`, CI matrix (22.12.0 / 24.x / 26.x), tsup target, Node-version mentions in README/CONTRIBUTING/architecture, and code comments citing finding IDs replaced by decision IDs or plain reasons (decisions.md rule).
+- Merged 2026-11-05 (`838c4e5`). Gate rerun by the planner: `pnpm test` 299/10, S2 2/2, S3 1/1, S4 54/54, S5 3/3, Dart 2/2, incremental 5/5, e2e 3/3, coverage 299/10 with the default timeout (90.23 % lines), no snapshot change; default suite also 299/10 on Node 22.12.0 and 26.13.0 (implementer). Not verified: hosted CI (incl. `26.x` resolution). Proposals not taken: Dependabot/Renovate, a printed stress file count.

@@ -7,6 +7,25 @@ All notable changes to this project will be documented in this file.
 The drop-in replacement for the archived `js_facade_gen`, targeting
 `package:js`. Every gate below is measured on this repository's corpora.
 
+### Breaking
+
+- Requires Node `^22.12.0 || >=24` (`engines.node`); Node 20, past its
+  end-of-life, is no longer supported. `0.5.0` declared no `engines` (D-32).
+
+### Hardening (HG)
+
+- Dev toolchain: vitest, `@vitest/ui` and `@vitest/coverage-v8` 5.1.0 with
+  vite 7.3.7; clears the 3 critical and 26 high advisories in dev tooling
+  (`CA-19`). The production dependency tree has no critical or high
+  advisories (`CA-20`); one moderate `minimatch` advisory remains, see
+  `docs/hardening/findings.md`.
+- CI: Dart SDK pinned to 3.13.7 together with the analyzer baseline
+  (`CA-17`); actions pinned to commit SHAs with a read-only token (`CA-18`);
+  Node matrix 22.12.0 / 24.x / 26.x.
+- The shipped bundle no longer embeds `package.json`'s scripts and dev
+  dependencies (`VFY-002`); the run-isolation test has a coverage-safe
+  timeout (`VFY-001`).
+
 ### package:js backend (S5)
 
 - New `Backend` seam (`src/engine/emitter/backend.ts`) consuming the owned

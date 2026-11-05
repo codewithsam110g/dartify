@@ -31,10 +31,10 @@ each row.
 | `CA-14` | `.d.mts` / `.d.cts` inputs are silently dropped | low | Agree | R | HD-04 | HG-2 | Open |
 | `CA-15` | Watch mode computes its root directory by string prefix, not by path segment | low→medium | Agree | R | — | HG-7 | Open |
 | `CA-16` | A class whose constructors are all private/protected gets Dart's implicit public constructor | low→medium | Agree | R | — | HG-4 | Open |
-| `CA-17` | CI installs Dart `stable` while the analyzer baseline is an exact census for Dart 3.13 | low | Qualified | T | HD-08 | HG-1 | Open |
-| `CA-18` | CI hardening: actions pinned to mutable tags and no explicit `permissions:` | low | Agree | T | — | HG-1 | Open |
-| `CA-19` | Lockfile pins dev tooling with critical advisories (Vitest UI arbitrary file read/execute, tinypool RCE gadgets) | medium | Agree | T | HD-12 | HG-1 | Open |
-| `CA-20` | Production transitive glob libraries carry high ReDoS advisories | low | Agree | A | HD-12 | HG-1 | Open |
+| `CA-17` | CI installs Dart `stable` while the analyzer baseline is an exact census for Dart 3.13 | low | Qualified | T | HD-08 | HG-1 | Fixed (HG-1) |
+| `CA-18` | CI hardening: actions pinned to mutable tags and no explicit `permissions:` | low | Agree | T | — | HG-1 | Fixed (HG-1) |
+| `CA-19` | Lockfile pins dev tooling with critical advisories (Vitest UI arbitrary file read/execute, tinypool RCE gadgets) | medium | Agree | T | HD-12 | HG-1 | Fixed (HG-1) |
+| `CA-20` | Production transitive glob libraries carry high ReDoS advisories | low | Agree | A | HD-12 | HG-1 | Fixed (HG-1): 0 critical/high; 1 moderate remains (`minimatch` GHSA-g3hv-75wg-m249 via `ts-morph > @ts-morph/common`, patched only in 11.x while the dependent declares `^10`; reach A, input globs only; recorded per HD-12, revisit when ts-morph widens the range) |
 | `CA-21` | Documented gate numbers drifted from measured values | low | Agree | D | — | HG-8 | Open |
 | `CA-22` | Finding registry integrity: `X-16` is assigned to two different findings; `Where` columns point to deleted files | low | Qualified | D | — | HG-8 | Open |
 | `CA-23` | Several registered fixes work but have no regression test. Mutation re-run: reverting P-18 or E-20 fails the normal suite (conformance `type_aliases`/2.5, Leaflet smoke); only E-44's diagnostic and the misnamed optional-parameter test are uncovered | low | Qualified | T | — | HG-8 | Open |
@@ -72,7 +72,7 @@ each row.
 | `DAR-022` | Carriage-return-only JSDoc escapes the generated Dart comment | medium | Duplicate | M | — | HG-5 | Duplicate of CA-32 |
 | `DAR-023` | Watch CLI suppresses diagnostic warnings that one-shot mode reports | medium | Agree | R | — | HG-2 | Open |
 | `T-11` | String literal values are unquoted but not unescaped (`type/literals.ts:43`); same class as DAR-013 | low | Agree (inspection) | R | — | HG-5 | Open |
-| `VFY-001` | The run-isolation test has no explicit timeout and fails under coverage instrumentation (32.8 s vs 30 s) | low | Agree | T | — | HG-1 | Open |
-| `VFY-002` | The CLI bundle inlines all of `package.json` (scripts, devDependencies) to read `version` | low | Agree | R | — | HG-1 | Open |
+| `VFY-001` | The run-isolation test has no explicit timeout and fails under coverage instrumentation (32.8 s vs 30 s) | low | Agree | T | — | HG-1 | Fixed (HG-1) |
+| `VFY-002` | The CLI bundle inlines all of `package.json` (scripts, devDependencies) to read `version` | low | Agree | R | — | HG-1 | Fixed (HG-1) |
 
-**Counts:** 59 rows = 48 distinct defects (3 high, 26 medium, 19 low) + 8 duplicates + `T-11` + 2 VFY. Open: 50 · Fixed: 1 (`CA-33`) · Duplicate: 8 (`CA-10` and seven `DAR`); each duplicate closes with its twin.
+**Counts:** 59 rows = 48 distinct defects (3 high, 26 medium, 19 low) + 8 duplicates + `T-11` + 2 VFY. Open: 44 · Fixed: 7 (`CA-33`; HG-1: `CA-17`–`CA-20`, `VFY-001`, `VFY-002`) · Duplicate: 8 (`CA-10` and seven `DAR`); each duplicate closes with its twin.

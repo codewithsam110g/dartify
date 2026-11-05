@@ -1,1 +1,0 @@
-import {A} from './ab';export declare const a:A;

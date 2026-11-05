@@ -1,1 +1,0 @@
-export declare function check(x:unknown):x is string;

@@ -1,2 +1,0 @@
-ERROR|SYNTACTIC_ERROR|EXPECTED_IDENTIFIER_BUT_GOT_KEYWORD|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/destructuring/dart/probe.dart|23|54|6|'switch' can't be used as an identifier because it's a keyword.
-ERROR|COMPILE_TIME_ERROR|DUPLICATE_DEFINITION|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/destructuring/dart/probe.dart|36|58|3|The name 'p_d' is already defined.

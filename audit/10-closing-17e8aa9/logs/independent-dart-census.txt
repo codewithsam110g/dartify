@@ -1,3 +1,0 @@
-      2 leaflet INFO DEPRECATED_MEMBER_USE
-     37 three INFO DEPRECATED_MEMBER_USE
-dart files analyzed: 424

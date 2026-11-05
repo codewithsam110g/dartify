@@ -1,1 +1,0 @@
-export declare class Base {foo():void} export declare class Child extends Base {static foo():void} export declare function Child_foo():void;

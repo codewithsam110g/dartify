@@ -1,3 +1,0 @@
-# pnpm test:dart under newer Dart SDKs (CA-17 falsification)
-3.14.0-315.3.beta: Tests 2 passed (2)
-3.15.0-106.0.dev:  Tests 2 passed (2)

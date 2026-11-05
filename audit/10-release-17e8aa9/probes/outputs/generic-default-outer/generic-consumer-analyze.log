@@ -1,1 +1,0 @@
-ERROR|COMPILE_TIME_ERROR|ARGUMENT_TYPE_NOT_ASSIGNABLE|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/outputs/generic-default-outer/generic-consumer.dart|1|46|32|The argument type 'Pair<String, String>' can't be assigned to the parameter type 'Pair<String, num>'. 

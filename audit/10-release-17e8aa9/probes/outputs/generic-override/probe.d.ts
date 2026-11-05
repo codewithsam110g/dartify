@@ -1,1 +1,0 @@
-export declare class Base { f(x:number,y:string):number; } export declare class Mid extends Base { f(x:number):number; } export declare class Child extends Mid { f():number; }

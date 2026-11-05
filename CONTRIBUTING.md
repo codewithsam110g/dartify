@@ -6,15 +6,20 @@ linking, and emission. The obsolete five-pass implementation was deleted in S4.
 
 ## Start Here
 
-Read `AGENTS.md` for repository conventions, then use these project records:
+Read `AGENTS.md` and `docs/process.md` (guardrails, coding style, the merge
+gate) for repository conventions, then use these project records:
 
-- `PLAN.md` — canonical S0-S6 implementation sequence.
-- `STAGE4_PLAN.md` — implemented semantic contract and acceptance plan.
-- `ROADMAP.md` — concise public direction.
-- `audit/FINDINGS.md` — stable finding IDs and current status.
+- `docs/README.md` — the project documentation index (the repository follows
+  docs-driven development: `docs/` is authoritative).
+- `docs/decisions.md` — the decisions every change must respect.
+- `docs/roadmap.md` — milestone status; `ROADMAP.md` — concise public direction.
+- `docs/hardening/findings.md` — open defects with stable IDs;
+  `docs/hardening/stage-register/FINDINGS.md` — the full historical register.
+- `docs/milestones/S4-semantic-layer.md` — the semantic contract.
 - `def_files/js_facade_gen_test_cases.md` — reference-tool behavior.
 
-S0–S5 and S6.1–S6.8 are complete; the `package:js` backend lives in
+S0–S6 are complete and the hardening gate before `1.0.0` is next
+(`docs/roadmap.md`); the `package:js` backend lives in
 `src/engine/emitter/packagejs/` behind the `Backend` seam. Do not reintroduce
 output concerns into parsing or linking: a backend consumes the owned
 `LinkedProgram` and nothing else.
@@ -49,7 +54,8 @@ changes status.
 - Keep compilation state run-owned. Do not add process-global phase state or a
   broad mutable context/service locator; pass narrow dependencies explicitly.
 - Add focused semantic assertions and inspect generated Dart diffs.
-- Update the finding's area file and `audit/FINDINGS.md` in the same commit.
+- Update the finding's row in `docs/hardening/findings.md` (and, for a pre-D3 ID,
+  `docs/hardening/stage-register/FINDINGS.md` and its area file) in the same commit.
 - Never renumber finding IDs.
 - Use scoped Conventional Commits such as `fix(P-13): ...` or
   `feat(linker): ...`, with validation recorded in the body.

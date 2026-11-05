@@ -1,12 +1,14 @@
 # Roadmap
 
-**The next release is `1.0.0`, and the code for it is complete on
-`refactor/orchestration`.** Publishing it is the remaining step (PLAN.md
-S6.9–S6.10).
+**The next release is `1.0.0`.** Its features are complete on
+`refactor/orchestration`. Before it is published, a hardening pass fixes the
+defects that two independent v1 release audits found (48 verified: 3 high,
+26 medium, 19 low) outside the gated corpora.
 
-The engineering detail lives in [`PLAN.md`](PLAN.md); the defect inventory it
-is sequenced from lives in [`audit/`](audit/README.md). This file is the short
-version.
+The engineering detail lives in [`docs/`](docs/README.md): milestone status in
+[`docs/roadmap.md`](docs/roadmap.md), decisions in
+[`docs/decisions.md`](docs/decisions.md), and the defect register in
+[`docs/hardening/`](docs/hardening/README.md). This file is the short version.
 
 ---
 
@@ -43,6 +45,16 @@ Measured results:
 | watch | rebuild after an edit: h3 ~35 ms, Leaflet ≤ 94 ms, three.js ~53 ms |
 
 ---
+
+## Before v1.0.0 — hardening
+
+The gated corpora (h3, Leaflet, all 420 three.js libraries) are analyzer-clean
+and pass the end-to-end suite, but targeted probing found defects elsewhere:
+`Date` bound as `DateTime`, default and `export =` exports dispatching to the
+wrong JavaScript property, malformed input producing "successful" output, lost
+re-exports, watch-mode divergence, and name-legality and generic-fidelity
+errors. Every one is fixed, or explicitly accepted as a known issue, before the
+publish.
 
 ## v1.0.0 — the drop-in replacement
 

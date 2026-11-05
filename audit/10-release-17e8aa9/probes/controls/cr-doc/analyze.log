@@ -1,3 +1,0 @@
-ERROR|SYNTACTIC_ERROR|EXPECTED_EXECUTABLE|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/controls/cr-doc/dart/probe.dart|9|18|1|Expected a method, getter, setter or operator declaration.
-ERROR|SYNTACTIC_ERROR|EXPECTED_TOKEN|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/controls/cr-doc/dart/probe.dart|9|20|4|Expected to find ';'.
-ERROR|SYNTACTIC_ERROR|MISSING_CONST_FINAL_VAR_OR_TYPE|/Users/ssrk/Projects/dartify/audit/10-release-17e8aa9/probes/controls/cr-doc/dart/probe.dart|9|20|4|Variables must be declared using the keywords 'const', 'final', 'var' or a type name.

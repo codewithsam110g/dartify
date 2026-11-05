@@ -1,1 +1,0 @@
-export declare function date():Date; export declare function takeDate(d:Date):string;

@@ -1,1 +1,0 @@
-function named(x:number){return x+1;} export = named;

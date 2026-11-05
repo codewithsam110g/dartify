@@ -1,1 +1,0 @@
-export declare class Base<T> {constructor(value:T); value:T} export declare class Child extends Base<string> {}

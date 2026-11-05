@@ -1,1 +1,0 @@
-export type Maybe<T> = T | null; export declare function accept(x: Maybe<string>): Maybe<number>; export interface Box<T,U=T> { first:T; second:U; } export declare const box:Box<string>; export interface Raw<T=string>{value:T} export declare const raw:Raw;

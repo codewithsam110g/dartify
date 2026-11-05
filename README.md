@@ -142,8 +142,9 @@ pnpm graph -d "def_files/leaflet/*.d.ts" -o graph.svg   # dependency graph; red 
 pnpm ir -d "def_files/h3/h3.d.ts" -o h3.ir.json          # the linked IR as JSON
 ```
 
-See [`ROADMAP.md`](ROADMAP.md) for direction, [`PLAN.md`](PLAN.md) for the
-staged plan, and [`audit/FINDINGS.md`](audit/FINDINGS.md) for every known
+See [`ROADMAP.md`](ROADMAP.md) for direction, [`docs/`](docs/README.md) for the
+design, decisions and milestone status, and
+[`docs/hardening/findings.md`](docs/hardening/findings.md) for every known
 defect with a stable ID. Bug reports and pull requests are welcome:
 
 *   [Create a Bug Report or Issue](https://github.com/codewithsam110g/dartify/issues/new)

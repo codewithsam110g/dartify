@@ -1,8 +1,0 @@
-cache/
-home/
-tmp/
-work/
-**/node_modules/
-**/.dart_tool/
-**/__pycache__/
-.DS_Store

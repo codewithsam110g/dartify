@@ -1,5 +1,0 @@
-Initial build: 2 libraries, rebuilt 2 source file(s), wrote 2 — 565.5 ms
-Watching ../../..<tmp>/types for changes (Ctrl+C to stop)
-Rebuilt (../../..<tmp>/types/a.d.ts): 2 libraries, rebuilt 1 source file(s), wrote 1 — 43.2 ms
-rebuilds after editing types2/b.d.ts: 0
-rebuilds after editing types/a.d.ts:  1

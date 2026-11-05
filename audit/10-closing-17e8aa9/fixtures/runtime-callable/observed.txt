@@ -1,7 +1,0 @@
-# Falsification record (no finding): js_facade_gen §3.8 callable interface with members.
-# Suspicion: `external num call(num step)` would hit Function.prototype.call.
-# dart2js 3.13.7, runner with globalThis.self = globalThis:
-counter.call(5) = 5; total = 5
-counter(7) = 12; total = 12
-# Matches JavaScript (expected.txt). dart2js dispatches `call` on interop
-# objects as a function invocation. Suspicion falsified.

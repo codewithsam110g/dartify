@@ -1,1 +1,0 @@
-export declare function f(args1: number, ...args: number[]):number;

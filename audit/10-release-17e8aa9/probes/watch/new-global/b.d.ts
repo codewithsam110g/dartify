@@ -1,1 +1,0 @@
-interface Missing {x:number}

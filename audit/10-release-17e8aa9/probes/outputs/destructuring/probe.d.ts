@@ -1,1 +1,0 @@
-export declare function one({switch:s}: {switch:number}, p_d:number):number; export declare function two({p,d}: {p:number,d:number},p_d:number):number;

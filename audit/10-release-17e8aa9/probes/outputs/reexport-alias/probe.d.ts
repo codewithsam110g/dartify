@@ -1,1 +1,0 @@
-export {A as B} from './a';

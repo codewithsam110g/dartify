@@ -1,8 +1,0 @@
-Resolving dependencies...
-Downloading packages...
-+ js 0.6.7 (discontinued)
-+ meta 1.19.0
-Changed 2 dependencies!
-1 package is discontinued.
-1 package has newer versions incompatible with dependency constraints.
-Try `dart pub outdated` for more information.

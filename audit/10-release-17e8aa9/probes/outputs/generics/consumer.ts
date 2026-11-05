@@ -1,1 +1,0 @@
-import {accept} from "./probe"; accept(42);

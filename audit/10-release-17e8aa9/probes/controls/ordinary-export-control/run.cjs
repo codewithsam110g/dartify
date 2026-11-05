@@ -1,1 +1,0 @@
-globalThis.self=globalThis;globalThis.Root={named:x=>x+1};require("./out.js");

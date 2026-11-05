@@ -4,7 +4,7 @@ import { Transpiler } from "../../src/transpiler";
 import { normalizeDart } from "./normalize";
 
 /**
- * The real-consumer gate (PLAN.md S6.1): the js_facade_gen output that ships
+ * The real-consumer gate (D-15): the js_facade_gen output that ships
  * in the h3 Dart package. Every declaration it contains must normalize
  * identically from dartify's h3 bindings — drop-in replacement, demonstrated.
  * dartify's own additions (newer h3-js APIs, named degradations, dartdoc) are

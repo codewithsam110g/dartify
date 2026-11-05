@@ -1,1 +1,0 @@
-// JavaScript itself: counter(5) === 5, then counter(7) === 12.

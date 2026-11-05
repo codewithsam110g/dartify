@@ -1,1 +1,0 @@
-valid.d.ts

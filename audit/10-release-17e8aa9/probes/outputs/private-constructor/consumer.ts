@@ -1,1 +1,0 @@
-import {Private} from "./probe"; new Private();

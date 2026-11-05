@@ -1,5 +1,5 @@
 {
-  "comment": "Exact categorized `dart analyze` result per fixture set (Dart SDK 3.13, package:js 0.6.7). Every non-empty entry is the accepted `dart:html`/`dart:svg` deprecation info: v1 deliberately targets package:js and dart:html (see PLAN.md, Product direction). Any new category or count change fails `pnpm test:dart`.",
+  "comment": "Exact categorized `dart analyze` result per fixture set (Dart SDK 3.13, package:js 0.6.7). Every non-empty entry is the accepted `dart:html`/`dart:svg` deprecation info: v1 deliberately targets package:js and dart:html (see docs/decisions.md D-05). Any new category or count change fails `pnpm test:dart`.",
   "sets": {
     "h3": {},
     "leaflet": {

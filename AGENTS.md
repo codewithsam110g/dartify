@@ -1,41 +1,41 @@
 # Repository Guidelines
 
-## Project Structure & Architecture
+`dartify` (published as `dart_bindgen`) converts TypeScript `.d.ts` files into Dart `package:js` bindings. Its live
+pipeline is `src/cli.ts` → `src/transpiler.ts` → symbol generation, semantic linking and emission in
+`src/engine/phase/`; the `package:js` backend lives in `src/engine/emitter/packagejs/` behind the `Backend` seam in
+`src/engine/emitter/backend.ts`.
 
-`dartify` (published as `dart_bindgen`) converts TypeScript `.d.ts` files into Dart `package:js` bindings. Its live pipeline is `src/cli.ts` → `src/transpiler.ts` → symbol generation, linker, and emission in `src/engine/phase/`. Parsers live in `src/engine/parser/`; models and resolution live in `src/ir/`, `src/symbol/`, and `src/resolution/`.
+## Source of truth
 
-Stage 4 is complete in the live semantic layer under `src/engine/semantic/`; `STAGE4_PLAN.md` records its model and `audit/S4-EVIDENCE.md` records acceptance. Stage 5's `package:js` backend lives in `src/engine/emitter/packagejs/` behind the `Backend` seam in `src/engine/emitter/backend.ts`.
+This repository follows **D3** (docs-driven development). `docs/` is authoritative and the only shared state:
 
-Tests are grouped in `test/type/`, `test/decl/`, `test/linker/`, `test/conformance/` (js_facade_gen cases and the h3 golden) and `test/dart/` (the opt-in Dart gate); snapshots belong in `test/__snapshots__/`. `def_files/` contains third-party and synthetic fixtures; do not edit third-party data. Keep `tools/graph.ts` and `tools/ir.ts` outside the shipped pipeline. `docs/history/legacy/` is a deliberate historical exhibit and should not be casually cleaned up.
+- `docs/README.md` — index; `docs/architecture.md` — components, flow, invariants;
+- `docs/decisions.md` — the decision list (`D-NN`); don't contradict a decision, propose a superseding one;
+- `docs/process.md` — roles, guardrails (including coding style and testing conventions), the merge gate and test
+  tiers; `docs/roadmap.md` — status;
+- `docs/hardening/` — the hardening gate: findings register, `HD-NN` decisions, `HG-N` briefs, imported audits.
+  `docs/hardening/stage-register/` is the pre-D3 per-area audit; its `D-nn` / `I-nn` are **finding** IDs, not
+  decisions or issues (D-17).
 
-## Build, Test, and Development Commands
+`CLAUDE.md` holds the commands and the gotchas every session must see; read it too.
 
-Use the pinned pnpm 10 toolchain.
+## Codex in this repository
 
-- `pnpm install` installs locked dependencies.
-- `pnpm dev -d "def_files/h3/h3.d.ts" -o output -lv` runs the source CLI with linker details.
-- `pnpm build` bundles the Node 20 ESM CLI into `dist/`.
-- `pnpm test` runs Vitest; `pnpm test:watch` watches changes.
-- `pnpm exec tsc --noEmit` must report zero errors.
-- `pnpm test:s2`, `pnpm test:s3`, `pnpm test:s4`, and `pnpm test:stress` run stage and corpus gates.
-- `pnpm test:s5:fixture` locks the multi-file Dart and verbose CLI golden.
-- `pnpm test:dart` runs the categorized `dart analyze` baseline and the dart2js runtime probe (needs a Dart SDK).
-- `pnpm fixture:s5` emits that fixture to `output/s5_emitter/` and prints the real verbose CLI report.
-- `pnpm graph -d "<glob>" -o graph.svg` renders the dependency graph; `pnpm ir -d "<glob>" -o ir.json` dumps the linked IR.
-- `pnpm test:update` updates snapshots; inspect Dart diffs first.
+- **Outside auditor:** audits work only inside the git-ignored `/audit/` folder (reports, logs, reproducers, fixtures,
+  build trees), from a request written by `/d3-audit request`. Nothing there is committed; the planner verifies and
+  imports findings with `/d3-audit intake`.
+- **Architect:** design dossiers go into the git-ignored `/dossier/`.
+- **Small standalone changes** (`$d3-change`) only when the user asks, following `docs/process.md`, and never while an
+  implementer round is open.
+- No commits or pushes unless the user explicitly asks; no AI attribution anywhere (D-04). Commit messages follow
+  Conventional Commits and cite finding IDs (`fix(E-32): …`, D-17).
 
-Generated output must pass `pnpm test:dart` (h3, Leaflet, three.js, fixtures and every conformance case at the exact baseline).
+## Rules that are easy to miss
 
-## Coding Style & Naming Conventions
-
-Write strict TypeScript with two-space indentation and ESM imports. Avoid `any`; narrow `unknown` or extend explicit IR types. Prefer pure transformations, deterministic ordering, and immutable parse contexts. Use `camelCase` for values/functions/files and `PascalCase` for types/classes. Prefer aliases such as `@ir/*`. Comment why AST cases are special. Never silently degrade unsupported types: preserve their source and use named, documented aliases.
-
-## Testing Guidelines
-
-Name Vitest files `*.test.ts`. Add focused IR-boundary or linker assertions and minimal synthetic fixtures. Assert diagnostics and output, not merely that execution did not throw. No numeric coverage threshold is configured.
-
-## Commits, Pull Requests, and Project Records
-
-Follow Conventional Commits: `feat(ir): ...`, `fix(T-09): ...`, or `docs(plan): ...`. Keep commits scoped and reference finding IDs. PRs should explain behavior, link tasks, list validation commands, and show before/after Dart for emitter changes.
-
-When addressing a finding, update `audit/FINDINGS.md` and its area file; never renumber IDs. Keep `PLAN.md` and `CLAUDE.md` current. The next release is v1.0.0; intermediate 0.x releases and a primary `dart:js_interop` backend are out of scope.
+- `def_files/` is third-party and synthetic fixture data: read-only except deliberate synthetic cases.
+- `tools/graph.ts` and `tools/ir.ts` stay outside the shipped pipeline (D-13); `docs/history/legacy/` is an exhibit
+  (D-29).
+- Never silently degrade unsupported types: preserve their source and use named, documented aliases (D-09, D-10).
+- Generated output must pass `pnpm test:dart` at the exact baseline (D-14); `pnpm exec tsc --noEmit` stays at 0 errors.
+- The next release is `1.0.0`; intermediate 0.x releases and a primary `dart:js_interop` backend are out of scope
+  (D-05, D-07).

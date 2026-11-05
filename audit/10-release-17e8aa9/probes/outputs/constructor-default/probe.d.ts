@@ -1,1 +1,0 @@
-export declare class Base { constructor(x:number); } export declare class Child extends Base { value:number; }

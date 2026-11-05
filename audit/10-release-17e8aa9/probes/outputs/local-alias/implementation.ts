@@ -1,1 +1,0 @@
-function hidden(x:number){return x+1;} export {hidden as publicName};

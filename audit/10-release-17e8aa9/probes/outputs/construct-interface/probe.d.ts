@@ -1,1 +1,0 @@
-export interface I {x:number} export interface Maker {new(x:number):I} export declare const maker:Maker;

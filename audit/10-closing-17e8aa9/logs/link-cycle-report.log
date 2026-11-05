@@ -1,3 +1,0 @@
-/cycle.d.ts::A => NotLinkedDirect
-/cycle.d.ts::B => LinkedResolved
-valid 1 broken 1

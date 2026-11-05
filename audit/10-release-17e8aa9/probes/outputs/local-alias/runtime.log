@@ -1,2 +1,0 @@
-JS oracle=5
-CAUGHT: NoSuchMethodError: method not found: 'hidden' (self.Root.hidden is not a function)

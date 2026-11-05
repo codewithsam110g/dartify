@@ -1,6 +1,0 @@
-FAIL: module file's `declare global` renamed; consumer never imports it
-link report valid: cold=1 watch=2
-PASS: typeof a const in an imported file changes literal type (consumer text unchanged)
-PASS: type alias in an imported file changes from union to string
-
-1 of 3 scenarios diverge from a cold build

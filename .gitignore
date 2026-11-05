@@ -17,3 +17,7 @@ logs/
 
 # Generated dependency graphs (see `pnpm graph`)
 *.svg
+# D3 working folders: outside audits and design dossiers (never committed), implementer worktrees
+/audit/
+/dossier/
+/.claude/worktrees/

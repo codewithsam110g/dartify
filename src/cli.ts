@@ -7,41 +7,49 @@
 
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
-import fg from "fast-glob";
-import { promises as fsPromises, constants as fsConstants } from "fs";
 import path from "path";
-import { Transpiler, TranspilerOptions } from "./transpiler";
+import { RenderReport, TranspileException, Transpiler } from "./transpiler";
+import { collectInputs } from "./cliInputs";
 import {
-  formatSemanticWarning,
-  formatVerboseLinkReport,
-} from "./reporting/linker";
+  CliOptions,
+  CliUsageError,
+  ParsedArgs,
+  resolveCliOptions,
+} from "./cliOptions";
+import { reportGenerationFailures, reportRun } from "./reporting/run";
+import { displayPath, isInside } from "./reporting/path";
+import type { GenerationDiagnostic } from "./engine/phase/symbolGeneration";
 // Named import so the bundler keeps only `version`, not scripts/devDependencies.
 import { version } from "../package.json";
 
-interface CliOptions {
-  defFiles: string[];
-  output?: string;
-  tsconfig?: string;
-  enableLogs: boolean;
-  verbose: boolean;
-  dryRun: boolean;
-  watch: boolean;
-  jsRoot?: string;
-}
+const DEFAULT_OUTPUT = "./dart_out";
+
+const COMPATIBILITY = "js_facade_gen compatibility:";
 
 const argv = yargs(hideBin(process.argv))
-  .usage("Usage: dart_bindgen [options]")
+  .usage("Usage: dart_bindgen [options] [inputs...]")
+  .command("$0 [inputs..]", "Generate Dart bindings from declaration files", (command) =>
+    command.positional("inputs", {
+      type: "string",
+      array: true,
+      describe:
+        "Declaration files or glob patterns, like -d. Without -o/--destination, a single resulting library is printed to stdout",
+    }),
+  )
   .option("def-files", {
     alias: "d",
     type: "array",
-    describe: "TypeScript definition files or glob patterns",
-    demandOption: true,
+    describe: "TypeScript declaration files (.d.ts, .d.mts, .d.cts) or glob patterns",
     coerce: (arg: string[] | string) => (Array.isArray(arg) ? arg : [arg]),
   })
   .option("output", {
-    alias: "o",
+    alias: ["o", "destination"],
     type: "string",
-    describe: "Output directory",
+    describe: `Output directory (default ${DEFAULT_OUTPUT})`,
+  })
+  .option("base-path", {
+    type: "string",
+    describe: "Directory output paths are relative to; every input must lie under it",
   })
   .option("enable-logs", {
     alias: "l",
@@ -75,157 +83,189 @@ const argv = yargs(hideBin(process.argv))
     type: "string",
     describe: "Path to tsconfig.json for module resolution (handles pnpm, node_modules, etc.)",
   })
-  .example('dart_bindgen -d "**/*.d.ts"', "Process all .d.ts files recursively")
+  .option("skip-formatting", {
+    type: "boolean",
+    describe: "Accepted and ignored: dartify never runs a formatter",
+    group: COMPATIBILITY,
+  })
+  .option("generate-html", {
+    type: "boolean",
+    describe: "Not supported (exits with an explanation)",
+    group: COMPATIBILITY,
+  })
+  .option("rename-conflicting-types", {
+    type: "boolean",
+    describe: "Not supported (exits with an explanation)",
+    group: COMPATIBILITY,
+  })
+  .option("explicit-static", {
+    type: "boolean",
+    describe: "Not supported (exits with an explanation)",
+    group: COMPATIBILITY,
+  })
+  .option("trust-js-types", {
+    type: "boolean",
+    describe: "Not supported (exits with an explanation)",
+    group: COMPATIBILITY,
+  })
+  .example("dart_bindgen types/lib.d.ts", "Print the Dart library for one declaration file to stdout")
+  .example('dart_bindgen -d "**/*.d.ts"', "Process all declaration files recursively")
   .example(
     'dart_bindgen -d "src/*.d.ts" -d "lib/*.d.ts" -o ./output',
     "Multiple patterns with custom output",
+  )
+  .example(
+    "dart_bindgen --destination=out --base-path=types types/a.d.ts types/b.d.ts",
+    "js_facade_gen's invocation shape",
   )
   .example(
     'dart_bindgen --def-files "types/**/*.d.ts" -lv',
     "Enable logs and print the detailed linker report",
   )
   .example('dart_bindgen -d "types/**/*.d.ts" -o ./generated -w', "Watch and rebuild on change")
+  // Unknown flags are errors: a flag that silently did nothing would change
+  // what the user thinks was generated.
+  .strict()
+  .showHelpOnFail(false, "Run dart_bindgen --help for usage.")
   .help()
   .alias("help", "h")
   .version(version)
-  .parseSync() as CliOptions;
+  .parseSync() as ParsedArgs;
 
-async function main(options: CliOptions): Promise<void> {
+/**
+ * In stdout mode the Dart library is the only thing on stdout, so every
+ * other line of output, including the pipeline's own logging, goes to stderr.
+ */
+function routeLogsToStderr(): void {
+  console.log = (...args: unknown[]) => console.error(...args);
+}
+
+async function main(args: ParsedArgs): Promise<number> {
   const startTime = Date.now();
+
+  let options: CliOptions;
+  try {
+    options = resolveCliOptions(args);
+  } catch (error) {
+    if (!(error instanceof CliUsageError)) throw error;
+    for (const message of error.messages) console.error(`Error: ${message}`);
+    return 1;
+  }
+  if (options.toStdout) routeLogsToStderr();
   const logsEnabled = options.enableLogs || options.verbose;
 
   try {
-    // Separate explicit paths from glob patterns
-    // Explicit paths (no glob chars) bypass the node_modules ignore,
-    // allowing users to target files in node_modules/@types/ directly.
-    const isGlobPattern = (p: string) => /[*?{}[\]]/.test(p);
-    const explicitPaths = options.defFiles.filter((p) => !isGlobPattern(p));
-    const globPatterns = options.defFiles.filter((p) => isGlobPattern(p));
-
-    // Resolve explicit paths to absolute
-    const explicitAbsolute = explicitPaths.map((p) =>
-      path.resolve(process.cwd(), p),
-    );
-
-    // Run fast-glob only on glob patterns (with node_modules ignore)
-    const globFiles =
-      globPatterns.length > 0
-        ? await fg(globPatterns, {
-          onlyFiles: true,
-          absolute: true,
-          ignore: ["node_modules/**", "*.min.d.ts"],
-          caseSensitiveMatch: false,
-        })
-        : [];
-
-    const files = [...new Set([...explicitAbsolute, ...globFiles])];
-
-    const dtsFiles = files.filter((file) => file.endsWith(".d.ts"));
+    const selection = await collectInputs(options.inputs);
+    // Every bad explicit input is reported before any generation, so a typo
+    // never yields a successful run that quietly lacks a file (HD-04).
+    for (const message of selection.errors) console.error(`Error: ${message}`);
+    if (selection.errors.length > 0) return 1;
+    for (const message of selection.notices) console.log(message);
+    for (const message of selection.warnings) console.warn(`Warning: ${message}`);
+    const files = selection.files;
 
     if (logsEnabled) {
-      console.log(`Patterns: ${options.defFiles.join(", ")}`);
-      console.log(`Found ${dtsFiles.length} .d.ts files`);
+      console.log(`Patterns: ${options.inputs.join(", ")}`);
+      console.log(`Found ${files.length} declaration files`);
     }
 
-    if (dtsFiles.length === 0) {
-      console.error("No .d.ts files found matching patterns");
-      process.exit(1);
+    if (files.length === 0) {
+      console.error(`Error: no declaration files found matching: ${options.inputs.join(", ")}`);
+      return 1;
     }
 
-    const validFiles = await Promise.all(
-      dtsFiles.map(async (file) => {
-        try {
-          await fsPromises.access(file, fsConstants.R_OK);
-          return file;
-        } catch {
-          if (logsEnabled) console.warn(`Cannot read: ${file}`);
-          return null;
-        }
-      }),
-    );
-
-    const readableFiles = validFiles.filter((f): f is string => Boolean(f));
+    if (options.basePath) {
+      const root = path.resolve(options.basePath);
+      const outside = files.filter((file) => !isInside(root, file));
+      for (const file of outside) {
+        console.error(`Error: input ${displayPath(file)} lies outside --base-path ${options.basePath}`);
+      }
+      if (outside.length > 0) return 1;
+    }
 
     if (logsEnabled || options.dryRun) {
       console.log("\nFiles to process:");
-      readableFiles.forEach((file, i) => {
-        const relative = path.relative(process.cwd(), file);
-        console.log(`  ${i + 1}. ${relative}`);
+      files.forEach((file, i) => {
+        console.log(`  ${i + 1}. ${displayPath(file)}`);
       });
     }
 
     if (options.dryRun) {
-      console.log(
-        `\nDry run complete. Would process ${readableFiles.length} files.`,
-      );
-      return;
+      console.log(`\nDry run complete. Would process ${files.length} files.`);
+      return 0;
     }
 
     if (options.watch) {
-      await watchFiles(readableFiles, options);
-      return;
+      await watchFiles(files, options);
+      return 0;
     }
 
     console.log("\nProcessing files...");
-    await processFiles(readableFiles, options);
-
-    const duration = Date.now() - startTime;
-    console.log(`Completed in ${duration}ms`);
-  } catch (error: any) {
-    console.error("Error:", error.message || error);
-    process.exit(1);
+    const code = await processFiles(files, options);
+    if (code === 0) console.log(`Completed in ${Date.now() - startTime}ms`);
+    return code;
+  } catch (error) {
+    console.error("Error:", error instanceof Error ? error.message : error);
+    return 1;
   }
 }
 
-async function processFiles(
-  files: string[],
-  options: CliOptions,
-): Promise<void> {
-  console.log(`Processing ${files.length} files to ${options.output}`);
+function failGeneration(failures: readonly GenerationDiagnostic[], outcome: string): number {
+  reportGenerationFailures(failures);
+  console.error(`Error: generation failed with ${failures.length} error(s); ${outcome}`);
+  return 1;
+}
 
-  let transpilerOptions: TranspilerOptions = {
-    files: files,
+async function processFiles(files: string[], options: CliOptions): Promise<number> {
+  console.log(
+    `Processing ${files.length} files to ${options.toStdout ? "stdout" : (options.output ?? DEFAULT_OUTPUT)}`,
+  );
+
+  const transpiler = new Transpiler({
+    files,
     outDir: options.output,
     debug: options.enableLogs || options.verbose,
     tsConfigFilePath: options.tsconfig
       ? path.resolve(process.cwd(), options.tsconfig)
       : undefined,
     ...(options.jsRoot ? { jsRoot: options.jsRoot } : {}),
-  };
-  let transpiler: Transpiler = new Transpiler(transpilerOptions);
-  const report = await transpiler.transpile();
-  const semanticWarning = formatSemanticWarning(report.analysis.link);
-  if (semanticWarning) console.warn(semanticWarning);
-  if (options.verbose) {
-    console.log(formatVerboseLinkReport(report.analysis.link));
-  }
-  // Backend facts (anonymous defaults not bound, dropped heritage, const-enum
-  // members without values) and unresolved re-export targets: counted
-  // always, itemized with -lv (S6.4).
-  const backendDiagnostics = [...report.files.values()].flatMap((file) => file.diagnostics);
-  const exportDiagnostics = report.analysis.link.moduleExportDiagnostics;
-  const emitted = backendDiagnostics.length + exportDiagnostics.length;
-  if (emitted > 0) {
-    console.warn(
-      `⚠️  Emission: ${emitted} diagnostic(s)${options.verbose ? "" : "; rerun with -lv for complete records"}`,
-    );
-    if (options.verbose) {
-      for (const diagnostic of backendDiagnostics) {
-        console.warn(`  [${diagnostic.code}] ${diagnostic.message}`);
+    ...(options.basePath ? { inputRoot: options.basePath } : {}),
+  });
+
+  let report: RenderReport;
+  if (options.toStdout) {
+    report = await transpiler.render();
+    if (report.analysis.generation.length > 0) {
+      return failGeneration(report.analysis.generation, "no output was produced");
+    }
+  } else {
+    try {
+      report = await transpiler.transpile();
+    } catch (error) {
+      if (error instanceof TranspileException && error.code === "GENERATION_FAILED" && error.diagnostics) {
+        return failGeneration(error.diagnostics, "nothing was written");
       }
-      for (const diagnostic of exportDiagnostics) {
-        console.warn(`  [${diagnostic.code}] ${diagnostic.file}:${diagnostic.line} ${diagnostic.message}`);
-      }
+      throw error;
     }
   }
-  const unresolved = report.analysis.resolution.unresolved.length;
-  if (unresolved === 0) {
-    console.log("Module resolution: 0 unresolved references");
-  } else {
-    console.warn(
-      `⚠️  Module resolution: ${unresolved} unresolved reference(s); rerun with -l for resolution details or -lv for the full linker report`,
-    );
+
+  reportRun(report, { verbose: options.verbose });
+
+  if (options.toStdout) {
+    const libraries = [...report.files.values()];
+    if (libraries.length > 1) {
+      console.error(
+        `Error: the input produced ${libraries.length} Dart libraries; printing to stdout needs exactly one. Pass --destination <dir> (or -o) to write them.`,
+      );
+      return 1;
+    }
+    if (libraries.length === 0) {
+      console.error("Note: the input declares nothing to bind, so there is no output.");
+    } else {
+      process.stdout.write(libraries[0].content);
+    }
   }
+  return 0;
 }
 
 /**
@@ -241,8 +281,11 @@ async function watchFiles(files: string[], options: CliOptions): Promise<void> {
     outDir: options.output,
     tsConfigFilePath: options.tsconfig ? path.resolve(process.cwd(), options.tsconfig) : undefined,
     ...(options.jsRoot ? { jsRoot: options.jsRoot } : {}),
+    ...(options.basePath ? { inputRoot: options.basePath } : {}),
   });
   const report = (label: string, build: Awaited<ReturnType<typeof session.build>>) => {
+    // The same report a one-shot run prints, on the first build and on every rebuild.
+    reportRun(build, { verbose: options.verbose });
     const failures = build.analysis.generation.length;
     const status = failures > 0 ? `⚠️  ${failures} generation error(s); nothing written` : `wrote ${build.written.length}`;
     console.log(
@@ -274,7 +317,8 @@ async function watchFiles(files: string[], options: CliOptions): Promise<void> {
     });
   };
   watch(root, { recursive: true }, (_, fileName) => {
-    if (!fileName || !fileName.toString().endsWith(".ts")) return;
+    // `.ts`, `.mts` and `.cts`: declaration inputs and the files they import.
+    if (!fileName || !/\.[cm]?ts$/.test(fileName.toString())) return;
     pending.add(path.resolve(root, fileName.toString()));
     clearTimeout(timer);
     timer = setTimeout(flush, 25);
@@ -283,4 +327,14 @@ async function watchFiles(files: string[], options: CliOptions): Promise<void> {
   await new Promise(() => undefined);
 }
 
-main(argv);
+main(argv).then(
+  (code) => {
+    // Exit code rather than `process.exit`, so output already written to a
+    // pipe (the library on stdout) is flushed.
+    process.exitCode = code;
+  },
+  (error) => {
+    console.error("Error:", error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  },
+);

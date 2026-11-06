@@ -32,6 +32,33 @@ export interface GenerationDiagnostic {
 }
 
 /**
+ * TypeScript's syntactic (parse) diagnostics for one file, as generation
+ * failures (HD-13). The parser recovers from a malformed declaration by
+ * dropping or inventing nodes, so symbols generated from a file that has any
+ * would be plausible but untrustworthy; the code is the compiler's `TSnnnn`.
+ * Semantic (type-check) diagnostics are deliberately not collected: an
+ * unresolved name degrades to a named typedef and the link report counts it
+ * (D-10).
+ */
+export function syntacticDiagnosticsOf(sourceFile: ts.SourceFile): GenerationDiagnostic[] {
+  const file = String(sourceFile.getFilePath());
+  return sourceFile
+    .getProject()
+    .getProgram()
+    .getSyntacticDiagnostics(sourceFile)
+    .map((diagnostic) => {
+      const start = diagnostic.getStart();
+      const position = start !== undefined ? sourceFile.getLineAndColumnAtPos(start) : undefined;
+      return {
+        code: `TS${diagnostic.getCode()}`,
+        message: ts.ts.flattenDiagnosticMessageText(diagnostic.compilerObject.messageText, "\n"),
+        file,
+        ...(position ? { line: position.line, column: position.column } : {}),
+      };
+    });
+}
+
+/**
  * One top-level statement's generation output, kept by a watch session so an
  * unchanged statement is replayed instead of re-parsed. `symbols` are pristine
  * copies never handed to a table (the semantic pass mutates what it receives).

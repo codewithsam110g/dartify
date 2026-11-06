@@ -37,6 +37,7 @@ import {
   generateSymbols,
   GenerationDiagnostic,
   StatementCache,
+  syntacticDiagnosticsOf,
 } from "@engine/phase/symbolGeneration";
 import {
   LinkDiagnostic,
@@ -116,6 +117,7 @@ export class WatchSession {
   private readonly files: string[];
   private readonly outDir: string;
   private readonly write: boolean;
+  private readonly inputRoot: string | undefined;
   private readonly backend: Backend;
   private readonly states = new Map<string, FileState>();
   private readonly renderCache = new Map<string, unknown>();
@@ -132,6 +134,7 @@ export class WatchSession {
     this.files = [...new Set(options.files)].sort();
     this.outDir = options.outDir || "./dart_out";
     this.write = options.write ?? true;
+    this.inputRoot = options.inputRoot ? resolve(options.inputRoot) : undefined;
     this.backend = createPackageJsBackend(options.jsRoot ? { jsRoot: options.jsRoot } : {});
     this.run = new ResolutionRun(this.files, options.tsConfigFilePath);
   }
@@ -287,8 +290,10 @@ export class WatchSession {
     for (const state of this.states.values()) {
       for (const [fqn, edges] of state.edges) allEdges.set(fqn, edges);
       linkDiagnostics.push(...state.linkDiagnostics);
-      generation.push(...state.generation);
     }
+    // In a cold run's file order (inputs, then dependencies, each sorted), not
+    // the order the states were first built in, so both report one list.
+    for (const [file] of programFiles) generation.push(...(this.states.get(file)?.generation ?? []));
     linkDiagnostics.sort((a, b) =>
       `${a.ownerFQN}\u0000${a.writtenName}`.localeCompare(`${b.ownerFQN}\u0000${b.writtenName}`),
     );
@@ -301,7 +306,7 @@ export class WatchSession {
 
     // Render only affected libraries; a change between one and several
     // libraries moves shared support, so it re-renders everything.
-    const inputRoot = resolvedInputRoot(resolution.inputFiles);
+    const inputRoot = this.inputRoot ?? resolvedInputRoot(resolution.inputFiles);
     const multiLibrary = this.states.size > 1;
     const renderDirty =
       this.wasMultiLibrary === undefined || this.wasMultiLibrary !== multiLibrary || heritageChanged
@@ -377,10 +382,13 @@ export class WatchSession {
     const namespaceExports = new Map<string, Set<string>>();
     const moduleExports: ModuleExportTable = new Map();
     const freshFQNs = new Set<string>();
-    const generation = await generateSymbols(file, sourceFile, table, namespaceExports, moduleExports, {
-      statementCache,
-      freshFQNs,
-    });
+    const generation = [
+      ...syntacticDiagnosticsOf(sourceFile),
+      ...(await generateSymbols(file, sourceFile, table, namespaceExports, moduleExports, {
+        statementCache,
+        freshFQNs,
+      })),
+    ];
     const groups = table.release();
     const semantic = runSemanticPassOnDraft(groups);
     const keys = fingerprints(groups, semantic, this.states.get(file), freshFQNs);

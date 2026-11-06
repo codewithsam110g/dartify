@@ -25,7 +25,8 @@ v1 (D-05).
 
 | Component | Responsibility | Depends on | Must not depend on |
 |---|---|---|---|
-| `src/cli.ts` | Argument parsing, input globbing, report printing, exit codes; `-w` watch entry | `transpiler.ts`, `watch.ts`, `reporting/` | phase internals |
+| `src/cli.ts` | yargs definition, run orchestration, exit codes, stdout mode (positional inputs without `-o`), `-w` watch entry | `cliOptions.ts`, `cliInputs.ts`, `transpiler.ts`, `watch.ts`, `reporting/` | phase internals |
+| `src/cliOptions.ts`, `src/cliInputs.ts` | The js_facade_gen invocation mapping and refused flags (HD-14); input validation: explicit paths must be readable declaration files, globs warn when empty, dual-package siblings and output collisions (HD-04) | `resolution/declarationFile.ts`, `reporting/path.ts` | `transpiler.ts`, phase internals |
 | `src/transpiler.ts` | Owns one run (D-20); seams `analyze()` (phases 1–2 → `AnalysisReport`), `analyzeProgram()` (+ the owned `LinkedProgram`), `render()` (+ phase 3 → `Map<path, RenderedFile>`), `transpile()` (+ write), static `transpileFromString()` (one virtual file → string) | `engine/phase/*` | global state |
 | `src/resolution/` | Module resolution, program roots, missing modules | ts-morph | emitter |
 | `src/engine/phase/symbolGeneration.ts` + `src/engine/parser/**` | PHASE 1: declarations → IR → `SymbolTable`; per-statement `StatementCache` for watch | `src/ir/`, `src/symbol/` | semantic, emitter |
@@ -34,7 +35,7 @@ v1 (D-05).
 | `src/engine/semantic/` + `linkerPhase.ts` | PHASE 2: canonicalize, merge, overload/identifier/namespace naming, mint aliases (`alias/`), link the dependency graph; `shape.ts` gives metadata-free structural identity | IR, symbols | emitter (D-12) |
 | `src/engine/phase/emitterPhase.ts` + `emitter/backend.ts` | PHASE 3: hands the `LinkedProgram` to a `Backend` | `LinkedProgram` only | parsers, ts-morph nodes |
 | `src/engine/emitter/packagejs/` | The v1 backend: `program.ts` indexes the program; `library.ts` plans imports and allocates support-typedef names *after* the whole library is rendered (emission writes placeholder tokens); `types.ts` lowers `IRType`; `declarations.ts` lowers declarations; `index.ts` renders all libraries and resolves barrel export ambiguity; `browserTypes.ts` (D-22) | `LinkedProgram` | parsers |
-| `src/reporting/` | Structured diagnostics and the verbose link report | phase output | — |
+| `src/reporting/` | Structured diagnostics, the verbose link report and `reportRun`, the one report a one-shot run and every watch rebuild print | phase output | — |
 | `src/watch.ts` | `WatchSession`: one ts-morph project, per-file generation/semantic/link caches, per-FQN member/heritage fingerprints that pick which libraries re-render (D-16) | `transpiler.ts` | — |
 | `tools/graph.ts`, `tools/ir.ts` | Dependency-graph SVG and linked-IR JSON (`pnpm graph`, `pnpm ir`) | phase output | being imported by `src/` (D-13) |
 | `docs/history/legacy/` | The original implementation, an exhibit (D-29) | — | the build |
@@ -59,7 +60,9 @@ cli.ts → transpiler.ts
 ```
 
 1. **Generation** parses each declaration into IR with full metadata and signatures; anything not captured here is
-   unrecoverable (D-11). The parser is otherwise syntax-only, but the type checker is available and cheap — use it
+   unrecoverable (D-11). TypeScript *syntactic* diagnostics of every file it parses are generation failures (HD-13):
+   `transpile()` writes nothing and the CLI exits 1, because parser recovery output is untrustworthy; type-check
+   diagnostics are not failures. The parser is otherwise syntax-only, but the type checker is available and cheap — use it
    before declaring a construct unrepresentable (finding `T-14`: `typeof x` was written off from syntax and turned out
    87% resolvable; checking all 449 three.js `typeof` nodes cost ~60 ms).
 2. **Semantic + link** merges declarations, names everything legally and deterministically, mints named degradations

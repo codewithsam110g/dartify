@@ -87,6 +87,12 @@ const EDITS: Edit[] = [
     apply: (text) => `import { Extra } from "./extra";\n${text}\nexport declare function extra(): Extra;\n`,
   },
   { name: "files: edit the new file", file: "extra.d.ts", apply: replace("  e: number;\n", "  e: number;\n  f?: string;\n") },
+  // Syntax errors are generation failures in both modes (HD-13): the same
+  // failures, in the same order, and no writes.
+  { name: "syntax: break an imported dependency", file: "extra.d.ts", apply: (text) => `${text}export declare function broken(x: number: string;\n` },
+  { name: "syntax: break an input as well", file: "other.d.ts", apply: (text) => `${text}export interface Open { a: string\n` },
+  { name: "syntax: repair the dependency", file: "extra.d.ts", apply: replace("export declare function broken(x: number: string;\n", "") },
+  { name: "syntax: repair the input", file: "other.d.ts", apply: replace("export interface Open { a: string\n", "") },
   {
     name: "files: stop importing it",
     file: "derived.d.ts",

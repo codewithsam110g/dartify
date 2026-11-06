@@ -116,3 +116,19 @@ None new.
 - Phase A review decisions: **HD-21** (route diagnostics per library) and **HD-22** (browser/lib type augmentation →
   typed extension; issue `I-01`), added to Phase B as HG3-13 and HG3-14; the ambient-module public-name gap is HG3-15.
   Risks registered: `RS-09`–`RS-13` in [../../issues.md](../../issues.md#risks-and-suggestions).
+- Phase B done 2026-11-06 (implementer report; checkpoint commit on `hg-3`). Gate rerun by the planner: `tsc` clean,
+  `pnpm test` 467/13, S2 2/2, S3 2/2 (new three.js count test), S4 54/54, S5 3/3, Dart 4/4 (new globals runtime test),
+  incremental 8/8, e2e 3/3, build, stress passed. Against Phase A: h3, Leaflet, S5, synthetic, legacy, runtime, exports,
+  barrels, three.js (421) and the 90 conformance cases byte-identical, no snapshot change; `ambient`/`ambient_rooted` one
+  HG3-15 hunk each; new sets `globals_merge` (one `Settings` class, link report clean) and `globals_augment`
+  (`extension WindowAugment on Window`); three.js `EXPORT_ROUTE_MISSING` 740 → 218 (HD-21), emission total 864 → 342.
+  Implementer choices kept: global merging runs in the semantic pass (`src/engine/semantic/globals.ts`) after
+  canonicalization, with a `globalMerge` redirect for non-owner files; in watch, a file that declares globals is merged in
+  one pass over all such files after the build loop, and a change to one regenerates all live files; a text check for
+  `global {` decides whether a rebuild touches globals (a false positive only costs a full regeneration);
+  `AUGMENTATION_MEMBER_UNSUPPORTED` is one diagnostic per member; the two "ambiguous reference" tests now use two
+  namespaces declaring `Options` (two script files declaring one global are now one symbol).
+- Phase B review (planner): four gaps — HD-22 applied only to `browserTypes.ts` mappings (core-mapped `Array<T>` etc.
+  still shadowed), the interface + value companion case, a possible runtime cast failure for collection-typed augmented
+  members, and identical cross-file redeclarations giving `shared` + `shared_2`. The user chose a fix round before the
+  merge: **HD-23** and [fix1](HG-3-fix1.md). Unmapped lib types registered as `RS-14`.

@@ -22,13 +22,13 @@ each row.
 | `CA-05` | A member that shares its enclosing type's name produces analyzer errors | low | Agree | R | — | HG-6 | Open |
 | `CA-06` | Ambient external modules bind `@JS("<module specifier>.<name>")`; non-identifier specifiers crash dart2js | medium | Agree | R | HD-05 | HG-3 | Open |
 | `CA-07` | Cross-file global declaration merging is unsupported: partial duplicate classes and `dynamic` use sites | medium | Agree | R | HD-06 | HG-3 | Open |
-| `CA-08` | Default CLI output omits link failures (missing/ambiguous type references) | low | Agree | R | — | HG-2 | Open |
-| `CA-09` | A bigint literal type with numeric separators (`1_000n`) aborts the whole run | low | Agree | R | — | HG-2 | Open |
-| `CA-10` | The CLI/programmatic path does not report TypeScript syntax errors; malformed input yields plausible output and exit 0 | low→high | Duplicate | M | HD-13 | HG-2 | Duplicate of DAR-001 |
+| `CA-08` | Default CLI output omits link failures (missing/ambiguous type references) | low | Agree | R | — | HG-2 | Fixed (HG-2) |
+| `CA-09` | A bigint literal type with numeric separators (`1_000n`) aborts the whole run | low | Agree | R | — | HG-2 | Fixed (HG-2) |
+| `CA-10` | The CLI/programmatic path does not report TypeScript syntax errors; malformed input yields plausible output and exit 0 | low→high | Duplicate | M | HD-13, HD-16 | HG-2 | Duplicate of DAR-001; fixed (HG-2) |
 | `CA-11` | File names containing `'` or `$` produce invalid Dart import/export directives | low→medium | Agree | M | — | HG-5 | Open |
 | `CA-12` | Private-use characters in source text are interpreted as backend placeholder tokens | low | Agree | A | — | HG-5 | Open |
-| `CA-13` | Link report memoisation misreports symbols inside a reference cycle | low→medium | Agree | R | — | HG-2 | Open |
-| `CA-14` | `.d.mts` / `.d.cts` inputs are silently dropped | low | Agree | R | HD-04 | HG-2 | Open |
+| `CA-13` | Link report memoisation misreports symbols inside a reference cycle | low→medium | Agree | R | — | HG-2 | Fixed (HG-2) |
+| `CA-14` | `.d.mts` / `.d.cts` inputs are silently dropped | low | Agree | R | HD-04 | HG-2 | Fixed (HG-2) |
 | `CA-15` | Watch mode computes its root directory by string prefix, not by path segment | low→medium | Agree | R | — | HG-7 | Open |
 | `CA-16` | A class whose constructors are all private/protected gets Dart's implicit public constructor | low→medium | Agree | R | — | HG-4 | Open |
 | `CA-17` | CI installs Dart `stable` while the analyzer baseline is an exact census for Dart 3.13 | low | Qualified | T | HD-08 | HG-1 | Fixed (HG-1) |
@@ -44,12 +44,12 @@ each row.
 | `CA-27` | Watch-latency claims are only partly reproduced (Leaflet edit and three.js core edit) | low | Agree | D | HD-09 | HG-8 | Open |
 | `CA-28` | The e2e oracle script is never executed by the suite | low | Agree | T | — | HG-8 | Open |
 | `CA-29` | The platform-type registry has no committed generator or SDK validation script | low | Agree | T | HD-10 | HG-8 | Open |
-| `CA-30` | The CLI is not invocation-compatible with js_facade_gen, and its semantics-changing flags are silently ignored | low | Agree | R | HD-07, HD-14 | HG-2 | Open |
+| `CA-30` | The CLI is not invocation-compatible with js_facade_gen, and its semantics-changing flags are silently ignored | low | Agree | R | HD-07, HD-14, HD-15 | HG-2 | Fixed (HG-2) |
 | `CA-31` | Construct signatures on type-only interfaces are dropped without a diagnostic (and the class is marked `@anonymous`) | low | Agree | R | HD-11 | HG-4 | Open |
 | `CA-32` | A lone CR in JSDoc escapes the `///` comment and injects Dart declarations (found by the independent re-run and, independently, as codex `DAR-022`; it overturns the closing audit's "falsified" lone-CR row) | medium | Agree | M | — | HG-5 | Open |
 | `CA-33` | The closing-audit registration corrupted this file: a `$`-pattern in the `CA-11` title spliced a copy of the header and every pre-CA row into that row, and `CA-30`/`CA-31` sit outside any table | low | Already fixed | D | — | — | Fixed (D3 adoption, `18a3b0b`) |
-| `DAR-001` | Filesystem compilation accepts malformed declarations and reports success | high | Agree | M | HD-13 | HG-2 | Open |
-| `DAR-002` | Explicit input failures are silently dropped when another file is readable | medium | Agree | R | HD-04 | HG-2 | Open |
+| `DAR-001` | Filesystem compilation accepts malformed declarations and reports success | high | Agree | M | HD-13, HD-16 | HG-2 | Fixed (HG-2) |
+| `DAR-002` | Explicit input failures are silently dropped when another file is readable | medium | Agree | R | HD-04 | HG-2 | Fixed (HG-2) |
 | `DAR-003` | Export identity is ignored when choosing JavaScript dispatch paths | high | Agree | R | — | HG-3 | Open |
 | `DAR-004` | Named re-exports lose aliases and cannot traverse barrels | medium | Duplicate | R | — | HG-3 | Duplicate of CA-03 (union: adds chained barrels and renames) |
 | `DAR-005` | Parameter lowering introduces keywords and duplicate names after allocation | medium | Agree | R | — | HG-6 | Open |
@@ -66,13 +66,13 @@ each row.
 | `DAR-016` | Watch cannot recover when a previously missing imported file is created | medium | Agree | R | — | HG-7 | Open |
 | `DAR-017` | Watch misses the transition from one emitted library to shared support | medium | Agree | R | — | HG-7 | Open |
 | `DAR-018` | CLI watch chooses a common root by textual prefix | medium | Duplicate | R | — | HG-7 | Duplicate of CA-15 |
-| `DAR-019` | Linker caches successful members of cycles before discovering a missing dependency | medium | Duplicate | R | — | HG-2 | Duplicate of CA-13 |
+| `DAR-019` | Linker caches successful members of cycles before discovering a missing dependency | medium | Duplicate | R | — | HG-2 | Duplicate of CA-13; fixed (HG-2) |
 | `DAR-020` | Private-only constructors leave a public implicit Dart constructor | medium | Duplicate | R | — | HG-4 | Duplicate of CA-16 |
 | `DAR-021` | Inherited constructors do not substitute superclass generic arguments | medium | Agree | R | — | HG-4 | Open |
 | `DAR-022` | Carriage-return-only JSDoc escapes the generated Dart comment | medium | Duplicate | M | — | HG-5 | Duplicate of CA-32 |
-| `DAR-023` | Watch CLI suppresses diagnostic warnings that one-shot mode reports | medium | Agree | R | — | HG-2 | Open |
+| `DAR-023` | Watch CLI suppresses diagnostic warnings that one-shot mode reports | medium | Agree | R | — | HG-2 | Fixed (HG-2) |
 | `T-11` | String literal values are unquoted but not unescaped (`type/literals.ts:43`); same class as DAR-013 | low | Agree (inspection) | R | — | HG-5 | Open |
 | `VFY-001` | The run-isolation test has no explicit timeout and fails under coverage instrumentation (32.8 s vs 30 s) | low | Agree | T | — | HG-1 | Fixed (HG-1) |
 | `VFY-002` | The CLI bundle inlines all of `package.json` (scripts, devDependencies) to read `version` | low | Agree | R | — | HG-1 | Fixed (HG-1) |
 
-**Counts:** 59 rows = 48 distinct defects (3 high, 26 medium, 19 low) + 8 duplicates + `T-11` + 2 VFY. Open: 44 · Fixed: 7 (`CA-33`; HG-1: `CA-17`–`CA-20`, `VFY-001`, `VFY-002`) · Duplicate: 8 (`CA-10` and seven `DAR`); each duplicate closes with its twin.
+**Counts:** 59 rows = 48 distinct defects (3 high, 26 medium, 19 low) + 8 duplicates + `T-11` + 2 VFY. Open: 36 · Fixed: 15 (`CA-33`; HG-1: `CA-17`–`CA-20`, `VFY-001`, `VFY-002`; HG-2: `CA-08`, `CA-09`, `CA-13`, `CA-14`, `CA-30`, `DAR-001`, `DAR-002`, `DAR-023`) · Duplicate: 8 (`CA-10` and seven `DAR`); each duplicate closes with its twin.

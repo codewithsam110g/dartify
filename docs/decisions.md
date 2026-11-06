@@ -22,7 +22,7 @@ an ADR or a linked doc.
   IR). They keep their numbers, so `D-01`–`D-07` exist as both decisions and findings. Outside the stage register a bare
   `D-NN` / `I-NN` means a D3 decision / issue; a pre-D3 finding is written "finding `D-07`" wherever it could be read
   either way. Inside `hardening/stage-register/` the old meaning stands. Hardening decisions are `HD-NN`
-  ([hardening/decisions.md](hardening/decisions.md)).
+  ([hardening/decisions.md](hardening/decisions.md)); risks and suggestions are `RS-NN` ([issues.md](issues.md)).
 
 ## Accepted
 

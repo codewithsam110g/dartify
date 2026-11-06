@@ -11,6 +11,12 @@ The drop-in replacement for the archived `js_facade_gen`, targeting
 
 - Requires Node `^22.12.0 || >=24` (`engines.node`); Node 20, past its
   end-of-life, is no longer supported. `0.5.0` declared no `engines` (D-32).
+- Runs that used to exit 0 now exit 1 (HD-04, HD-13, HD-14): a TypeScript
+  syntax error in an input or in a declaration file it imports; a missing,
+  unreadable, directory or non-declaration explicit input, even beside valid
+  ones; two inputs that would write the same `.dart` file; an unknown flag;
+  `--generate-html`, `--rename-conflicting-types`, `--explicit-static` or
+  `--trust-js-types` (each now explains what dartify does instead).
 
 ### Hardening (HG)
 
@@ -25,6 +31,29 @@ The drop-in replacement for the archived `js_facade_gen`, targeting
 - The shipped bundle no longer embeds `package.json`'s scripts and dev
   dependencies (`VFY-002`); the run-isolation test has a coverage-safe
   timeout (`VFY-001`).
+- Syntax errors fail the run: every one is printed as `path:line:col TSnnnn
+  message`, nothing is written, exit 1, in one-shot and watch mode alike;
+  type-check errors still degrade to named typedefs (`DAR-001`, `CA-10`).
+- Explicit inputs are checked by name before generation, regardless of `-l`;
+  a glob that matches nothing prints a warning (`DAR-002`).
+- `.d.mts` and `.d.cts` inputs are accepted and written as `<name>.dart`; a
+  glob-matched sibling of an included `.d.ts` is skipped with a notice
+  (`CA-14`).
+- Number and bigint literal types with `_` separators (`1_000n`, `0x1_0`) no
+  longer abort the run or become `NaN` (`CA-09`).
+- Default output states the number of broken symbols and ambiguous
+  references whenever there are any, with a pointer to `-lv` (`CA-08`).
+- The link report is correct inside reference cycles and independent of
+  declaration order; three.js now reports 1,178 broken symbols (was an
+  undercount of 936) from its absent `webxr` / `@webgpu/types` packages
+  (`CA-13`, `DAR-019`).
+- Watch mode prints the same warnings, link and emission summaries and `-lv`
+  records as a one-shot run, on the first build and every rebuild
+  (`DAR-023`).
+- js_facade_gen command lines: positional inputs (like `-d`),
+  `--destination` (like `-o`), `--base-path`, a single library printed to
+  stdout when no destination is given, and `--skip-formatting` (a no-op).
+  `-d` is no longer required; at least one input is (`CA-30`).
 
 ### package:js backend (S5)
 

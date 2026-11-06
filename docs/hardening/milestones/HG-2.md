@@ -1,9 +1,9 @@
 # HG-2 brief: input boundary and CLI reporting
 
-**Status:** Approved (2026-11-06)
+**Status:** Done (2026-11-06, merged into `refactor/orchestration`, `4f33477`)
 **Implementer:** a fresh `implementer` (Sonnet 5.5, xhigh)
 **Branch:** `hg-2`, in a worktree the planner creates from `refactor/orchestration`.
-**Decisions:** D-08, D-09, D-10, D-31, HD-04, **HD-13** (supersedes HD-03), **HD-14** (refines HD-07).
+**Decisions:** D-08, D-09, D-10, D-31, HD-04, **HD-13** (supersedes HD-03), **HD-14** (refines HD-07); settled during the round: **HD-15**, **HD-16**.
 **Read first:** `docs/process.md`, this brief, `docs/hardening/decisions.md` (HD-04, HD-13, HD-14),
 `docs/hardening/findings.md` (rows DAR-001, CA-10, DAR-002, CA-14, CA-09, CA-08, CA-13, DAR-019, CA-30, DAR-023), and the
 finding records in `docs/hardening/audits/01-closing-17e8aa9/review/findings.md` (CA-08, CA-09, CA-10, CA-13, CA-14,
@@ -65,3 +65,25 @@ None new.
 4. The report lists every behaviour change visible to existing users (new exit-1 cases, new warnings, stdout mode).
 
 ## History
+
+- Merged 2026-11-06 (`4f33477`), one round, no fix round. Gate rerun by the planner: `tsc` clean, `pnpm test` 405/10
+  (was 299/10), S2 2/2, S3 1/1, S4 54/54, S5 3/3, Dart 2/2, incremental 5/5, e2e 3/3, build; no snapshot, golden,
+  ledger or baseline change. `pnpm test:stress` passed (implementer); all 1,661 `def_files` declaration files have 0
+  syntactic diagnostics.
+- Planner verification: an independent reachability recount of the three.js link graph gives the same 1,178 broken
+  symbols as the new SCC computation (was 936 under the order-dependent cache), with every reported `viaChain` a real
+  path ending at a failing edge; Leaflet stays at 0 broken. Stdout mode with `-lv` keeps stdout to the library only.
+- Decisions taken with the user during the round: **HD-15** (`--watch` in stdout mode is a usage error; repeated
+  output/base-path flags are errors; `!` negation globs; refused-flag messages read off the code) and **HD-16**
+  (dependency files are in HD-13's scope, risk accepted; a failing build prints only its failures).
+- Implementer choices kept (within the brief): additive `TranspileException.diagnostics`, `TranspilerOptions.inputRoot`,
+  `WatchSessionOptions.inputRoot`; the CLI returns an exit code instead of calling `process.exit` (stdout flushes); the
+  enum-initializer fallback (`enum.ts`) gets the same separator fix as the literal sites; a file named `..x` is no
+  longer taken for one outside `--base-path`; watch lists failures in cold-run file order.
+- Module resolution of the new extensions (as found): `./b.mjs` and `./e.cjs` resolve to `.d.mts` / `.d.cts`
+  dependencies and emit `b.dart` / `e.dart`; an extensionless `./c` does not find `c.d.mts` (TypeScript's own rule) and
+  degrades to a named typedef counted as an unresolved reference.
+- Risks and proposals not taken, registered in [../../issues.md](../../issues.md#risks-and-suggestions): `RS-01`
+  (`.d.mts`+`.d.cts` without `.d.ts` collide), `RS-02` (newer-syntax dependency typings, accepted), `RS-03` (globs
+  never reach `node_modules/`), `RS-04` (`viaChain` memory), `RS-05`–`RS-08` (three.js link warning in the README,
+  tools input rules, `-l` logs in watch, `--help` order).

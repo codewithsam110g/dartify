@@ -15,6 +15,7 @@ documentation: work on a fix still goes through a brief in `milestones/`.
 
 | ID | Found in | Platform | Symptom | Status | Fixed in |
 |----|----------|----------|---------|--------|----------|
+| I-01 | HG-3 Phase A | all | A user declaration that augments a browser type (`interface Window { myProp: string }`, in a script file or `declare global`) generates a standalone anonymous Dart class `Window` holding only the user's members: it silently shadows `dart:html`'s `Window` in that library, with no diagnostic. **Cause (HG-3):** the augmentation is treated as a new global declaration; nothing relates it to the SDK type `browserTypes.ts` maps the lib declaration to. Fix decided as HD-22 (typed extension on the SDK type). | Open | HG-3 Phase B (planned) |
 
 ## Risks and suggestions
 
@@ -33,3 +34,8 @@ that is taken up goes into a brief.
 | RS-06 | Suggestion | HG-2 | `tools/graph.ts` and `tools/ir.ts` still accept only `.d.ts` explicit inputs and fail with "No .d.ts files"; they could reuse `collectInputs()` (`src/cliInputs.ts`). | Open |
 | RS-07 | Suggestion | HG-2 | Watch mode prints the same report as a one-shot run but not the `-l` pipeline and module-resolution logs (`debug` is not passed to `WatchSession`). Candidate for HG-7 (watch state). | Open |
 | RS-08 | Suggestion | HG-2 | `--help` lists the "js_facade_gen compatibility" group before the main options; list it last. | Open |
+| RS-09 | Risk | HG-3 Phase A | **`export *` forwards the whole target library** (`export 'a.dart';`), so declarations the target's own export list omits stay visible to Dart consumers of the barrel. Possible fix: a `hide` list of the target's non-exported names. | Open |
+| RS-10 | Risk | HG-3 Phase A | **Ambient modules in dependency files under a root.** With `--js-root R`, an ambient `declare module "fs"` pulled in from a dependency (e.g. `@types/node`) now binds `R.<name>` with route diagnostics (HD-17, HD-20), where it bound `fs.<name>` before; both are guesses for a browser. Possible fix: apply the root only to ambient modules declared in input files. | Open |
+| RS-11 | Risk | HG-3 Phase A | **`import x = require("…")` and `export import x = …` are not followed by the export graph**; an export list that depends on one reports `MODULE_EXPORT_UNRESOLVED` (visible, not silent). | Open |
+| RS-12 | Suggestion | HG-3 Phase A | Barrel output formatting (predates HG-3, kept byte-exact): the `export` block runs straight into the body with no blank line, and export-only barrels end without a trailing newline. Fix in a change that re-baselines snapshots deliberately. | Open |
+| RS-13 | Suggestion | HG-3 Phase A | Documented corpus size drifted: docs say 1,654 `.d.ts` files, 1,661 are tracked (1,676 with the HG-3 fixtures). Re-measure at HG-8 (`CA-21`). | Open |

@@ -5,7 +5,7 @@
 planner's call at the Phase A review.
 **Branch:** `hg-3`, in a worktree the planner creates from `refactor/orchestration`.
 **Decisions:** D-09, D-10, D-11, D-12, D-14, D-16, D-20, D-27, D-31, HD-05, HD-06, **HD-17**, **HD-18**, **HD-19**,
-**HD-20** (agreed for this brief).
+**HD-20** (agreed for this brief), **HD-21**, **HD-22** (agreed at the Phase A review).
 **Read first:** `docs/process.md` (guardrails 13–18 especially), this brief, `docs/hardening/decisions.md` (HD-05, HD-06,
 HD-17–HD-20 — they are the spec, in detail), `docs/decisions.md` (D-09–D-12, D-14, D-16, D-27, D-31),
 `docs/hardening/findings.md` (rows DAR-003, CA-03, DAR-004, CA-06, CA-07), and the finding records in
@@ -56,7 +56,10 @@ must be byte-identical.** Leaflet: report whether anything changed and why. thre
 | ID | Item |
 |----|------|
 | HG3-10 | **Global declarations merged across files** (HD-06; CA-07). Global declarations that TypeScript merges into one symbol across files (script-file declarations and `declare global` blocks) become **one** Dart class: owned by the first declaring file in the cold run's deterministic file order (inputs, then dependencies, each sorted), with the members of every part merged by the existing D-12 rules; other files emit no partial class and import the owner where they use it. No ambiguous link edge, no `dynamic` typedef, no partial duplicate. Ownership must be identical in watch mode: add differential edits for a third part added, the owner's part removed (ownership moves), and a member added to a non-owner part. |
-| HG3-11 | **Phase B tests.** CA-07's trigger (`part1.d.ts` / `part2.d.ts`): one `Settings` class with both members, `configure(Settings settings)` typed, link report clean; three parts across three files; a merged interface plus a same-named `declare var` value; input order permuted → same output; watch differentials above. |
+| HG3-13 | **Route diagnostics per library** (HD-21). `EXPORT_ROUTE_MISSING` becomes one diagnostic per Dart library naming every unexported declaration in it; paths unchanged. Report the new three.js count. |
+| HG3-14 | **Browser/lib type augmentation** (HD-22; issue `I-01`). Exactly per HD-22: no standalone class shadowing the SDK type; an extension on the SDK type with `js_util` getters, setters (not `readonly`) and methods, typed by the usual lowering; inexpressible members counted; several augmenting files → one extension owned per HD-06. Extend the runtime probe: read, write and call an augmented `Window` (or another `dart:html` type available under the probe's runner) member. Report what happens for a lib type with no SDK mapping. |
+| HG3-15 | **Public names inside ambient modules** (HD-18 gap left by Phase A). Export lists inside `declare module "…" { … }` give Dart the TypeScript public name too (`hidden as shown` → Dart `shown`), as file modules already do. |
+| HG3-11 | **Phase B tests.** CA-07's trigger (`part1.d.ts` / `part2.d.ts`): one `Settings` class with both members, `configure(Settings settings)` typed, link report clean; three parts across three files; a merged interface plus a same-named `declare var` value; input order permuted → same output; watch differentials above; HG3-13 (three.js count, one diagnostic per library); HG3-14 (`interface Window { … }` in a script file and in `declare global`, two files augmenting it, a `readonly` member, a method with optional parameters, an inexpressible member → diagnostic, `dart:html`'s `Window` still the type used elsewhere); HG3-15 (`hidden as shown` inside an ambient module). |
 
 ## Both phases
 
@@ -70,8 +73,8 @@ None new.
 
 ## Non-goals (binding)
 
-- **Augmenting browser/lib types** (`interface Window { … }` in a user file): behaviour unchanged; report what happens
-  today in Proposals. External-module augmentations stay suppressed.
+- External-module augmentations stay suppressed. (Browser/lib type augmentation was a non-goal for Phase A; Phase B
+  fixes it per HD-22, HG3-14.)
 - Name legality after allocation (`CA-04`, `CA-05`, `DAR-005`…: HG-6), text legality (`CA-32`…: HG-5), `Date` and type
   fidelity (HG-4), watch-root prefix and watch state (`CA-02`, `CA-15`: HG-7). Note anything you see in Proposals.
 - No per-module root option beyond `--js-root` (HD-20 decided the no-root fallback).
@@ -93,3 +96,23 @@ None new.
    (Phase B: one class).
 
 ## History
+
+- Phase A done 2026-11-06 (implementer report; checkpoint commit on `hg-3`). Gate rerun by the planner: `tsc` clean,
+  `pnpm test` 449/11 (was 405/10), S2 2/2, S3 1/1, S4 54/54, S5 3/3, Dart 3/3 (new export probe; census unchanged, five
+  new empty sets), incremental 7/7, e2e 3/3, build; `pnpm test:stress` passed (implementer). Dart changes: h3, Leaflet,
+  synthetic, legacy, runtime and all 90 conformance cases byte-identical (ledger untouched); S5 fixture one HD-20 hunk
+  (`@JS("virtual-sdk.connect")` → `@JS("connect")`); three.js 2 of 421 files (`AnimationUtils.dart` +1 import-then-export
+  line; `Nodes.dart` 136 `show` lines for `export { default as X }` that resolved to nothing, 2 typedefs, 1 second
+  binding, 1 `import … as NodeUtils` pointer), no `@JS` path changed; lodash `@JS("_._")` → `@JS("_")` (`export =`).
+  Triggers shown failing on base: DAR-003 `NoSuchMethodError` ×3 at runtime, DAR-004/CA-03 consumers 24 analyzer
+  errors, CA-06 dart2js `MiniJsParser` crash.
+- Implementer choices kept: the export graph is a pure resolver recomputed whole each build from per-file records,
+  import-then-export follows import-binding records rather than the checker's alias target (a checker answer cached per
+  statement would go stale in watch mode); route order is fewest path segments, then entry file, then path, by code
+  unit; same-name re-exports `show` from the declaring library, not the intermediate barrel; watch re-renders a library
+  with alias lines every build; a new diagnostic `PUBLIC_NAME_UNAVAILABLE` (alias name already declared in the library,
+  or a namespace exported under another name); `MODULE_EXPORT_UNRESOLVED` also covers unresolvable export-list
+  elements. Watch bench: three.js leaf edit 40.1 → 47.7 ms, all builds byte-equal to cold.
+- Phase A review decisions: **HD-21** (route diagnostics per library) and **HD-22** (browser/lib type augmentation →
+  typed extension; issue `I-01`), added to Phase B as HG3-13 and HG3-14; the ambient-module public-name gap is HG3-15.
+  Risks registered: `RS-09`–`RS-13` in [../../issues.md](../../issues.md#risks-and-suggestions).

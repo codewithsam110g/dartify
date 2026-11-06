@@ -58,10 +58,11 @@ describe("the link summary (default output, no -l)", () => {
   });
 
   test("an ambiguous reference is counted", async () => {
-    // Two script files declare the same global name, so a use of it has two candidates.
+    // Two namespaces declare an `Options` and the bare name is not in scope for
+    // the checker, so a use of it has two candidates.
     const { path } = await scratch({
-      "a.d.ts": "interface Options {}\n",
-      "b.d.ts": "interface Options {}\n",
+      "a.d.ts": "declare namespace A { interface Options {} }\n",
+      "b.d.ts": "declare namespace B { interface Options {} }\n",
       "use.d.ts": "export interface Uses { options: Options }\n",
     });
     const link = (await new Transpiler({ files: [path("a.d.ts"), path("b.d.ts"), path("use.d.ts")] }).analyze()).link;

@@ -14,6 +14,7 @@ import {
 import { renderSupportLibrary, SUPPORT_PUBLIC_NAMES, supportExports } from "./support";
 import {
   emitAnonymousDefault,
+  emitAugmentation,
   emitClass,
   emitEnum,
   emitFunction,
@@ -24,7 +25,7 @@ import {
 } from "./declarations";
 import { isJsPropertyPath, jsPath } from "./declarations";
 import { LibraryPlan, siblingUri } from "./library";
-import { ProgramIndex } from "./program";
+import { ProgramIndex, sdkAugmentation } from "./program";
 import { planPublicNames, ReExport } from "./publicNames";
 import { needsRuntimePath, planRoutes, RoutePlan, umdRootOf } from "./routes";
 import { EmitContext } from "./types";
@@ -242,18 +243,15 @@ function renderLibrary(
   );
 
   const body: string[] = [];
-  const unrouted = new Set<string>();
+  // Declarations no input exports, named in one diagnostic per library (HD-21):
+  // a library such as three's `nodes/` can leave hundreds, and one line each
+  // tells the user nothing the list does not.
+  const unrouted = new Map<string, string>();
   const emitOne = ({ symbol, facet }: { symbol: Symbol; facet: SymbolFacet }) => {
     let emitted: EmittedDeclaration;
     if (routes.isMissing(symbol.fqn) && !unrouted.has(symbol.fqn)) {
-      unrouted.add(symbol.fqn);
       const bound = jsPath(facet, { ...context, currentFQN: symbol.fqn });
-      diagnostics.push({
-        code: "EXPORT_ROUTE_MISSING",
-        file: input.sourceFile,
-        name: symbol.fqn,
-        message: `${facet.ir.name} is not exported by any input file; it binds ${bound} by its own name`,
-      });
+      unrouted.set(symbol.fqn, `${facet.ir.name} (${bound})`);
     }
     try {
       emitted = emitFacet(facet, context, symbol.fqn);
@@ -278,6 +276,16 @@ function renderLibrary(
   };
 
   declared.forEach(emitOne);
+
+  if (unrouted.size > 0) {
+    const count = unrouted.size;
+    diagnostics.push({
+      code: "EXPORT_ROUTE_MISSING",
+      file: input.sourceFile,
+      name: input.sourceFile,
+      message: `${count} declaration${count === 1 ? " is" : "s are"} not exported by any input file; ${count === 1 ? "it binds" : "each binds"} its own name: ${[...unrouted.values()].join(", ")}`,
+    });
+  }
 
   // Ambient modules whose specifier cannot be an `@JS` path bind bare globals
   // when nothing supplies a root (HD-20): said once per module.
@@ -408,7 +416,7 @@ function emitFacet(
     case IRDeclKind.Class:
       return emitClass(facet, scoped);
     case IRDeclKind.Interface:
-      return emitInterface(facet, scoped);
+      return sdkAugmentation(facet) ? emitAugmentation(facet, scoped) : emitInterface(facet, scoped);
     case IRDeclKind.Function:
       return emitFunction(facet, scoped);
     case IRDeclKind.Variable:

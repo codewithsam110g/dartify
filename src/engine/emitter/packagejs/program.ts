@@ -6,7 +6,8 @@ import { IRTypeParam } from "@ir/signature";
 import { IRClass } from "@ir/class";
 import { IRInterface } from "@ir/interface";
 import { IRTypeAlias } from "@ir/typealias";
-import { TypeKind } from "@ir/type";
+import { IRHostTypeIdentity, TypeKind } from "@ir/type";
+import { isPlatformType } from "./types";
 import { forEachIRType } from "@ir/visit";
 
 /** What a resolved reference denotes on the Dart side. */
@@ -67,15 +68,33 @@ export class ProgramIndex {
     return this.shapeList;
   }
 
-  /** The emitted type facet for an FQN: class, interface, enum or alias. */
+  /**
+   * The emitted type facet for an FQN: class, interface, enum or alias. An
+   * augmentation of a platform type declares no type of its own (HD-22).
+   */
   typeFacet(fqn: string): SymbolFacet | undefined {
     for (const symbol of this.symbols.get(fqn) ?? []) {
       const facet = symbol.facets.find(
         (candidate) =>
           candidate.emit &&
-          (candidate.namespace === "type" || candidate.namespace === "both"),
+          (candidate.namespace === "type" || candidate.namespace === "both") &&
+          !sdkAugmentation(candidate),
       );
       if (facet) return facet;
+    }
+    return undefined;
+  }
+
+  /**
+   * The platform type a resolved FQN only augments (HD-22): a use of it is a
+   * use of the SDK's type, which the project's extension adds members to.
+   */
+  augmentedHost(fqn: string): IRHostTypeIdentity | undefined {
+    for (const symbol of this.symbols.get(fqn) ?? []) {
+      for (const facet of symbol.facets) {
+        const identity = sdkAugmentation(facet);
+        if (identity) return identity;
+      }
     }
     return undefined;
   }
@@ -180,6 +199,7 @@ export class ProgramIndex {
  */
 export function isShapeCandidate(facet: SymbolFacet): boolean {
   if (!facet.emit || facet.synthetic || facet.namespace !== "type") return false;
+  if (sdkAugmentation(facet)) return false;
   if (facet.ir.kind !== IRDeclKind.Interface) return false;
   const shape = facet.ir as IRInterface;
   if (shape.typeParams.length > 0) return false;
@@ -188,6 +208,18 @@ export function isShapeCandidate(facet: SymbolFacet): boolean {
   if (shape.setAccessors.length > 0) return false;
   const members = [...shape.properties, ...shape.getAccessors].filter((member) => !member.isStatic);
   return members.length >= 2 && members.length === shape.properties.length + shape.getAccessors.length;
+}
+
+/**
+ * The platform type an interface adds members to, when the backend maps the
+ * host type it merges with to an SDK class (HD-22): such an interface becomes an
+ * extension on the SDK type and no Dart type of its own. A host type with no
+ * mapping is not covered; its project declaration is an ordinary global.
+ */
+export function sdkAugmentation(facet: SymbolFacet): IRHostTypeIdentity | undefined {
+  if (!facet.emit || facet.ir.kind !== IRDeclKind.Interface) return undefined;
+  const identity = (facet.ir as IRInterface).hostAugmentation;
+  return identity && isPlatformType(identity) ? identity : undefined;
 }
 
 export function enumValueType(declaration: IREnum): "num" | "String" | "Object" {

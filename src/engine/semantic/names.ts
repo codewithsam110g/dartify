@@ -212,7 +212,11 @@ function generatedCompanionNames(
   declarationName: string,
 ): string[] {
   if (facet.ir.kind === IRDeclKind.Interface) {
-    return [`${declarationName}Extension`];
+    // A backend may emit an augmentation of a host type as an extension of
+    // its own (HD-22); its name is reserved so nothing else takes it.
+    return (facet.ir as IRInterface).hostAugmentation
+      ? [`${declarationName}Extension`, `${declarationName}Augment`]
+      : [`${declarationName}Extension`];
   }
   if (facet.ir.kind === IRDeclKind.Enum) {
     return [`${declarationName}Enum`];

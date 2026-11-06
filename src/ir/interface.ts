@@ -1,4 +1,4 @@
-import { IRType } from "./type";
+import { IRHostTypeIdentity, IRType } from "./type";
 import { IRDeclaration, IRDeclKind } from "./declaration";
 import { IRBindingName, IRNode, IRVisibility } from "./node";
 import {
@@ -19,6 +19,13 @@ export interface IRInterface extends IRDeclaration, IRBindingName {
   getAccessors: IRGetAccessor[];
   setAccessors: IRSetAccessor[];
   indexSignatures: IRIndexSignatures[];
+  /**
+   * Set when this global interface merges with a declaration of the host
+   * library (`interface Window { myProp: string }`): the identity of that host
+   * type. A backend that maps the host type to a platform class treats the
+   * members as additions to it instead of declaring a type of the same name.
+   */
+  hostAugmentation?: IRHostTypeIdentity;
 }
 
 export interface IRProperties extends IRNode, IRBindingName {

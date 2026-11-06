@@ -17,7 +17,7 @@ import { IRType, TypeKind } from "@ir/type";
 import { IRTypeAlias } from "@ir/typealias";
 import { IRVariable } from "@ir/variable";
 import { enumValueType } from "./program";
-import { aliasUnionDisplay, isPlatformType } from "./types";
+import { aliasUnionDisplay, isPlatformType, platformMapping } from "./types";
 import { BROWSER_TYPES } from "./browserTypes";
 import { codeSpan, dartDocLines, dartString } from "./text";
 import {
@@ -35,6 +35,7 @@ import {
 export interface EmitDiagnostic {
   code:
     | "ANONYMOUS_DEFAULT_NOT_BOUND"
+    | "AUGMENTATION_MEMBER_UNSUPPORTED"
     | "CONST_ENUM_MEMBER_WITHOUT_VALUE"
     | "HERITAGE_DROPPED"
     | "NATIVE_NAME_CONFLICT";
@@ -621,8 +622,11 @@ function implementable(type: IRType, context: EmitContext): boolean {
       !(isCallableOnly(ir as IRInterface, target.facet) && !typedefCycle(target.facet, context))
     );
   }
-  if (type.host) {
-    switch (type.host.qualifiedName) {
+  const identity =
+    type.host ??
+    (type.reference?.resolvedFQN ? context.index.augmentedHost(type.reference.resolvedFQN) : undefined);
+  if (identity) {
+    switch (identity.qualifiedName) {
       case "Array":
       case "ReadonlyArray":
         return true;
@@ -631,7 +635,7 @@ function implementable(type: IRType, context: EmitContext): boolean {
       case "Readonly":
         return !!type.genericArgs?.[0] && implementable(type.genericArgs[0], context);
     }
-    return isPlatformType(type.host);
+    return isPlatformType(identity);
   }
   return false;
 }
@@ -1375,6 +1379,165 @@ export function emitInterface(
       ...(hasRuntimeBinding ? nativeConflict(path, name) : []),
     ],
   };
+}
+
+/** The element type of a rest parameter (`...parts: string[]`), `any` when unknown. */
+function restOf(parameter: IRParameter): IRType {
+  const type = parameter.type;
+  if (type.kind === TypeKind.Array && type.elementType) return type.elementType;
+  if (
+    type.kind === TypeKind.TypeReference &&
+    (type.name === "Array" || type.name === "ReadonlyArray") &&
+    type.genericArgs?.length === 1
+  ) {
+    return type.genericArgs[0];
+  }
+  return { kind: TypeKind.Any, name: "any", isNullable: false };
+}
+
+/**
+ * A global interface that adds members to a platform type (HD-22):
+ *
+ *     interface Window { myProp: string; ping(n?: number): boolean }
+ *
+ * merges with the host library's `Window` in TypeScript. Dart cannot reopen
+ * `dart:html`'s class, so the members become an extension on it, reaching the
+ * JavaScript object through `js_util` because an SDK type is not an interop
+ * class. The type itself stays the SDK's everywhere (`ProgramIndex`). What an
+ * extension cannot carry (call, construct and index signatures, statics,
+ * heritage, computed names) is reported, one diagnostic each.
+ */
+export function emitAugmentation(facet: SymbolFacet, context: EmitContext): EmittedDeclaration {
+  const declaration = facet.ir as IRInterface;
+  const mapped = platformMapping(declaration.hostAugmentation!)!;
+  const sdkType = context.plan.importName(mapped.library, mapped.name);
+  const name = `${dartName(declaration)}Augment`;
+  const diagnostics: EmitDiagnostic[] = [];
+  const unsupported = (what: string) =>
+    diagnostics.push({
+      code: "AUGMENTATION_MEMBER_UNSUPPORTED",
+      name: dartName(declaration),
+      message: `${dartName(declaration)}: ${what} cannot be added to ${mapped.name} (${mapped.library}) and is not bound`,
+    });
+
+  const getProperty = context.plan.importName("package:js/js_util.dart", "getProperty");
+  const setProperty = context.plan.importName("package:js/js_util.dart", "setProperty");
+  const callMethod = context.plan.importName("package:js/js_util.dart", "callMethod");
+  const literal = (binding: IRBindingName) => dartString(unquote(jsName(binding)));
+
+  const body: string[] = [];
+  const getter = (binding: IRBindingName, type: string, doc: { jsDoc?: string }) => {
+    body.push(...docs(doc, "  "), `  ${type} get ${dartName(binding)} => ${getProperty}<${type}>(this, ${literal(binding)});`);
+  };
+  const setter = (binding: IRBindingName, type: string, parameter: string) => {
+    body.push(`  set ${dartName(binding)}(${type} ${parameter}) => ${setProperty}(this, ${literal(binding)}, ${parameter});`);
+  };
+
+  for (const property of declaration.properties) {
+    if (isComputed(property)) {
+      unsupported(`computed member ${jsName(property)}`);
+      continue;
+    }
+    if (property.isStatic) {
+      unsupported(`static member ${jsName(property)}`);
+      continue;
+    }
+    const type = propertyType(property, context);
+    getter(property, type, property);
+    if (!property.isReadonly) setter(property, type, "value");
+  }
+  for (const accessor of declaration.getAccessors) {
+    if (isComputed(accessor) || accessor.isStatic) {
+      unsupported(`${accessor.isStatic ? "static " : "computed "}accessor ${jsName(accessor)}`);
+      continue;
+    }
+    getter(accessor, emitType(accessor.type, context), accessor);
+  }
+  for (const accessor of declaration.setAccessors) {
+    if (isComputed(accessor) || accessor.isStatic) {
+      unsupported(`${accessor.isStatic ? "static " : "computed "}accessor ${jsName(accessor)}`);
+      continue;
+    }
+    setter(accessor, emitType(accessor.parameter.type, context), parameterName(accessor.parameter));
+  }
+  for (const method of declaration.methods) {
+    if (isComputed(method) || method.isStatic) {
+      unsupported(`${method.isStatic ? "static " : "computed "}method ${jsName(method)}`);
+      continue;
+    }
+    const inner = withTypeParams(context, method.typeParams);
+    const returnType = emitType(method.returnType, inner);
+    // Rest parameters are polyfilled as optional positionals (`E-31`); the
+    // arguments are collected in order and trailing unset optionals dropped,
+    // because JavaScript must see exactly the arguments given. The method has
+    // a body here, so an optional parameter must admit null.
+    const requiredParameters: string[] = [];
+    const optionalParameters: string[] = [];
+    const names: string[] = [];
+    for (const parameter of method.parameters) {
+      if (parameter.isRest) {
+        const element = restOf(parameter);
+        for (let index = 1; index <= REST_ARITY; index++) {
+          names.push(`${parameterName(parameter)}${index}`);
+          optionalParameters.push(`${nullableType(element, inner)} ${names[names.length - 1]}`);
+        }
+        continue;
+      }
+      names.push(parameterName(parameter));
+      if (parameter.isOptional || optionalParameters.length > 0) {
+        optionalParameters.push(`${nullableType(parameter.type, inner)} ${parameterName(parameter)}`);
+      } else {
+        requiredParameters.push(`${emitType(parameter.type, inner)} ${parameterName(parameter)}`);
+      }
+    }
+    const required = requiredParameters.length;
+    const parameters = [
+      ...(required > 0 ? [requiredParameters.join(", ")] : []),
+      ...(optionalParameters.length > 0 ? [`[${optionalParameters.join(", ")}]`] : []),
+    ].join(", ");
+    const signature = `${returnType} ${dartName(method)}${emitTypeParams(method.typeParams, inner)}(${parameters})`;
+    const returns = method.returnType.kind === TypeKind.Void ? "" : "return ";
+    const call = `${callMethod}<${returnType}>(this, ${literal(method)}, `;
+    body.push(...docs(method, "  "));
+    if (required === names.length) {
+      body.push(`  ${signature} => ${call}[${names.join(", ")}]);`);
+    } else {
+      body.push(
+        `  ${signature} {`,
+        `    final args = <Object?>[${names.join(", ")}];`,
+        `    while (args.length > ${required} && args.last == null) {`,
+        `      args.removeLast();`,
+        `    }`,
+        `    ${returns}${call}args);`,
+        `  }`,
+      );
+    }
+  }
+  for (const signature of declaration.callSignatures) {
+    void signature;
+    unsupported("a call signature");
+  }
+  for (const signature of declaration.constructSignatures) {
+    void signature;
+    unsupported("a construct signature");
+  }
+  for (const signature of declaration.indexSignatures) {
+    void signature;
+    unsupported("an index signature");
+  }
+  if (declaration.extends.length > 0) unsupported("an extends clause");
+  if (declaration.typeParams.length > 0) unsupported("type parameters");
+
+  const lines =
+    body.length === 0
+      ? [`// ${dartName(declaration)} adds nothing Dart can express to ${mapped.name} (${mapped.library}).`]
+      : [
+          `/// Members this project adds to \`${mapped.name}\` (${mapped.library}), which TypeScript merges into the host type.`,
+          `extension ${name} on ${sdkType} {`,
+          ...body,
+          "}",
+        ];
+  return { lines, diagnostics };
 }
 
 export function emitFunction(facet: SymbolFacet, context: EmitContext): EmittedDeclaration {

@@ -16,5 +16,7 @@ stamp
 lodash
 bare:w
 bare:made
+bare:hidden
 pkg:w
 pkg:made
+pkg:shown

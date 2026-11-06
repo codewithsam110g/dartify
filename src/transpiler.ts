@@ -220,6 +220,7 @@ export class Transpiler {
         namespaceExports,
         moduleExports,
         [...run.inputFiles.keys()].sort(),
+        [...run.inputFiles.keys(), ...run.packageDepFiles.keys()],
       );
       if (this.debug) {
         printGenerationDiagnostics(generation);
@@ -389,9 +390,13 @@ export class Transpiler {
           ),
         );
       }
-      program = await runLinker(symbolTable, namespaceExports, moduleExports, [
-        filePath,
-      ]);
+      program = await runLinker(
+        symbolTable,
+        namespaceExports,
+        moduleExports,
+        [filePath],
+        [filePath],
+      );
 
       const rendered = renderAllFiles(program, ".", dirname(filePath), debug);
       // Exactly one input file, so at most one rendered output.

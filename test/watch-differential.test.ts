@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { afterAll, describe, expect, test } from "vitest";
@@ -13,6 +13,7 @@ import { LinkReport } from "../src/engine/phase/linkerPhase";
  */
 
 const FIXTURE = resolve("def_files/synthetic/watch");
+const GLOBALS_FIXTURE = resolve("def_files/synthetic/watch_globals");
 const INPUTS = ["base.d.ts", "derived.d.ts", "grand.d.ts", "other.d.ts", "barrel.d.ts", "script.d.ts"];
 
 function canonical(value: unknown): string {
@@ -210,6 +211,96 @@ describe("watch mode equals a cold compilation after every edit", () => {
 
   test("export-list edits, without a root", async () => {
     await runExportEdits(undefined);
+  }, 120_000);
+
+  /**
+   * Global declarations merged across files (HD-06): the owner is the first
+   * declaring file in the run's file order, so a part added, a member changed
+   * or an owner removed moves what every other file emits. The session names
+   * its inputs by glob so the edits can add and delete whole files.
+   */
+  test("global merge edits: parts added, owners removed, members changed", async () => {
+    const root = mkdtempSync(join(tmpdir(), "dartify-differential-globals-"));
+    roots.push(root);
+    cpSync(GLOBALS_FIXTURE, root, { recursive: true });
+    const files = [join(root, "*.d.ts")];
+    const outDir = join(root, "out");
+    const session = new WatchSession({ files, outDir });
+
+    const write = (name: string, text: string) => writeFileSync(join(root, name), text);
+    const edit = (name: string, apply: (text: string) => string) =>
+      write(name, apply(readFileSync(join(root, name), "utf8")));
+    const remove = (name: string) => unlinkSync(join(root, name));
+    const settingsOf = (member: string) => replace("interface Settings {\n", `interface Settings {\n  ${member}\n`);
+
+    const edits: { name: string; run: () => void; touched: string[] }[] = [
+      {
+        name: "a third part is added (sorts last)",
+        run: () => write("z_extra.d.ts", "interface Settings {\n  extra: boolean;\n}\ndeclare function useExtra(s: Settings): void;\n"),
+        touched: ["z_extra.d.ts"],
+      },
+      { name: "a member is added to a non-owner part", run: () => edit("b.d.ts", settingsOf("y: string;")), touched: ["b.d.ts"] },
+      { name: "a member is added to the owner part", run: () => edit("a.d.ts", settingsOf("age: number;")), touched: ["a.d.ts"] },
+      {
+        name: "a part is added that sorts first (ownership moves to it)",
+        run: () => write("0_first.d.ts", "interface Settings {\n  first: number;\n}\ndeclare var marker: number;\n"),
+        touched: ["0_first.d.ts"],
+      },
+      {
+        name: "the owner's part is removed (ownership moves on)",
+        run: () => edit("0_first.d.ts", replace("interface Settings {\n  first: number;\n}\n", "")),
+        touched: ["0_first.d.ts"],
+      },
+      { name: "the owner file is deleted", run: () => remove("a.d.ts"), touched: ["a.d.ts"] },
+      {
+        name: "the owner file is restored",
+        run: () =>
+          write(
+            "a.d.ts",
+            "interface Settings {\n  theme: string;\n}\ndeclare function configure(s: Settings): void;\ndeclare namespace NS {\n  interface Opt {\n    a: number;\n  }\n}\n",
+          ),
+        touched: ["a.d.ts"],
+      },
+      {
+        name: "the declare global part changes",
+        run: () => edit("m.d.ts", replace("    locale: string;\n", "    locale: string;\n    region?: string;\n")),
+        touched: ["m.d.ts"],
+      },
+      {
+        name: "the module stops declaring a global",
+        run: () => edit("m.d.ts", replace(/declare global \{[\s\S]*?\n\}\n/, "")),
+        touched: ["m.d.ts"],
+      },
+      {
+        name: "the module declares it again",
+        run: () => edit("m.d.ts", (text) => `${text}declare global {\n  interface Settings {\n    locale: string;\n  }\n}\n`),
+        touched: ["m.d.ts"],
+      },
+      {
+        name: "a same-named value in another file joins the symbol",
+        run: () => write("v.d.ts", "declare var Settings: { defaults(): Settings; LEVEL: number };\n"),
+        touched: ["v.d.ts"],
+      },
+      { name: "that value is deleted", run: () => remove("v.d.ts"), touched: ["v.d.ts"] },
+      {
+        name: "an overload is added in a third file",
+        run: () => edit("z_extra.d.ts", (text) => `${text}declare function configure(s: Settings, n: number, m: number): void;\n`),
+        touched: ["z_extra.d.ts"],
+      },
+      {
+        name: "an ordinary module changes",
+        run: () => edit("plain.d.ts", replace("export declare function plain", "export declare function other(): void;\nexport declare function plain")),
+        touched: ["plain.d.ts"],
+      },
+      { name: "identical rewrite of the owner", run: () => edit("a.d.ts", (text) => text), touched: ["a.d.ts"] },
+    ];
+
+    await expectEquivalent(await session.build(), files, outDir, "initial build");
+    for (const step of edits) {
+      step.run();
+      const build = await session.build(step.touched.map((name) => join(root, name)));
+      await expectEquivalent(build, files, outDir, step.name);
+    }
   }, 120_000);
 
   /** Edits real corpora, comparing every incremental build with a cold one. */

@@ -44,6 +44,10 @@ export const FIXTURE_SETS: Record<string, string[]> = {
   ),
   ambient: ["def_files/synthetic/exports/ambient/ambient.d.ts"],
   ambient_rooted: ["def_files/synthetic/exports/ambient/ambient.d.ts"],
+  // Global declarations merged across files (HD-06) and browser type augmentation (HD-22);
+  // see def_files/synthetic/globals/README.md.
+  globals_merge: ["part1", "part2", "part3"].map((name) => `def_files/synthetic/globals/merge/${name}.d.ts`),
+  globals_augment: ["a_window", "b_more"].map((name) => `def_files/synthetic/globals/augment/${name}.d.ts`),
 };
 
 /** `--js-root` per set: three's typings are ES modules; its browser global is THREE. */
@@ -147,5 +151,17 @@ describe.skipIf(!ENABLED)("Dart acceptance gate", () => {
     writeFileSync(join(root, "exports_run.cjs"), 'require("./exports_probe.js");\nrequire("./exports_out.js");\n');
     const stdout = run("node", ["exports_run.cjs"], root);
     expect(stdout).toBe(readFileSync(resolve("def_files/synthetic/exports/main.expected"), "utf8"));
+  }, 600_000);
+
+  test("dart2js output merges globals across files and augments browser types at runtime", () => {
+    // Settings declared in three files is one class; the extension on
+    // dart:html's Window reads, writes and calls members of the page's global.
+    mkdirSync(join(root, "web"), { recursive: true });
+    copyFileSync(resolve("def_files/synthetic/globals/main.dart"), join(root, "web", "globals_main.dart"));
+    copyFileSync(resolve("def_files/synthetic/globals/probe.js"), join(root, "globals_probe.js"));
+    run("dart", ["compile", "js", "-o", "globals_out.js", "web/globals_main.dart"], root);
+    writeFileSync(join(root, "globals_run.cjs"), 'require("./globals_probe.js");\nrequire("./globals_out.js");\n');
+    const stdout = run("node", ["globals_run.cjs"], root);
+    expect(stdout).toBe(readFileSync(resolve("def_files/synthetic/globals/main.expected"), "utf8"));
   }, 600_000);
 });

@@ -1,6 +1,6 @@
 import { Symbol, SymbolFacet } from "@/symbol";
 import { sourceFileOfFQN } from "@/symbol/fqn";
-import { localPathOf } from "@/symbol/exports";
+import { ambientModuleId, localPathOf } from "@/symbol/exports";
 import { IRDeclKind } from "@ir/declaration";
 import { IRTypeParam } from "@ir/signature";
 import { legalDartName } from "@engine/semantic/keywords";
@@ -150,6 +150,8 @@ export function planPublicNames(
             symbol,
             facet,
             declaredIn,
+            // The module whose export list names it: the file's, or an ambient module's.
+            entry: record.module !== undefined ? ambientModuleId(record.module) : input.sourceFile,
             written: describeElement(element.from, element.name, record.specifier),
             publicName: element.name,
             aliasName: expected,
@@ -195,6 +197,8 @@ interface AliasTarget {
   symbol: Symbol;
   facet: SymbolFacet;
   declaredIn: string;
+  /** The export graph module whose export list gives the public name. */
+  entry: string;
   /** The export statement, for the doc comment. */
   written: string;
   /** The TypeScript public name. */
@@ -216,7 +220,7 @@ function aliasFor(
 
   if (kind === IRDeclKind.Function || kind === IRDeclKind.Variable) {
     const renamed = { ...facet, ir: { ...facet.ir, dartName: aliasName } } as SymbolFacet;
-    const own = context.routes?.routedAs(fqn, input.sourceFile, target.publicName);
+    const own = context.routes?.routedAs(fqn, target.entry, target.publicName);
     const scoped: EmitContext = {
       ...context,
       currentFQN: fqn,

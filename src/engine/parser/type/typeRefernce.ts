@@ -93,7 +93,7 @@ export function collectTypeDep(
   return collectReference(node).reference;
 }
 
-function hostIdentityOf(
+export function hostIdentityOf(
   symbol: ts.Symbol,
   declarations: readonly ts.Node[],
 ): IRHostTypeIdentity | undefined {

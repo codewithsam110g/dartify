@@ -15,7 +15,7 @@ export interface SemanticDiagnostic {
 export interface SemanticRedirect {
   fromFQN: string;
   toFQN: string;
-  reason: "anonymousCanonicalization" | "constructorCompanion";
+  reason: "anonymousCanonicalization" | "constructorCompanion" | "globalMerge";
 }
 
 export interface SuppressedAugmentation {

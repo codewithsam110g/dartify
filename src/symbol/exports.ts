@@ -629,11 +629,18 @@ export function linkModuleExports(
   const byFile = new Map<string, ResolvedModuleExport[]>();
   const diagnostics: ModuleExportDiagnostic[] = [];
   for (const file of [...table.keys()].sort()) {
-    const index = graph.index(file);
+    const fileIndex = graph.index(file);
     const resolved: ResolvedModuleExport[] = [];
     for (const record of table.get(file) ?? []) {
-      // Ambient-module records describe that module, not this file's library.
-      if (!isExportRecord(record) || record.module !== undefined || !index) continue;
+      if (!isExportRecord(record)) continue;
+      // An ambient module's records describe that module, not this file's
+      // library, with one exception: its own export list names the public
+      // names this library's declarations carry (`export { a as b }`), exactly
+      // as a file module's does (HD-18).
+      const ambient = record.module !== undefined;
+      if (ambient && (record.kind !== "named" || record.specifier !== undefined)) continue;
+      const index = ambient ? graph.index(ambientModuleId(record.module!)) : fileIndex;
+      if (!index) continue;
 
       if (record.kind === "assignment") {
         const name = record.expression.split(".")[0];
@@ -738,8 +745,9 @@ function computeRoutes(
 /**
  * Public names for declarations exported only under an alias (HD-18):
  * `declare function hidden(): void; export { hidden as publicName }` is emitted
- * as `publicName`, so the alias needs no typedef. Per-file facts only (a
- * declaration, its modifiers and its own file's export list), so a watch
+ * as `publicName`, so the alias needs no typedef. This holds inside an ambient
+ * module's export list as well as a file module's. Per-file facts only (a
+ * declaration, its modifiers and its own module's export list), so a watch
  * session computes it file by file with the same result as a cold run.
  */
 export function aliasOnlyNames(
@@ -747,49 +755,66 @@ export function aliasOnlyNames(
   symbols: ReadonlyMap<string, readonly ProgramSymbol[]>,
 ): Map<string, string> {
   const result = new Map<string, string>();
-  for (const [file, records] of table) {
-    const exportRecords = records.filter(
-      (record): record is ExportRecord => isExportRecord(record) && record.module === undefined,
-    );
-    if (exportRecords.length === 0) continue;
-    const imported = new Set(
-      records.flatMap((record) =>
-        record.kind === "import" && record.module === undefined
-          ? record.bindings.map((binding) => binding.local)
-          : [],
-      ),
-    );
-    // Names each local binding is exported under, in source order.
-    const publicNames = new Map<string, string[]>();
-    const ownName = new Set<string>();
-    for (const record of exportRecords) {
-      if (record.kind === "assignment") {
-        if (IDENTIFIER.test(record.expression)) ownName.add(record.expression);
-        continue;
-      }
-      if (record.kind !== "named" || record.specifier !== undefined) continue;
-      for (const element of record.elements) {
-        const local = element.propertyName ?? element.name;
-        if (
-          element.propertyName === undefined ||
-          element.propertyName === element.name ||
-          element.name === "default"
-        ) {
-          ownName.add(local);
-        } else if (IDENTIFIER.test(element.name)) {
-          publicNames.set(local, [...(publicNames.get(local) ?? []), element.name]);
-        }
+  // FQNs of an ambient module's top-level declarations, built when one needs it.
+  let ambientHeads: Map<string, string> | undefined;
+  const ambientFQN = (file: string, specifier: string, name: string): string | undefined => {
+    if (!ambientHeads) {
+      ambientHeads = new Map();
+      for (const [fqn, group] of symbols) {
+        const facet = group[0]?.facets[0];
+        const scope = facet?.origin.scopes[0];
+        if (!facet || facet.origin.scopes.length !== 1 || scope?.kind !== "externalModule") continue;
+        ambientHeads.set(`${facet.origin.filePath}\u0000${scope.specifier}\u0000${facet.ir.name}`, fqn);
       }
     }
-    for (const [local, names] of publicNames) {
-      if (ownName.has(local) || imported.has(local)) continue;
-      const fqn = `${file}::${local}`;
-      const group = symbols.get(fqn);
-      const facet = group?.[0]?.facets[0];
-      if (!group || !facet || !facet.origin.fileIsModule || facet.origin.scopes.length > 0) continue;
-      const kinds = group.flatMap((symbol) => symbol.facets.map((each) => each.ir.modifiers.exportKind));
-      if (kinds.some((kind) => kind !== "none")) continue;
-      result.set(fqn, names[0]);
+    return ambientHeads.get(`${file}\u0000${specifier}\u0000${name}`);
+  };
+
+  for (const [file, records] of table) {
+    // The file's own module, then each ambient module it declares.
+    const specifiers = new Set<string | undefined>(records.map((record) => record.module));
+    for (const specifier of specifiers) {
+      const own = records.filter((record) => record.module === specifier);
+      const exportRecords = own.filter(isExportRecord);
+      if (exportRecords.length === 0) continue;
+      const imported = new Set(
+        own.flatMap((record) => (record.kind === "import" ? record.bindings.map((binding) => binding.local) : [])),
+      );
+      // Names each local binding is exported under, in source order.
+      const publicNames = new Map<string, string[]>();
+      const ownName = new Set<string>();
+      for (const record of exportRecords) {
+        if (record.kind === "assignment") {
+          if (IDENTIFIER.test(record.expression)) ownName.add(record.expression);
+          continue;
+        }
+        if (record.kind !== "named" || record.specifier !== undefined) continue;
+        for (const element of record.elements) {
+          const local = element.propertyName ?? element.name;
+          if (
+            element.propertyName === undefined ||
+            element.propertyName === element.name ||
+            element.name === "default"
+          ) {
+            ownName.add(local);
+          } else if (IDENTIFIER.test(element.name)) {
+            publicNames.set(local, [...(publicNames.get(local) ?? []), element.name]);
+          }
+        }
+      }
+      for (const [local, names] of publicNames) {
+        if (ownName.has(local) || imported.has(local)) continue;
+        const fqn = specifier === undefined ? `${file}::${local}` : ambientFQN(file, specifier, local);
+        if (!fqn) continue;
+        const group = symbols.get(fqn);
+        const facet = group?.[0]?.facets[0];
+        if (!group || !facet) continue;
+        // A file module's own top-level declaration, or an ambient module's.
+        if (specifier === undefined && (!facet.origin.fileIsModule || facet.origin.scopes.length > 0)) continue;
+        const kinds = group.flatMap((symbol) => symbol.facets.map((each) => each.ir.modifiers.exportKind));
+        if (kinds.some((kind) => kind !== "none")) continue;
+        result.set(fqn, names[0]);
+      }
     }
   }
   return result;

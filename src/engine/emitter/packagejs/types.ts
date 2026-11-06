@@ -416,8 +416,12 @@ function reference(type: IRType, context: EmitContext): Emitted {
     return nullable(plain(`${name}${args}`), type.isNullable);
   }
 
-  // 3. Host environment type, matched by checker identity.
-  if (type.host) return host(type, type.host, context);
+  // 3. Host environment type, matched by checker identity: also a platform
+  // type the project only adds members to (HD-22), whose uses stay the SDK's.
+  const hostIdentity =
+    type.host ??
+    (type.reference?.resolvedFQN ? context.index.augmentedHost(type.reference.resolvedFQN) : undefined);
+  if (hostIdentity) return host(type, hostIdentity, context);
 
   // 4. A project reference the linker could not resolve.
   const written = type.reference?.writtenName ?? type.name;
@@ -460,7 +464,7 @@ function irAdmitsNull(type: IRType, context: EmitContext, seen: Set<string>): bo
         return !context.scope.has(type.name);
       }
       const target = context.index.typeTarget(fqn);
-      if (!target) return true;
+      if (!target) return context.index.augmentedHost(fqn) === undefined;
       if (target.kind !== "type" || target.facet.ir.kind !== "typeAlias") return false;
       if (seen.has(fqn)) return true;
       seen.add(fqn);
@@ -533,7 +537,7 @@ export function isPlatformType(identity: IRHostTypeIdentity): boolean {
   return platformMapping(identity) !== undefined;
 }
 
-function platformMapping(
+export function platformMapping(
   identity: IRHostTypeIdentity,
 ): { library: string; name: string } | undefined {
   if (identity.family !== "typescript") return undefined;

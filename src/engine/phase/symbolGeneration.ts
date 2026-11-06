@@ -11,9 +11,12 @@ import { TranspileException } from "@/transpiler";
 import { SymbolTable } from "@/symbol/table";
 import { ModuleExportRecord, ModuleExportTable } from "@/symbol/exports";
 import { IRDeclarationUnion } from "@ir/declaration";
+import { IRHostTypeIdentity } from "@ir/type";
 import { createFQN, createFQNPrefix } from "@/symbol/fqn";
 import { ParseContext } from "@parser/context";
 import { cloneData } from "@ir/clone";
+import { hostIdentityOf } from "@parser/type/typeRefernce";
+import { isStdlibFile } from "@/resolution/stdlib";
 
 /** `export as namespace X` aliases, keyed by declaring file. Run-owned. */
 export type NamespaceExports = Map<string, Set<string>>;
@@ -629,7 +632,34 @@ class SymbolGenerator {
       node,
       this.parseContext(fqn, filePath),
     );
+    const augmented = this.hostAugmentationOf(node);
+    if (augmented) parsedInterface.hostAugmentation = augmented;
     this.register(fqn, SymbolType.INTERFACE, parsedInterface, filePath);
+  }
+
+  /**
+   * The host library type a global interface merges with, if any (HD-22):
+   * `interface Window { … }` in a script file or `declare global` adds to the
+   * lib's `Window` rather than declaring a type. Only a declaration visible to
+   * every file can merge with the host's; a module's own interface cannot.
+   */
+  private hostAugmentationOf(
+    node: ts.InterfaceDeclaration,
+  ): IRHostTypeIdentity | undefined {
+    const scopes = this.moduleScopes;
+    const global =
+      scopes.length === 0
+        ? !this.fileIsModule
+        : scopes.length === 1 && scopes[0].kind === "global";
+    if (!global) return undefined;
+    // The name's symbol is the program-wide merged one; the node's own is the
+    // file-local binder symbol, which knows only this file's declaration.
+    const symbol = node.getNameNode().getSymbol();
+    if (!symbol) return undefined;
+    const hostDeclarations = symbol
+      .getDeclarations()
+      .filter((declaration) => isStdlibFile(declaration.getSourceFile().getFilePath()));
+    return hostDeclarations.length > 0 ? hostIdentityOf(symbol, hostDeclarations) : undefined;
   }
 
   private processTypeAliasDeclaration(

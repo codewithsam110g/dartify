@@ -68,6 +68,7 @@ globalThis.Widget = class {
   }
 };
 globalThis.make = () => new globalThis.Widget("made");
+globalThis.hidden = () => "bare:hidden"; // export { hidden as shown }: no root, the local name
 
 // ambient/ambient.d.ts with --js-root PKG.
 const PkgWidget = class {
@@ -78,4 +79,4 @@ const PkgWidget = class {
     return `pkg:${this.name}`;
   }
 };
-globalThis.PKG = { Widget: PkgWidget, make: () => new PkgWidget("made") };
+globalThis.PKG = { Widget: PkgWidget, make: () => new PkgWidget("made"), shown: () => "pkg:shown" };

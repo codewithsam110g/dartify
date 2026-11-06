@@ -136,9 +136,11 @@ declaration happens to be written:
 
 Only the files you name are entry points; their dependencies are followed.
 A value no input exports (an internal class a signature mentions) keeps
-`R.<its name>` and is reported as `EXPORT_ROUTE_MISSING`; two different values
-at one path are reported as `EXPORT_PATH_CONFLICT`. Without a root nothing
-changes: module declarations bind bare globals.
+`R.<its name>` and is reported as `EXPORT_ROUTE_MISSING`, once per library with
+every such name listed (three.js leaves 740 of them in 218 libraries, so
+that is 218 diagnostics, not 740); two different values at one path are
+reported as `EXPORT_PATH_CONFLICT`. Without a root nothing changes: module
+declarations bind bare globals.
 
 **Barrels expose the TypeScript public names.** Dart cannot rename on `export`,
 so a name a module exports under a different name is declared in its library:
@@ -168,6 +170,41 @@ JavaScript property path (`h3`) is kept as the path prefix (`@JS("h3.fn")`);
 any other specifier (`@scope/pkg`, `my-lib`) cannot appear in an `@JS` string
 (dart2js crashes on it), so its values bind bare globals and the run reports
 `AMBIENT_MODULE_UNROOTED`; pass `--js-root` to bind them under one global.
+An export list inside an ambient module gives Dart the TypeScript public name
+as it does for a file (`export { hidden as shown }` declares `shown`).
+
+### Globals declared in several files
+
+TypeScript merges a global declaration across files: `interface Settings` in
+two script files (or in a script file and a `declare global { … }` block) is one
+symbol. dartify makes it one Dart class, owned by the first declaring file in
+the run's file order (the inputs, then their dependencies, each sorted). The
+members of every part are merged by the same rules as parts in one file; the
+other files emit no partial class and import the owner where they use it. A
+file left with nothing to declare produces no library. Watch mode keeps the
+same owner as a cold run.
+
+**Augmenting a browser type.** `interface Window { myProp: string }` in a
+script file or `declare global` does not declare a new type; it adds to the
+`Window` TypeScript's lib already has, which dartify maps to `dart:html`'s
+`Window`. The members become an extension on the SDK type, reached through
+`package:js/js_util.dart`, in the owning file's library:
+
+```dart
+extension WindowAugment on Window {
+  String get myProp => getProperty<String>(this, "myProp");
+  set myProp(String value) => setProperty(this, "myProp", value);
+}
+```
+
+Readonly members get no setter; optional parameters admit null and trailing
+unset ones are not sent, so JavaScript sees exactly the arguments given. What
+an extension cannot carry (call, construct and index signatures, statics,
+`extends`, computed names) is not bound and is reported as
+`AUGMENTATION_MEMBER_UNSUPPORTED`. Everywhere else `Window` is still the SDK's
+type. A lib type with no platform mapping (`Math`, `Array`, an
+`HTMLElementTagNameMap` of your own entries) is an ordinary merged global: a
+class holding only the members the project declares.
 
 ### What counts as input, and when a run fails
 

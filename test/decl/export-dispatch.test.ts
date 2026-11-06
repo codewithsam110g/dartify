@@ -208,9 +208,9 @@ describe("dispatch follows the module's exports (HD-17)", () => {
           helperFn: "Root.helperFn",
         });
         const missing = diagnostics.filter((line) => line.startsWith("[EXPORT_ROUTE_MISSING]"));
+        // One diagnostic for the library, naming both (HD-21).
         expect(missing.map((line) => line.replace(/^\[\w+\] /, ""))).toEqual([
-          "Hidden is not exported by any input file; it binds Root.Hidden by its own name",
-          "helperFn is not exported by any input file; it binds Root.helperFn by its own name",
+          "2 declarations are not exported by any input file; each binds its own name: Hidden (Root.Hidden), helperFn (Root.helperFn)",
         ]);
       },
     );
@@ -229,7 +229,7 @@ describe("dispatch follows the module's exports (HD-17)", () => {
         // The JavaScript has no `Thing` export, so it is reported and keeps its own name.
         expect(bindings(dart.get("a.d.ts")!)).toEqual({ Thing: "Root.Thing", Real: "Root.Real" });
         expect(diagnostics).toEqual([
-          "[EXPORT_ROUTE_MISSING] Thing is not exported by any input file; it binds Root.Thing by its own name",
+          "[EXPORT_ROUTE_MISSING] 1 declaration is not exported by any input file; it binds its own name: Thing (Root.Thing)",
         ]);
       },
     );
@@ -533,7 +533,7 @@ describe("ambient modules (HD-20)", () => {
       },
       { jsRoot: "G" },
       (program) => {
-        expect(bindings(program.dart.get("ambient.d.ts")!)).toEqual({ main: "G", LEVEL: "G.LEVEL", hidden: "G.shown" });
+        expect(bindings(program.dart.get("ambient.d.ts")!)).toEqual({ main: "G", LEVEL: "G.LEVEL", shown: "G.shown" });
         expectValidPaths(program);
       },
     );
@@ -554,7 +554,7 @@ describe("ambient modules (HD-20)", () => {
       (program) => {
         expect(bindings(program.dart.get("ambient.d.ts")!)).toEqual({ main: "G.main", internal: "G.internal" });
         expect(program.diagnostics).toEqual([
-          "[EXPORT_ROUTE_MISSING] internal is not exported by any input file; it binds G.internal by its own name",
+          "[EXPORT_ROUTE_MISSING] 1 declaration is not exported by any input file; it binds its own name: internal (G.internal)",
         ]);
       },
     );

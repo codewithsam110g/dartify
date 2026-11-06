@@ -25,6 +25,8 @@ void main() {
   print(callable.LEVEL);
   print(bare.Widget('w').label());
   print(bare.make().label());
+  print(bare.shown());
   print(rooted.Widget('w').label());
   print(rooted.make().label());
+  print(rooted.shown());
 }

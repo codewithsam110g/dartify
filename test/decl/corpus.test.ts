@@ -145,4 +145,25 @@ describe.skipIf(!ENABLED)("S3 declaration fidelity corpus census", () => {
       true,
     );
   }, 60_000);
+
+  // Under a root, three.js leaves 740 declarations that no input exports, 610
+  // of them in `nodes/`; they are reported once per library, not once each (HD-21).
+  test("three.js under --js-root THREE reports unexported declarations once per library", async () => {
+    const report = await new Transpiler({
+      files: [resolve("def_files/three/src/Three.Core.d.ts")],
+      jsRoot: "THREE",
+    }).render();
+    const missing = [...report.files.values()].flatMap((file) =>
+      file.diagnostics.filter((diagnostic) => diagnostic.code === "EXPORT_ROUTE_MISSING"),
+    );
+    const librariesWithMissing = new Set(missing.map((diagnostic) => diagnostic.file));
+    expect(missing).toHaveLength(218);
+    expect(librariesWithMissing.size).toBe(missing.length);
+    // Nothing is hidden: every declaration is still named, with its path.
+    const named = missing.reduce(
+      (count, diagnostic) => count + (diagnostic.message.match(/ \(THREE\.[^)]*\)/g) ?? []).length,
+      0,
+    );
+    expect(named).toBe(740);
+  }, 120_000);
 });

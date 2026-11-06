@@ -21,6 +21,10 @@
     "barrels": {},
     "ambient": {},
     "ambient_rooted": {},
+    "globals_merge": {},
+    "globals_augment": {
+      "INFO DEPRECATED_MEMBER_USE": 1
+    },
     "consumers": {}
   }
 }

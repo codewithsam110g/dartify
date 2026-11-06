@@ -156,13 +156,13 @@ the amount of code it writes.
     && pnpm test:s5:fixture && pnpm test:dart && pnpm test:incremental && pnpm test:e2e && pnpm build
   ```
 
-  `test:dart` and `test:e2e` need a Dart SDK on `PATH` (the baseline is Dart 3.13). `pnpm test:stress` (1,654-file
-  corpus, ~6–8 min) runs once when a gate or milestone closes, not every round. CI (`.github/workflows/ci.yml`) runs
+  `test:dart` and `test:e2e` need a Dart SDK on `PATH` (the baseline is Dart 3.13). `pnpm test:stress` (1,685-file
+  corpus, ~2 min) runs once when a gate or milestone closes, not every round. CI (`.github/workflows/ci.yml`) runs
   `tsc`, `test`, `build`, `test:coverage`, `test:incremental`, `test:dart` and `test:e2e` on every push.
-- **Current gate counts** (re-measured at every milestone close; drift is a finding — `CA-21`): suite 449 passed /
-  11 skipped (`test/cli.test.ts` bundles the CLI into the git-ignored `output/` and spawns it, ~1 s); e2e 3/3; incremental 7/7; S2 2/2; S3 1/1; S4 53/53 (54/54 measured by the release audit); S5 fixture
-  3/3; Dart gate 3/3; conformance 67/90 parity + 16 improved + 2 differ + 5 out of scope; h3 golden 63/63; stress
-  1,655/1,655 files (the runtime probe is the 1,655th; 719 empty outputs are barrels and comment-only files). The
+- **Current gate counts** (re-measured at every milestone close; drift is a finding — `CA-21`): suite 467 passed /
+  13 skipped (`test/cli.test.ts` bundles the CLI into the git-ignored `output/` and spawns it, ~1 s); e2e 3/3; incremental 8/8; S2 2/2; S3 2/2; S4 54/54; S5 fixture
+  3/3; Dart gate 4/4; conformance 67/90 parity + 16 improved + 2 differ + 5 out of scope; h3 golden 63/63; stress
+  1,685/1,685 files (one run each; 726 empty outputs are barrels and comment-only files). The
   protected S3 input floor is 2,530 declarations. Coverage (v8, `output/coverage/`) ~90 % lines, no threshold.
 - **Test tiers:** `simple` (sanity) · `smoke` (3 files, byte-exact snapshots) · `conformance` (90 js_facade_gen cases +
   the h3 golden, default suite) · `test:s2` (link corpus) · `test:s3` (declaration-fidelity census) · `test:s4`

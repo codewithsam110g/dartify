@@ -7,6 +7,7 @@ import { aliasOnlyNames, ModuleExportTable } from "@/symbol/exports";
 import { sourceFileOfFQN } from "@/symbol/fqn";
 import { SymbolTable, SymbolTableDraft } from "@/symbol/table";
 import { anonymousShapeKey } from "./shape";
+import { FileOrder, mergeGlobalDeclarations } from "./globals";
 import { mergeDeclarationGroups } from "./merge";
 import { assignSemanticNames } from "./names";
 import {
@@ -22,9 +23,12 @@ export interface SemanticPassResult {
 }
 
 /** Runs every pre-link semantic rewrite against a detached table draft. */
-export function runSemanticPass(symbolTable: SymbolTable): SemanticPassResult {
+export function runSemanticPass(
+  symbolTable: SymbolTable,
+  fileOrder?: FileOrder,
+): SemanticPassResult {
   return symbolTable.transaction((table) => {
-    const result = runSemanticPassOnDraft(table);
+    const result = runSemanticPassOnDraft(table, new Map(), fileOrder);
     return result;
   });
 }
@@ -37,6 +41,7 @@ export function runSemanticPass(symbolTable: SymbolTable): SemanticPassResult {
 export function runSemanticPassOnDraft(
   table: SymbolTableDraft,
   exportRecords: ModuleExportTable = new Map(),
+  fileOrder?: FileOrder,
 ): SemanticPassResult {
   const input: ReadonlyMap<string, readonly Symbol[]> = new Map(table);
   const report = emptySemanticReport();
@@ -67,6 +72,8 @@ export function runSemanticPassOnDraft(
   const draft = cloneAndConsolidate(input);
   suppressExternalAugmentations(draft, report);
   const redirects = canonicalizeAnonymousSymbols(draft, report);
+  // Before the per-group merges, so they see every part of a global (HD-06).
+  mergeGlobalDeclarations(draft, report, redirects, fileOrder);
   mergeDeclarationGroups(draft, report, redirects);
   rewriteRedirects(draft, redirects);
 

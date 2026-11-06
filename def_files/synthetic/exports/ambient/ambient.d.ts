@@ -5,4 +5,7 @@ declare module "@scope/pkg" {
     label(): string;
   }
   export function make(): Widget;
+  // Exported only under another name: Dart gets `shown` (HD-18).
+  function hidden(): string;
+  export { hidden as shown };
 }

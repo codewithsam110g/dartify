@@ -34,7 +34,23 @@ export const FIXTURE_SETS: Record<string, string[]> = {
   legacy: fg.sync("def_files/legacy_tests/*.d.ts").sort(),
   three: ["def_files/three/src/Three.Core.d.ts"],
   runtime: ["def_files/synthetic/runtime/probe.d.ts"],
+  // Module and export identity (HD-17 to HD-20); see def_files/synthetic/exports/README.md.
+  exports: [
+    "def_files/synthetic/exports/rooted/entry.d.ts",
+    "def_files/synthetic/exports/rooted/callable.d.ts",
+  ],
+  barrels: ["chain", "rename", "import", "namespace"].map(
+    (name) => `def_files/synthetic/exports/barrels/${name}.d.ts`,
+  ),
+  ambient: ["def_files/synthetic/exports/ambient/ambient.d.ts"],
+  ambient_rooted: ["def_files/synthetic/exports/ambient/ambient.d.ts"],
 };
+
+/** `--js-root` per set: three's typings are ES modules; its browser global is THREE. */
+const JS_ROOTS: Record<string, string> = { three: "THREE", exports: "Root", ambient_rooted: "PKG" };
+
+/** Hand-written Dart that imports generated libraries; analyzed with them. */
+const CONSUMERS = "def_files/synthetic/exports/consumers";
 
 type Census = Record<string, Record<string, number>>;
 
@@ -61,9 +77,12 @@ describe.skipIf(!ENABLED)("Dart acceptance gate", () => {
       await new Transpiler({
         files: files.map((file) => resolve(file)),
         outDir: join(root, "lib", set),
-        // three's typings are ES modules; its browser global is THREE.
-        ...(set === "three" ? { jsRoot: "THREE" } : {}),
+        ...(JS_ROOTS[set] ? { jsRoot: JS_ROOTS[set] } : {}),
       }).transpile();
+    }
+    mkdirSync(join(root, "lib", "consumers"), { recursive: true });
+    for (const file of fg.sync(`${CONSUMERS}/*.dart`)) {
+      copyFileSync(resolve(file), join(root, "lib", "consumers", file.split("/").pop()!));
     }
     // Every js_facade_gen reference case must also analyze (S6.1).
     mkdirSync(join(root, "lib", "conformance"), { recursive: true });
@@ -88,7 +107,7 @@ describe.skipIf(!ENABLED)("Dart acceptance gate", () => {
       output = `${failure.stdout ?? ""}\n${failure.stderr ?? ""}`;
     }
     const census: Census = Object.fromEntries(
-      [...Object.keys(FIXTURE_SETS), "conformance"].map((set) => [set, {}]),
+      [...Object.keys(FIXTURE_SETS), "conformance", "consumers"].map((set) => [set, {}]),
     );
     for (const line of output.split("\n")) {
       const fields = line.split("|");
@@ -114,5 +133,19 @@ describe.skipIf(!ENABLED)("Dart acceptance gate", () => {
     writeFileSync(join(root, "run.cjs"), 'require("./probe.js");\nrequire("./out.js");\n');
     const stdout = run("node", ["run.cjs"], root);
     expect(stdout).toBe(readFileSync(resolve("def_files/synthetic/runtime/main.expected"), "utf8"));
+  }, 600_000);
+
+  test("dart2js output follows the exports at runtime", () => {
+    // Every case compiles a program that imports the generated libraries the
+    // way a consumer would, and runs it against JavaScript shaped like what
+    // TypeScript and bundlers emit (default and `export =` modules, renamed
+    // and re-exported names, namespace re-exports, ambient modules).
+    mkdirSync(join(root, "web"), { recursive: true });
+    copyFileSync(resolve("def_files/synthetic/exports/main.dart"), join(root, "web", "exports_main.dart"));
+    copyFileSync(resolve("def_files/synthetic/exports/probe.js"), join(root, "exports_probe.js"));
+    run("dart", ["compile", "js", "-o", "exports_out.js", "web/exports_main.dart"], root);
+    writeFileSync(join(root, "exports_run.cjs"), 'require("./exports_probe.js");\nrequire("./exports_out.js");\n');
+    const stdout = run("node", ["exports_run.cjs"], root);
+    expect(stdout).toBe(readFileSync(resolve("def_files/synthetic/exports/main.expected"), "utf8"));
   }, 600_000);
 });

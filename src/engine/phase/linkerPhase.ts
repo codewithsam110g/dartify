@@ -113,19 +113,26 @@ export interface LinkedProgram {
   readonly report: LinkReport;
 }
 
+/**
+ * `inputFiles` are the files the user named. Runtime export routes (HD-17) are
+ * the property paths an input exports a declaration under, so what is an input
+ * and what is a dependency has to reach the export graph.
+ */
 export async function runLinker(
   symbolTable: SymbolTable,
   namespaceExports: NamespaceExports,
   moduleExports: ModuleExportTable = new Map(),
+  inputFiles: readonly string[] = [],
 ): Promise<LinkedProgram> {
   // The run's table is consumed here: the linker takes ownership instead of
   // copying, and the result becomes the caller's `LinkedProgram`.
   const symbols = symbolTable.release();
-  const semantic = runSemanticPassOnDraft(symbols);
+  const semantic = runSemanticPassOnDraft(symbols, moduleExports);
   const report = linkDraft(symbols, namespaceExports, semantic);
   const linkedExports = linkModuleExports(
     structuredClone(moduleExports),
-    symbols.keys(),
+    symbols,
+    inputFiles,
   );
   report.moduleExportDiagnostics = [...linkedExports.diagnostics];
   return {

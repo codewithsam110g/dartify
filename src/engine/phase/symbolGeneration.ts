@@ -195,10 +195,23 @@ class SymbolGenerator {
     private readonly freshFQNs?: Set<string>,
   ) {}
 
+  /**
+   * Records a statement that describes a module's exports. A file-level
+   * statement belongs to the file's module; one directly inside
+   * `declare module "x" { … }` belongs to that ambient module and is tagged
+   * with its specifier. Anything deeper (inside a namespace, or in a module
+   * augmentation, which is suppressed) describes no module of its own.
+   */
   private recordExport(filePath: string, record: ModuleExportRecord): void {
-    // Only file-level export statements describe the file's module. Exports
-    // inside `declare module "x"` blocks belong to that ambient module.
-    if (this.moduleScopes.length > 0) return;
+    const [scope, ...deeper] = this.moduleScopes;
+    if (scope !== undefined) {
+      if (deeper.length > 0 || scope.kind !== "externalModule" || scope.isAugmentation) return;
+      record = { ...record, module: scope.specifier };
+    }
+    this.pushRecord(filePath, record);
+  }
+
+  private pushRecord(filePath: string, record: ModuleExportRecord): void {
     let records = this.moduleExports.get(filePath);
     if (!records) this.moduleExports.set(filePath, (records = []));
     records.push(record);
@@ -375,8 +388,9 @@ class SymbolGenerator {
       if (!aliases) this.namespaceExports.set(filePath, (aliases = new Set()));
       entry.namespaceAliases.forEach((alias) => aliases!.add(alias));
     }
+    // Already tagged with their ambient module when first captured.
     for (const record of entry.exportRecords) {
-      this.recordExport(filePath, { ...structuredClone(record), line: record.line + delta });
+      this.pushRecord(filePath, { ...structuredClone(record), line: record.line + delta });
     }
     for (const error of entry.errors) {
       errors.push(
@@ -565,6 +579,39 @@ class SymbolGenerator {
         break;
       }
 
+      case ts.SyntaxKind.ImportDeclaration: {
+        // Imports declare nothing, but an export list can name what they bind
+        // (`import { A } from "./a"; export { A }`), so the graph needs them.
+        const declaration = statement as ts.ImportDeclaration;
+        const bindings: { local: string; imported: string; isTypeOnly: boolean }[] = [];
+        const defaultImport = declaration.getDefaultImport();
+        if (defaultImport) {
+          bindings.push({ local: defaultImport.getText(), imported: "default", isTypeOnly: false });
+        }
+        const namespaceImport = declaration.getNamespaceImport();
+        if (namespaceImport) {
+          bindings.push({ local: namespaceImport.getText(), imported: "*", isTypeOnly: false });
+        }
+        for (const element of declaration.getNamedImports()) {
+          bindings.push({
+            local: element.getAliasNode()?.getText() ?? element.getName(),
+            imported: element.getName(),
+            isTypeOnly: element.isTypeOnly(),
+          });
+        }
+        if (bindings.length === 0) break;
+        const target = declaration.getModuleSpecifierSourceFile();
+        this.recordExport(filePath, {
+          kind: "import",
+          bindings,
+          specifier: declaration.getModuleSpecifierValue(),
+          ...(target ? { targetFile: String(target.getFilePath()).split("\\").join("/") } : {}),
+          isTypeOnly: declaration.isTypeOnly(),
+          line: declaration.getStartLineNumber(),
+        });
+        break;
+      }
+
       default:
         // Ignore unhandled top-level statements for symbol generation (e.g., Imports, Exports, etc.)
         // It's normal for files to contain logic that doesn't generate new public declarations in our IR.
@@ -664,6 +711,16 @@ class SymbolGenerator {
     errors: TranspileException[],
   ): Promise<void> {
     const scope = this.moduleScope(node);
+    if (scope.kind === "namespace") {
+      // The symbol table has no symbol for a namespace itself, so whether it
+      // is exported is recorded for the export graph.
+      this.recordExport(filePath, {
+        kind: "scope",
+        name: scope.jsSegments[0] ?? scope.sourceName,
+        exported: node.hasExportKeyword(),
+        line: node.getStartLineNumber(),
+      });
+    }
     try {
       this.moduleScopes.push(scope);
       const statements = node.getStatements();

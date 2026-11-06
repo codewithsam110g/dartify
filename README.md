@@ -63,9 +63,11 @@ deprecation info.
   tool's registry, re-validated against the current SDK) — matched on the
   TypeScript checker's declaration identity, never on spelling, so your own
   `HtmlElement` is never confused with the platform's.
-- **Barrels become libraries.** `export * from "./x"` becomes
-  `export 'x.dart';`, with names two sources both supply hidden as TypeScript
-  does.
+- **Barrels become libraries** that expose the TypeScript public names:
+  `export * from "./x"` becomes `export 'x.dart';` (names two sources both
+  supply are hidden, as TypeScript does), names are followed through chains of
+  barrels, and a renamed export gets its public name (see
+  [Modules, barrels and runtime paths](#modules-barrels-and-runtime-paths)).
 - `Promise<T>` is a typed interop class: `await load().toFuture()`.
 
 ## Getting started
@@ -115,6 +117,57 @@ dart_bindgen -d "node_modules/@types/three/index.d.ts" -o ./generated --js-root 
 
 Libraries that declare `export as namespace X` (Leaflet's `L`) get that root
 automatically.
+
+### Modules, barrels and runtime paths
+
+**Dispatch follows the exports.** With a root (`--js-root R`, or the library's
+own `export as namespace R`) every value binds to the path its package really
+exports it under, read off the declaration files you pass, not off where the
+declaration happens to be written:
+
+- `export { Widget as Gadget } from "./widgets"` binds `R.Gadget`;
+- a default export of an input file binds `R.default`
+  (`export { default as Tool } from "./tool"` binds `R.Tool`);
+- `export = fn` makes `fn` the root itself, so `declare namespace fn { … }`
+  members bind `R.member` (the lodash shape), not `R.fn.member`;
+- `export * as ns from "./m"` adds `ns.` to the path (`R.ns.foo`);
+- a declaration reachable by several routes takes the most direct one, then the
+  first input in path order; they all denote one JavaScript object.
+
+Only the files you name are entry points; their dependencies are followed.
+A value no input exports (an internal class a signature mentions) keeps
+`R.<its name>` and is reported as `EXPORT_ROUTE_MISSING`; two different values
+at one path are reported as `EXPORT_PATH_CONFLICT`. Without a root nothing
+changes: module declarations bind bare globals.
+
+**Barrels expose the TypeScript public names.** Dart cannot rename on `export`,
+so a name a module exports under a different name is declared in its library:
+
+| TypeScript | Dart |
+|---|---|
+| `export { A } from "./b"` (b re-exports `./a`), `import { A } from "./a"; export { A }` | `export 'a.dart' show A;` |
+| `declare function hidden(): void; export { hidden as publicName }` | emitted as `publicName` |
+| `export { A as B } from "./a"` (class, interface, enum, type alias) | `typedef B<T> = A<T>;` (constructors and static members work through it) |
+| `export { f as g } from "./a"` (function, variable) | a second `external` binding of `g` |
+| `export { default as X } from "./a"` | `X` (a bare `default` keeps the declaration's name) |
+
+**`export * as ns from "./m"`** has no Dart spelling that carries types, so the
+barrel does not re-export `ns`. It carries a comment with the line that gives
+the same names, and `m.dart` is always generated:
+
+```dart
+// export * as ns from './m': import 'm.dart' as ns;
+```
+
+Write that import where you use it: `ns.foo()` and `ns.Widget` both work. The
+run counts it as a `NAMESPACE_REEXPORT_NOT_FORWARDED` diagnostic.
+
+**Ambient modules** (`declare module "@scope/pkg" { … }` in a script file) bind
+under `--js-root` like any module. Without a root, a specifier that is a valid
+JavaScript property path (`h3`) is kept as the path prefix (`@JS("h3.fn")`);
+any other specifier (`@scope/pkg`, `my-lib`) cannot appear in an `@JS` string
+(dart2js crashes on it), so its values bind bare globals and the run reports
+`AMBIENT_MODULE_UNROOTED`; pass `--js-root` to bind them under one global.
 
 ### What counts as input, and when a run fails
 

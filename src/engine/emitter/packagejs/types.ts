@@ -4,6 +4,7 @@ import { IRTypeAlias } from "@ir/typealias";
 import { BROWSER_TYPES } from "./browserTypes";
 import { LibraryPlan, isSupportToken, supportBase } from "./library";
 import { ProgramIndex } from "./program";
+import type { RoutePlan } from "./routes";
 import { codeSpan, dartString } from "./text";
 
 /**
@@ -33,6 +34,10 @@ export interface EmitContext {
   jsRoot?: string;
   /** FQN of the declaration being emitted. */
   currentFQN?: string;
+  /** Where export routes put each declaration at runtime (HD-17). */
+  routes?: RoutePlan;
+  /** Binds the declaration at exactly this path (a public name's second binding, HD-18). */
+  pathOverride?: string;
 }
 
 /** A use of a name from the shared support library, if there is one. */

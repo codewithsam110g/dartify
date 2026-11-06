@@ -9,6 +9,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import { dirname, extname, join, relative } from "path";
 import { Symbol } from "@/symbol";
+import { ResolvedModuleExport } from "@/symbol/exports";
 import { sourceFileOfFQN } from "@/symbol/fqn";
 import { TranspileException } from "@/transpiler";
 import { isDeclarationFileName, stripDeclarationSuffix } from "@/resolution/declarationFile";
@@ -62,20 +63,39 @@ export function renderAllFiles(
       .map(([file]) => file),
   );
   // Barrels: files whose only content is re-exports of rendered files,
-  // possibly through other barrels.
+  // possibly through other barrels, or pointers to a namespace re-export
+  // (HD-19). A namespace's target is always rendered: the pointer names its
+  // `import … as ns`, which must exist even when that is the only route to it.
+  const namespaceTargets = (record: ResolvedModuleExport): string[] => [
+    ...(record.kind === "namespace" && record.targetFile ? [record.targetFile] : []),
+    ...(record.kind === "named"
+      ? (record.resolvedElements ?? []).flatMap((element) =>
+          element.namespaceFile ? [element.namespaceFile] : [],
+        )
+      : []),
+  ];
+  const reexportsRendered = (record: ResolvedModuleExport): boolean => {
+    if (namespaceTargets(record).length > 0) return true;
+    if (record.kind === "star") return record.targetFile !== undefined && emitting.has(record.targetFile);
+    if (record.kind !== "named") return false;
+    if (record.targetFile !== undefined && emitting.has(record.targetFile)) return true;
+    // A name re-exported through a chain or an import is declared elsewhere.
+    return (record.resolvedElements ?? []).some((element) =>
+      element.fqns.some((fqn) => emitting.has(sourceFileOfFQN(fqn))),
+    );
+  };
   let changed = true;
   while (changed) {
     changed = false;
     for (const [file, records] of program.moduleExports.byFile) {
-      if (emitting.has(file)) continue;
-      const reexportsRendered = records.some(
-        (record) =>
-          (record.kind === "star" || record.kind === "named") &&
-          record.targetFile !== undefined &&
-          emitting.has(record.targetFile),
-      );
-      if (reexportsRendered) {
+      if (!emitting.has(file) && records.some(reexportsRendered)) {
         emitting.add(file);
+        changed = true;
+      }
+      if (!emitting.has(file)) continue;
+      for (const target of records.flatMap(namespaceTargets)) {
+        if (emitting.has(target)) continue;
+        emitting.add(target);
         changed = true;
       }
     }

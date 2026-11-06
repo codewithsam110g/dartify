@@ -219,6 +219,7 @@ export class Transpiler {
         symbolTable,
         namespaceExports,
         moduleExports,
+        [...run.inputFiles.keys()].sort(),
       );
       if (this.debug) {
         printGenerationDiagnostics(generation);
@@ -388,7 +389,9 @@ export class Transpiler {
           ),
         );
       }
-      program = await runLinker(symbolTable, namespaceExports, moduleExports);
+      program = await runLinker(symbolTable, namespaceExports, moduleExports, [
+        filePath,
+      ]);
 
       const rendered = renderAllFiles(program, ".", dirname(filePath), debug);
       // Exactly one input file, so at most one rendered output.

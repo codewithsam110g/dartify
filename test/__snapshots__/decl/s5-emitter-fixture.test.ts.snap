@@ -81,7 +81,7 @@ abstract class Remote {
   external bool get connected;
 }
 
-@JS("virtual-sdk.connect")
+@JS("connect")
 external Promise<Remote> connect(String url);
 ",
       "output": "ambient.dart",

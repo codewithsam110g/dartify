@@ -86,18 +86,38 @@ function unquote(name: string): string {
   return match ? match[2] : name;
 }
 
-/** The JavaScript object path of a top-level facet. */
+/** `a`, `a.b`: a specifier JavaScript can address as a property path. */
+export function isJsPropertyPath(specifier: string): boolean {
+  return /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(specifier);
+}
+
+/**
+ * The JavaScript object path of a top-level facet.
+ *
+ * Under a root the path an input file exports the declaration under decides
+ * (HD-17); a declaration none exports keeps `<root>.<local name>`. Without a
+ * root a module's declarations bind bare globals — except an ambient module
+ * whose specifier is itself a valid path (`h3`), which prefixes it as before;
+ * any other specifier (`@scope/pkg`) cannot appear in an `@JS` string
+ * (dart2js crashes on it), so those bind bare globals too (HD-20).
+ */
 export function jsPath(facet: SymbolFacet, context?: EmitContext): string {
-  const segments = facet.origin.scopes.flatMap((scope) => {
-    if (scope.kind === "global") return [];
-    if (scope.kind === "namespace") return scope.jsSegments.map(unquote);
-    return [scope.specifier];
-  });
+  if (context?.pathOverride) return context.pathOverride;
+  const routed = context?.currentFQN ? context.routes?.routed(context.currentFQN) : undefined;
+  if (routed) return routed;
+
+  const scopes = facet.origin.scopes;
   // A module that declares `export as namespace L` is reached at runtime
   // through the global `L` (UMD), so its declarations bind `L.<name>`
   // (`E-42`). `declare global` declarations stay global.
-  const isGlobal = facet.origin.scopes.some((scope) => scope.kind === "global");
-  const root = !isGlobal && facet.origin.fileIsModule ? context?.jsRoot : undefined;
+  const isGlobal = scopes.some((scope) => scope.kind === "global");
+  const isAmbientModule = scopes[0]?.kind === "externalModule";
+  const root = isGlobal ? undefined : isAmbientModule || facet.origin.fileIsModule ? context?.jsRoot : undefined;
+  const segments = scopes.flatMap((scope) => {
+    if (scope.kind === "global") return [];
+    if (scope.kind === "namespace") return scope.jsSegments.map(unquote);
+    return root === undefined && isJsPropertyPath(scope.specifier) ? [scope.specifier] : [];
+  });
   return [...(root ? [root] : []), ...segments, unquote(jsName(facet.ir))].join(".");
 }
 

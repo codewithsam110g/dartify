@@ -16,6 +16,11 @@
     "runtime": {},
     "conformance": {
       "INFO DEPRECATED_MEMBER_USE": 3
-    }
+    },
+    "exports": {},
+    "barrels": {},
+    "ambient": {},
+    "ambient_rooted": {},
+    "consumers": {}
   }
 }

@@ -299,7 +299,7 @@ export class WatchSession {
     );
     const semantic = mergeSemanticResults([...this.states.values()].map((state) => state.semantic));
     const report = summarizeLinks(allEdges, linkDiagnostics, table.keys(), semantic);
-    const moduleExports = linkModuleExports(moduleExportTable, table.keys());
+    const moduleExports = linkModuleExports(moduleExportTable, table, [...this.run.inputFiles.keys()].sort());
     report.moduleExportDiagnostics = [...moduleExports.diagnostics];
     const program: LinkedProgram = { symbols: table, namespaceExports, moduleExports, report };
     const linkTime = lap();
@@ -390,7 +390,7 @@ export class WatchSession {
       })),
     ];
     const groups = table.release();
-    const semantic = runSemanticPassOnDraft(groups);
+    const semantic = runSemanticPassOnDraft(groups, moduleExports);
     const keys = fingerprints(groups, semantic, this.states.get(file), freshFQNs);
     return {
       groups,

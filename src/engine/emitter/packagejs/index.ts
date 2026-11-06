@@ -22,8 +22,11 @@ import {
   emitTypeAlias,
   emitVariable,
 } from "./declarations";
+import { isJsPropertyPath, jsPath } from "./declarations";
 import { LibraryPlan, siblingUri } from "./library";
 import { ProgramIndex } from "./program";
+import { planPublicNames, ReExport } from "./publicNames";
+import { needsRuntimePath, planRoutes, RoutePlan, umdRootOf } from "./routes";
 import { EmitContext } from "./types";
 
 const TYPE_DEFINITIONS_HEADER = [
@@ -59,13 +62,22 @@ export function createPackageJsBackend(options: PackageJsOptions = {}): Backend 
     ): Map<string, RenderedLibrary> {
       if (inputs.length === 0) return new Map();
       const index = new ProgramIndex(inputs[0].program.symbols, inputs[0].outputPathOfFile);
+      // Paths depend on other files' export lists, so they are planned once per
+      // render over the whole program (HD-17).
+      const routes = planRoutes(inputs[0].program, options.jsRoot);
       const drafts = new Map<string, LibraryDraft>();
       for (const input of inputs) {
         const cached = session?.cache.get(input.sourceFile) as LibraryDraft | undefined;
-        const draft =
-          cached && !session!.dirty.has(input.sourceFile)
-            ? cached
-            : renderLibrary(input, index, options);
+        // A library re-renders when its own file changed, when what the export
+        // graph says about it changed (its declarations' paths, what its export
+        // lists resolve to), or when it declares additional public names, which
+        // copy signatures from other files.
+        const reusable =
+          cached !== undefined &&
+          !session!.dirty.has(input.sourceFile) &&
+          !cached.volatile &&
+          cached.routeKey === exportKeyOf(input, index, routes);
+        const draft = reusable ? cached : renderLibrary(input, index, options, routes);
         session?.cache.set(input.sourceFile, draft);
         drafts.set(input.sourceFile, draft);
       }
@@ -83,14 +95,20 @@ export function createPackageJsBackend(options: PackageJsOptions = {}): Backend 
           diagnostics: [],
           publicNames: new Set(SUPPORT_PUBLIC_NAMES),
           reExports: [],
+          comments: [],
+          volatile: false,
+          routeKey: "",
         });
       }
       const hidden = resolveExports(drafts);
       const result = new Map<string, RenderedLibrary>();
       for (const [file, draft] of drafts) {
-        const exportLines = draft.reExports
-          .map((directive) => formatExport(directive, hidden.get(file)?.get(directive.uri) ?? []))
-          .filter((line): line is string => line !== undefined);
+        const exportLines = [
+          ...draft.reExports
+            .map((directive) => formatExport(directive, hidden.get(file)?.get(directive.uri) ?? []))
+            .filter((line): line is string => line !== undefined),
+          ...draft.comments,
+        ];
         result.set(file, {
           content: draft.content.replace(
             EXPORTS_MARKER,
@@ -106,16 +124,15 @@ export function createPackageJsBackend(options: PackageJsOptions = {}): Backend 
 
 const EXPORTS_MARKER = "\uE010EXPORTS\uE011";
 
-interface ReExport {
-  uri: string;
-  targetFile: string;
-  /** `show` list, or undefined for an unfiltered `export *`. */
-  show?: string[];
-}
-
 interface LibraryDraft extends RenderedLibrary {
   publicNames: Set<string>;
   reExports: ReExport[];
+  /** Lines after the `export` directives (`export * as ns` pointers, HD-19). */
+  comments: string[];
+  /** States public names, which depend on other files: never served from the cache. */
+  volatile: boolean;
+  /** What the route plan said about this library when it was rendered. */
+  routeKey: string;
 }
 
 function formatExport(directive: ReExport, hide: readonly string[]): string | undefined {
@@ -196,19 +213,22 @@ function resolveExports(
 function renderLibrary(
   input: LibraryInput,
   index: ProgramIndex,
-  options: PackageJsOptions = {},
+  options: PackageJsOptions,
+  routes: RoutePlan,
 ): LibraryDraft {
   const plan = new LibraryPlan(input.outputPath);
+  const root = umdRootOf(input.program, input.sourceFile) ?? options.jsRoot;
   const context: EmitContext = {
     plan,
     index,
     file: input.sourceFile,
     scope: new Map(),
     outputPath: input.outputPath,
-    ...((namespaceRoot(input) ?? options.jsRoot) ? { jsRoot: (namespaceRoot(input) ?? options.jsRoot)! } : {}),
+    routes,
+    ...(root ? { jsRoot: root } : {}),
     ...(input.supportPath ? { shared: { path: input.supportPath, used: new Set<string>() } } : {}),
   };
-  const diagnostics: BackendDiagnostic[] = [];
+  const diagnostics: BackendDiagnostic[] = [...routes.conflictsOf(input.sourceFile)];
 
   const facets = (symbols: readonly Symbol[]) =>
     symbols.flatMap((symbol) =>
@@ -222,8 +242,19 @@ function renderLibrary(
   );
 
   const body: string[] = [];
+  const unrouted = new Set<string>();
   const emitOne = ({ symbol, facet }: { symbol: Symbol; facet: SymbolFacet }) => {
     let emitted: EmittedDeclaration;
+    if (routes.isMissing(symbol.fqn) && !unrouted.has(symbol.fqn)) {
+      unrouted.add(symbol.fqn);
+      const bound = jsPath(facet, { ...context, currentFQN: symbol.fqn });
+      diagnostics.push({
+        code: "EXPORT_ROUTE_MISSING",
+        file: input.sourceFile,
+        name: symbol.fqn,
+        message: `${facet.ir.name} is not exported by any input file; it binds ${bound} by its own name`,
+      });
+    }
     try {
       emitted = emitFacet(facet, context, symbol.fqn);
     } catch (error) {
@@ -247,12 +278,42 @@ function renderLibrary(
   };
 
   declared.forEach(emitOne);
+
+  // Ambient modules whose specifier cannot be an `@JS` path bind bare globals
+  // when nothing supplies a root (HD-20): said once per module.
+  const unrooted = new Map<string, Set<string>>();
+  if (!context.jsRoot) {
+    for (const { symbol, facet } of declared) {
+      const scope = facet.origin.scopes[0];
+      if (scope?.kind !== "externalModule" || isJsPropertyPath(scope.specifier)) continue;
+      if (!needsRuntimePath(symbol)) continue;
+      const names = unrooted.get(scope.specifier) ?? new Set<string>();
+      names.add(symbol.fqn);
+      unrooted.set(scope.specifier, names);
+    }
+  }
+  for (const [specifier, names] of [...unrooted].sort(([a], [b]) => a.localeCompare(b))) {
+    diagnostics.push({
+      code: "AMBIENT_MODULE_UNROOTED",
+      file: input.sourceFile,
+      name: specifier,
+      message: `ambient module "${specifier}" has no JavaScript global to bind under: its ${names.size} value(s) bind bare globals; pass --js-root <global> to bind them under one`,
+    });
+  }
+
+  // The public names of this library's module that are not its declarations'
+  // own names (HD-18), and the namespace re-exports Dart cannot forward (HD-19).
+  const names = planPublicNames(input, index, context);
+  for (const line of names.aliasLines) declareTopLevel(plan, line);
+  body.push(...names.aliasLines);
+  diagnostics.push(...names.diagnostics);
+
   if (minted.length > 0) {
     body.push(...TYPE_DEFINITIONS_HEADER, "");
     minted.forEach(emitOne);
   }
 
-  const directives = reExports(input, index);
+  const directives = names.directives;
   // A library that uses shared support names re-exports them, so users get
   // `Promise` and its `toFuture` extension from the library they import.
   if (context.shared && context.shared.used.size > 0) {
@@ -287,13 +348,39 @@ function renderLibrary(
     declareTopLevel({ declare: (name) => publicNames.add(name) }, line);
   }
   for (const name of [...publicNames]) if (name.startsWith("_")) publicNames.delete(name);
-  return { content, diagnostics, publicNames, reExports: directives };
+  return {
+    content,
+    diagnostics,
+    publicNames,
+    reExports: directives,
+    comments: names.comments,
+    // An additional public name copies a signature from the declaration's own
+    // file, so such a library is never served from the cache.
+    volatile: names.aliasLines.length > 0,
+    routeKey: exportKeyOf(input, index, routes),
+  };
 }
 
-/** The first `export as namespace` alias the source file declares. */
-function namespaceRoot(input: LibraryInput): string | undefined {
-  const aliases = input.program.namespaceExports.get(input.sourceFile);
-  return aliases && aliases.size > 0 ? [...aliases].sort()[0] : undefined;
+/**
+ * Everything the export graph contributes to one library besides its own text:
+ * its declarations' runtime paths, what its export lists resolve to, and the
+ * Dart names those resolve to (the `show` lists spell them).
+ */
+function exportKeyOf(input: LibraryInput, index: ProgramIndex, routes: RoutePlan): string {
+  const key = routes.keyOf(input.sourceFile);
+  if (input.moduleExports.length === 0) return key;
+  const dartNames = input.moduleExports.flatMap((record) =>
+    record.kind === "named"
+      ? (record.resolvedElements ?? []).flatMap((element) =>
+          element.fqns.map((fqn) =>
+            (index.symbols.get(fqn) ?? []).flatMap((symbol) =>
+              symbol.facets.filter((facet) => facet.emit).map((facet) => facet.ir.dartName ?? facet.ir.name),
+            ),
+          ),
+        )
+      : [],
+  );
+  return JSON.stringify([key, input.moduleExports, dartNames]);
 }
 
 function emitFacet(
@@ -315,19 +402,21 @@ function emitFacet(
       },
     };
   }
+  // The declaration's FQN decides its runtime path, so every kind carries it.
+  const scoped = { ...context, currentFQN: fqn };
   switch (facet.ir.kind) {
     case IRDeclKind.Class:
-      return emitClass(facet, { ...context, currentFQN: fqn });
+      return emitClass(facet, scoped);
     case IRDeclKind.Interface:
-      return emitInterface(facet, { ...context, currentFQN: fqn });
+      return emitInterface(facet, scoped);
     case IRDeclKind.Function:
-      return emitFunction(facet, context);
+      return emitFunction(facet, scoped);
     case IRDeclKind.Variable:
-      return emitVariable(facet, context);
+      return emitVariable(facet, scoped);
     case IRDeclKind.TypeAlias:
-      return emitTypeAlias(facet, context);
+      return emitTypeAlias(facet, scoped);
     case IRDeclKind.Enum:
-      return emitEnum(facet, context);
+      return emitEnum(facet, scoped);
   }
 }
 
@@ -363,37 +452,6 @@ function declareTopLevel(plan: Pick<LibraryPlan, "declare">, line: string): void
       }
     }
   }
-}
-
-/** Re-export directives from module export records (§8.2, §8.3). */
-function reExports(input: LibraryInput, index: ProgramIndex): ReExport[] {
-  const byUri = new Map<string, ReExport>();
-  for (const record of input.moduleExports) {
-    if (record.kind !== "star" && record.kind !== "named") continue;
-    if (!record.targetFile) continue;
-    const target = input.outputPathOfFile.get(record.targetFile);
-    if (!target || record.targetFile === input.sourceFile) continue;
-    const uri = siblingUri(input.outputPath, target);
-    if (record.kind === "star") {
-      byUri.set(uri, { uri, targetFile: record.targetFile });
-      continue;
-    }
-    const names = new Set<string>();
-    for (const fqn of record.targets) {
-      for (const symbol of index.symbols.get(fqn) ?? []) {
-        for (const facet of symbol.facets) {
-          if (facet.emit) names.add(facet.ir.dartName ?? facet.ir.name);
-        }
-      }
-    }
-    const existing = byUri.get(uri);
-    if (existing && !existing.show) continue;
-    const show = new Set([...(existing?.show ?? []), ...names]);
-    if (show.size > 0) {
-      byUri.set(uri, { uri, targetFile: record.targetFile, show: [...show].sort() });
-    }
-  }
-  return [...byUri.values()].sort((a, b) => a.uri.localeCompare(b.uri));
 }
 
 /** A keyword-safe library identifier (`E-33`). */

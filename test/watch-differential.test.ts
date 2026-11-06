@@ -110,13 +110,45 @@ const EDITS: Edit[] = [
   { name: "no-op: identical rewrite", file: "base.d.ts", apply: (text) => text },
 ];
 
+/**
+ * Edits to export lists. They change other files' output without touching
+ * those files (a name's runtime path comes from whoever exports it, a public
+ * name is declared from the declaration it points at), which is what a cache
+ * keyed on the edited file alone would get wrong (HD-17, HD-18, D-16).
+ */
+const EXPORT_EDITS: Edit[] = [
+  // The barrel already star-exports `unbox`; a name that sorts before it takes over as the path.
+  { name: "exports: a re-export under a second name is added", file: "barrel.d.ts", apply: (text) => `${text}export { unbox as aaUnbox } from "./derived";\n` },
+  { name: "exports: the public name is renamed", file: "barrel.d.ts", apply: replace("unbox as aaUnbox", "unbox as aaUnboxed") },
+  {
+    name: "exports: a new file re-exports that name, two hops from the declaration",
+    file: "grand.d.ts",
+    creates: { "chain.d.ts": 'export { aaUnboxed as viaChain } from "./barrel";\n' },
+    apply: (text) => `${text}export * from "./chain";\n`,
+  },
+  { name: "exports: the signature behind a second binding changes", file: "derived.d.ts", apply: replace("export declare function unbox<T extends Shape>(box: Box<T>): T;", "export declare function unbox<T extends Shape>(box: Box<T>, strict?: boolean): T;") },
+  { name: "exports: a type gets a second public name", file: "barrel.d.ts", apply: (text) => `${text}export { Shape as Form } from "./base";\n` },
+  { name: "exports: that name is renamed", file: "barrel.d.ts", apply: replace("Shape as Form", "Shape as Figure") },
+  { name: "exports: the declaration changes under it", file: "base.d.ts", apply: replace("export interface Shape {\n  id: string;\n}", "export interface Shape {\n  id: string;\n  tag?: number;\n}") },
+  { name: "exports: an import is exported (import, then export)", file: "barrel.d.ts", apply: (text) => `import { Level } from "./base";\n${text}export { Level as Tier };\n` },
+  { name: "exports: a declaration is exported only under an alias", file: "other.d.ts", apply: (text) => `${text}declare function secret(): void;\nexport { secret as revealed };\n` },
+  { name: "exports: that alias is renamed", file: "other.d.ts", apply: replace("secret as revealed", "secret as shown") },
+  { name: "exports: a namespace re-export is added", file: "barrel.d.ts", apply: (text) => `${text}export * as inner from "./other";\n` },
+  { name: "exports: the namespace re-export is removed", file: "barrel.d.ts", apply: replace('export * as inner from "./other";\n', "") },
+  { name: "exports: the renamed re-export is removed", file: "barrel.d.ts", apply: replace('export { unbox as aaUnboxed } from "./derived";\n', "") },
+  { name: "exports: the import-then-export is removed", file: "barrel.d.ts", apply: (text) => text.replace('import { Level } from "./base";\n', "").replace("export { Level as Tier };\n", "") },
+  { name: "exports: a default export is added to an input", file: "other.d.ts", apply: (text) => `${text}export default function entry(): void;\n` },
+  { name: "exports: the alias-only declaration is removed", file: "other.d.ts", apply: (text) => text.replace("declare function secret(): void;\n", "").replace("export { secret as shown };\n", "") },
+];
+
 describe("watch mode equals a cold compilation after every edit", () => {
   const roots: string[] = [];
   afterAll(() => roots.forEach((root) => rmSync(root, { recursive: true, force: true })));
 
-  async function expectEquivalent(build: WatchBuild, files: string[], outDir: string, label: string) {
-    const fresh = await new Transpiler({ files, outDir }).render();
-    const freshProgram = (await new Transpiler({ files, outDir }).analyzeProgram()).program;
+  async function expectEquivalent(build: WatchBuild, files: string[], outDir: string, label: string, jsRoot?: string) {
+    const options = { files, outDir, ...(jsRoot ? { jsRoot } : {}) };
+    const fresh = await new Transpiler(options).render();
+    const freshProgram = (await new Transpiler(options).analyzeProgram()).program;
     const dart = (map: Map<string, { content: string }>) =>
       Object.fromEntries([...map].map(([path, file]) => [path, file.content]).sort());
     expect(dart(build.files), `${label}: Dart output`).toEqual(dart(fresh.files));
@@ -124,6 +156,13 @@ describe("watch mode equals a cold compilation after every edit", () => {
     expect(canonical(reportView(build.analysis.link)), `${label}: link report`).toBe(
       canonical(reportView(fresh.analysis.link)),
     );
+    // The export graph's product: the same routes and public names either way.
+    expect(canonical(build.program.moduleExports), `${label}: export graph`).toBe(
+      canonical(freshProgram.moduleExports),
+    );
+    const diagnostics = (map: Map<string, { diagnostics: unknown[] }>) =>
+      Object.fromEntries([...map].map(([path, file]) => [path, file.diagnostics]).sort());
+    expect(diagnostics(build.files), `${label}: backend diagnostics`).toEqual(diagnostics(fresh.files));
     expect(build.analysis.generation, `${label}: generation diagnostics`).toEqual(fresh.analysis.generation);
   }
 
@@ -146,6 +185,31 @@ describe("watch mode equals a cold compilation after every edit", () => {
       const build = await session.build([path, ...Object.keys(edit.creates ?? {}).map((name) => join(root, name))]);
       await expectEquivalent(build, files, outDir, edit.name);
     }
+  }, 120_000);
+
+  async function runExportEdits(jsRoot: string | undefined) {
+    const root = mkdtempSync(join(tmpdir(), "dartify-differential-exports-"));
+    roots.push(root);
+    cpSync(FIXTURE, root, { recursive: true });
+    const files = INPUTS.map((name) => join(root, name));
+    const outDir = join(root, "out");
+    const session = new WatchSession({ files, outDir, ...(jsRoot ? { jsRoot } : {}) });
+    await expectEquivalent(await session.build(), files, outDir, "initial build", jsRoot);
+    for (const edit of EXPORT_EDITS) {
+      for (const [name, content] of Object.entries(edit.creates ?? {})) writeFileSync(join(root, name), content);
+      const path = join(root, edit.file);
+      writeFileSync(path, edit.apply(readFileSync(path, "utf8")));
+      const changed = [path, ...Object.keys(edit.creates ?? {}).map((name) => join(root, name))];
+      await expectEquivalent(await session.build(changed), files, outDir, edit.name, jsRoot);
+    }
+  }
+
+  test("export-list edits, with a root", async () => {
+    await runExportEdits("Root");
+  }, 120_000);
+
+  test("export-list edits, without a root", async () => {
+    await runExportEdits(undefined);
   }, 120_000);
 
   /** Edits real corpora, comparing every incremental build with a cold one. */

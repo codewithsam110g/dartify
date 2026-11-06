@@ -11,6 +11,7 @@ import { dirname, extname, join, relative } from "path";
 import { Symbol } from "@/symbol";
 import { sourceFileOfFQN } from "@/symbol/fqn";
 import { TranspileException } from "@/transpiler";
+import { isDeclarationFileName, stripDeclarationSuffix } from "@/resolution/declarationFile";
 import {
   Backend,
   BackendDiagnostic,
@@ -204,8 +205,8 @@ function deriveOutputPath(
   relPath = segments.join("/");
 
   let dartPath: string;
-  if (relPath.endsWith(".d.ts")) {
-    dartPath = relPath.slice(0, -5) + ".dart";
+  if (isDeclarationFileName(relPath)) {
+    dartPath = stripDeclarationSuffix(relPath) + ".dart";
   } else if (relPath.endsWith(".ts")) {
     dartPath = relPath.slice(0, -3) + ".dart";
   } else {

@@ -2,6 +2,7 @@ import * as ts from "ts-morph";
 import { IREnum, IREnumInitializer } from "@ir/enum";
 import { IRDeclKind } from "@ir/index";
 import { declarationModifiersOf, nodeMetadata } from "./metadata";
+import { withoutNumericSeparators } from "./type/literals";
 
 function enumInitializer(
   member: ts.EnumMember,
@@ -39,7 +40,10 @@ function enumInitializer(
     return {
       kind: "number",
       text,
-      value: typeof computedValue === "number" ? computedValue : Number(text),
+      value:
+        typeof computedValue === "number"
+          ? computedValue
+          : Number(withoutNumericSeparators(text)),
     };
   }
 

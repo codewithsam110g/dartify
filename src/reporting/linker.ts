@@ -45,6 +45,17 @@ export function formatSemanticWarning(report: LinkReport): string | null {
   return `⚠️  Semantic analysis: ${count} diagnostic(s); rerun with -lv for complete records`;
 }
 
+/**
+ * One-line warning for normal CLI output when the link report has failures:
+ * references that resolved to nothing or to several candidates. Link failures
+ * stay warnings (D-10), but a run with any must not read as fully resolved.
+ */
+export function formatLinkWarning(report: LinkReport, verbose = false): string | null {
+  const ambiguous = report.edges.filter((edge) => edge.resolution.kind === "ambiguous").length;
+  if (report.broken === 0 && ambiguous === 0) return null;
+  return `⚠️  Link report: ${report.broken} broken symbol(s), ${ambiguous} ambiguous reference(s)${verbose ? "" : "; rerun with -lv for the full linker report"}`;
+}
+
 /** Formats the structured linker and semantic report for verbose CLI mode. */
 export function formatVerboseLinkReport(report: LinkReport): string {
   const resolvedEdges = report.edges.filter(

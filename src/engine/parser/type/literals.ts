@@ -2,6 +2,16 @@ import * as ts from "ts-morph";
 import { IRType, TypeKind } from "@ir/type";
 
 /**
+ * A numeric literal's source text without its separators, ready for
+ * `Number()`/`BigInt()`. `_` may only sit between digits (`1_000`, `0x1_0n`,
+ * `0b1_0`), so removing it is exact; `Number("1_000")` is `NaN` and
+ * `BigInt("1_000")` throws.
+ */
+export function withoutNumericSeparators(text: string): string {
+  return text.replace(/_/g, "");
+}
+
+/**
  * Literal types: `"success"`, `42`, `-2n`, `true`.
  *
  * `name` is the TypeScript-side kind, never a Dart type (`T-06`). This file
@@ -20,7 +30,7 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
     const operatorToken = prefixUnary.getOperatorToken();
 
     if (operand.getKind() === ts.SyntaxKind.NumericLiteral) {
-      const num = Number(operand.getText());
+      const num = Number(withoutNumericSeparators(operand.getText()));
       return {
         kind: TypeKind.NumberLiteral,
         name: TypeKind.NumberLiteral,
@@ -30,7 +40,7 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
     }
 
     if (operand.getKind() === ts.SyntaxKind.BigIntLiteral) {
-      const bigintText = operand.getText().replace(/n$/, "");
+      const bigintText = withoutNumericSeparators(operand.getText()).replace(/n$/, "");
       const val = BigInt(bigintText);
       return {
         kind: TypeKind.BigInt,
@@ -55,7 +65,7 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
       return {
         kind: TypeKind.NumberLiteral,
         name: TypeKind.NumberLiteral,
-        literalValue: Number((literal as ts.NumericLiteral).getText()),
+        literalValue: Number(withoutNumericSeparators((literal as ts.NumericLiteral).getText())),
         isNullable: false,
       };
 
@@ -84,7 +94,7 @@ export function handleLiteralType(node: ts.LiteralTypeNode, depth: number): IRTy
         kind: TypeKind.BigInt,
         name: TypeKind.BigInt,
         literalValue: BigInt(
-          (literal as ts.BigIntLiteral).getText().replace(/n$/, ""),
+          withoutNumericSeparators((literal as ts.BigIntLiteral).getText()).replace(/n$/, ""),
         ),
         isNullable: false,
       };

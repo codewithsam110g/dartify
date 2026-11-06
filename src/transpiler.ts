@@ -10,6 +10,7 @@ import {
   generateSymbols,
   GenerationDiagnostic,
   NamespaceExports,
+  syntacticDiagnosticsOf,
 } from "./engine/phase/symbolGeneration";
 import {
   runLinker,
@@ -40,6 +41,8 @@ export class TranspileException extends Error {
   public readonly file?: string;
   public readonly line?: number;
   public readonly column?: number;
+  /** Every failure behind a `GENERATION_FAILED`, not only the first the message names. */
+  public readonly diagnostics?: readonly GenerationDiagnostic[];
 
   constructor(
     message: string,
@@ -47,6 +50,7 @@ export class TranspileException extends Error {
     file?: string,
     line?: number,
     column?: number,
+    diagnostics?: readonly GenerationDiagnostic[],
   ) {
     super(message);
     this.name = "TranspileException";
@@ -54,6 +58,7 @@ export class TranspileException extends Error {
     this.file = file;
     this.line = line;
     this.column = column;
+    this.diagnostics = diagnostics;
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, TranspileException);
     }
@@ -82,6 +87,12 @@ export interface TranspilerOptions {
   tsConfigFilePath?: string;
   /** See `PackageJsOptions.jsRoot`. */
   jsRoot?: string;
+  /**
+   * Directory output paths are made relative to. Default: the common
+   * ancestor of the input files (`resolvedInputRoot`). The CLI's `--base-path`
+   * (HD-14); the caller guarantees every input lies under it.
+   */
+  inputRoot?: string;
 }
 
 export interface TranspileFromStringOptions {
@@ -137,6 +148,7 @@ export class Transpiler {
   private readonly debug: boolean;
   private readonly tsConfigFilePath: string | undefined;
   private readonly jsRoot: string | undefined;
+  private readonly inputRoot: string | undefined;
 
   constructor(options: TranspilerOptions) {
     if (!Array.isArray(options.files) || options.files.length === 0) {
@@ -150,6 +162,7 @@ export class Transpiler {
     this.debug = options.debug ?? false;
     this.tsConfigFilePath = options.tsConfigFilePath;
     this.jsRoot = options.jsRoot;
+    this.inputRoot = options.inputRoot ? resolve(options.inputRoot) : undefined;
   }
 
   /**
@@ -190,6 +203,7 @@ export class Transpiler {
         ...run.packageDepFiles,
       ]) {
         generation.push(
+          ...syntacticDiagnosticsOf(sourceFile),
           ...(await generateSymbols(
             filePath,
             sourceFile,
@@ -230,7 +244,7 @@ export class Transpiler {
    */
   public async render(): Promise<RenderReport> {
     const { analysis, program } = await this.analyzeProgram();
-    const inputRoot = resolvedInputRoot(analysis.resolution.inputFiles);
+    const inputRoot = this.inputRoot ?? resolvedInputRoot(analysis.resolution.inputFiles);
     const files = await this.guard(() =>
       renderAllFiles(
         program,
@@ -256,11 +270,12 @@ export class Transpiler {
     if (failures.length > 0) {
       const first = failures[0];
       throw new TranspileException(
-        `Symbol generation failed for ${failures.length} statement(s); no files were written. First: ${first.message}`,
+        `Generation failed with ${failures.length} error(s); no files were written. First: ${first.message}`,
         "GENERATION_FAILED",
         first.file,
         first.line,
         first.column,
+        failures,
       );
     }
     await this.guard(() => writeAllFiles(rendered.files, this.debug));

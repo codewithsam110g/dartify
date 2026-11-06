@@ -1,5 +1,6 @@
 import { basename, extname } from "path";
 import { Symbol, SymbolFacet } from "@/symbol";
+import { isDeclarationFileName, stripDeclarationSuffix } from "@/resolution/declarationFile";
 import { IRDeclKind } from "@ir/declaration";
 import { DART_RESERVED_WORDS } from "@engine/semantic/keywords";
 import {
@@ -398,7 +399,7 @@ function reExports(input: LibraryInput, index: ProgramIndex): ReExport[] {
 /** A keyword-safe library identifier (`E-33`). */
 export function libraryName(sourceFile: string): string {
   let fileName = basename(sourceFile);
-  if (fileName.endsWith(".d.ts")) fileName = fileName.slice(0, -5);
+  if (isDeclarationFileName(fileName)) fileName = stripDeclarationSuffix(fileName);
   else if (fileName.endsWith(".ts")) fileName = fileName.slice(0, -3);
   else fileName = fileName.replace(extname(fileName), "");
   const sanitized = fileName.replace(/[^a-zA-Z0-9]/g, "_");

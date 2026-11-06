@@ -77,11 +77,15 @@ npm install -g dart_bindgen
 ```
 
 ```bash
-Usage: dart_bindgen [options]
+Usage: dart_bindgen [options] [inputs...]
+
+Inputs (declaration files or glob patterns; positional inputs are the same as -d):
+  -d, --def-files <patterns...>   .d.ts, .d.mts and .d.cts files or glob patterns
 
 Options:
-  -d, --def-files <patterns...>   TypeScript definition files or glob patterns (required)
   -o, --output <directory>        Output directory for generated .dart files
+                                  (alias --destination; default ./dart_out)
+      --base-path <directory>     Directory output paths are relative to; every input must lie under it
   -p, --tsconfig <path>           Use a tsconfig for authoritative module resolution
   -l, --enable-logs               Enable phase and module-resolution logging
   -v, --verbose                   Print structured linker and emission details; implies -l
@@ -99,6 +103,9 @@ dart_bindgen -d "types/**/*.d.ts" -o ./generated
 # Show resolution, linking and emission diagnostics in full
 dart_bindgen -d "path/to/my-lib.d.ts" -lv
 
+# Print one library to stdout (js_facade_gen's basic usage)
+dart_bindgen path/to/my-lib.d.ts
+
 # Keep bindings current while you edit; rebuilds take tens of milliseconds
 dart_bindgen -d "types/**/*.d.ts" -o ./generated --watch
 
@@ -108,6 +115,50 @@ dart_bindgen -d "node_modules/@types/three/index.d.ts" -o ./generated --js-root 
 
 Libraries that declare `export as namespace X` (Leaflet's `L`) get that root
 automatically.
+
+### What counts as input, and when a run fails
+
+The input is declaration files: `.d.ts`, `.d.mts` and `.d.cts` (each written
+as `<name>.dart`). dartify never reports success for input it did not
+understand.
+
+- **Every explicit path must be a readable declaration file.** A missing or
+  unreadable path, a directory, or a file that is not a declaration file
+  (`foo.ts`) is reported by name and the run exits 1 before generating
+  anything, even when the other inputs are fine.
+- **A glob that matches nothing warns**, naming the pattern; the run continues
+  if other inputs remain, and exits 1 if none do.
+- **Dual-package typings:** when a glob matches `x.d.ts` and also `x.d.mts` or
+  `x.d.cts`, they describe one API, so the `.d.ts` is used and a notice names
+  the skipped file. Two inputs that would still be written to the same `.dart`
+  file (for example `x.d.mts` and `x.d.cts` with no `x.d.ts`, or an explicitly
+  named sibling) are an error naming both.
+- **Syntax errors fail the run.** A TypeScript syntax error in any file
+  dartify reads (inputs, and the files they import) is printed as
+  `path:line:column TSnnnn message`, one line per error; the run exits 1 and
+  writes nothing, because the parser's error recovery would otherwise produce
+  plausible but wrong bindings. Type-check errors do not fail the run: a name
+  that is declared nowhere degrades to a documented typedef, and the run
+  prints `Link report: N broken symbol(s), M ambiguous reference(s)` (exit 0;
+  `-lv` itemizes them).
+- **Watch mode reports the same things** on the first build and on every
+  rebuild: syntax errors (nothing is written while one stands), warnings, the
+  link summary and, with `-lv`, the detailed records.
+
+### Coming from js_facade_gen
+
+The common invocation shapes work unchanged:
+
+| js_facade_gen | dartify |
+|---|---|
+| `dart_js_facade_gen lib.d.ts` (Dart to stdout) | `dart_bindgen lib.d.ts`: positional inputs without `-o`/`--destination` print the single resulting library to stdout, everything else goes to stderr. A multi-library result is an error asking for `--destination`. |
+| `--destination=<dir>` | `--destination=<dir>` (the same as `-o`) |
+| `--base-path=<dir>` | `--base-path=<dir>`: output paths are relative to it; an input outside it is an error |
+| positional input files | positional inputs (the same as `-d`) |
+| `--skip-formatting` | accepted and ignored: dartify never runs a formatter |
+| `--generate-html`, `--rename-conflicting-types`, `--explicit-static`, `--trust-js-types` | exit 1 with a one-line message stating what dartify does instead: these flags changed js_facade_gen's output, so they are never silently ignored |
+
+Unknown flags are rejected.
 
 The generated libraries need `package:js` in your `pubspec.yaml`:
 

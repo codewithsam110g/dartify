@@ -62,7 +62,7 @@ done, a fresh, clean audit checks the fixes against [findings.md](findings.md).
 |---|---|---|---|---|
 | HG-1 | Toolchain and CI first, so every later fix is tested on the final toolchain | CA-19, CA-20, CA-17, CA-18, VFY-001, VFY-002 | HD-08, HD-12 | Done 2026-11-05 — [brief](milestones/HG-1.md) (fix1: D-32) |
 | HG-2 | Input boundary and CLI reporting (high: DAR-001) | DAR-001, DAR-002, CA-14, CA-09, CA-08, CA-13, CA-30, DAR-023 | HD-04, HD-13, HD-14, HD-15, HD-16 | Done 2026-11-06 — [brief](milestones/HG-2.md) |
-| HG-3 | Module and export identity (high: DAR-003) | DAR-003, CA-03, CA-06, CA-07 | HD-05, HD-06 | Planned |
+| HG-3 | Module and export identity (high: DAR-003) | DAR-003, CA-03, CA-06, CA-07 | HD-05, HD-06, HD-17, HD-18, HD-19, HD-20 | In progress — [brief](milestones/HG-3.md) |
 | HG-4 | Type and class fidelity (high: CA-01) | CA-01, DAR-009, DAR-010, DAR-011, DAR-021, DAR-015, CA-16, CA-26, CA-31 | HD-02, HD-11 | Planned |
 | HG-5 | Text and URI legality | CA-32, CA-11, CA-12, DAR-013, T-11 | — | Planned |
 | HG-6 | Name allocation | CA-04, CA-05, DAR-005, DAR-006, DAR-007, DAR-008, CA-25 | — | Planned |

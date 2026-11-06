@@ -17,10 +17,10 @@ each row.
 
 | `CA-01` | TypeScript `Date` is bound as Dart `DateTime`, which silently produces wrong values under dart2js | high | Agree | R | HD-02 | HG-4 | Open |
 | `CA-02` | Watch mode diverges from a cold build when a module file's `declare global` declarations change | medium | Agree | R | — | HG-7 | Open |
-| `CA-03` | Barrel re-exports are silently lost or renamed: import-then-export, `export * as ns`, and `export { A as B }` | medium | Agree | R | — | HG-3 | Open |
+| `CA-03` | Barrel re-exports are silently lost or renamed: import-then-export, `export * as ns`, and `export { A as B }` | medium | Agree | R | HD-18, HD-19 | HG-3 | Open |
 | `CA-04` | Members named like dart:core `Object` members produce analyzer errors (INVALID_OVERRIDE) | medium | Agree | R | — | HG-6 | Open |
 | `CA-05` | A member that shares its enclosing type's name produces analyzer errors | low | Agree | R | — | HG-6 | Open |
-| `CA-06` | Ambient external modules bind `@JS("<module specifier>.<name>")`; non-identifier specifiers crash dart2js | medium | Agree | R | HD-05 | HG-3 | Open |
+| `CA-06` | Ambient external modules bind `@JS("<module specifier>.<name>")`; non-identifier specifiers crash dart2js | medium | Agree | R | HD-05, HD-20 | HG-3 | Open |
 | `CA-07` | Cross-file global declaration merging is unsupported: partial duplicate classes and `dynamic` use sites | medium | Agree | R | HD-06 | HG-3 | Open |
 | `CA-08` | Default CLI output omits link failures (missing/ambiguous type references) | low | Agree | R | — | HG-2 | Fixed (HG-2) |
 | `CA-09` | A bigint literal type with numeric separators (`1_000n`) aborts the whole run | low | Agree | R | — | HG-2 | Fixed (HG-2) |
@@ -50,8 +50,8 @@ each row.
 | `CA-33` | The closing-audit registration corrupted this file: a `$`-pattern in the `CA-11` title spliced a copy of the header and every pre-CA row into that row, and `CA-30`/`CA-31` sit outside any table | low | Already fixed | D | — | — | Fixed (D3 adoption, `18a3b0b`) |
 | `DAR-001` | Filesystem compilation accepts malformed declarations and reports success | high | Agree | M | HD-13, HD-16 | HG-2 | Fixed (HG-2) |
 | `DAR-002` | Explicit input failures are silently dropped when another file is readable | medium | Agree | R | HD-04 | HG-2 | Fixed (HG-2) |
-| `DAR-003` | Export identity is ignored when choosing JavaScript dispatch paths | high | Agree | R | — | HG-3 | Open |
-| `DAR-004` | Named re-exports lose aliases and cannot traverse barrels | medium | Duplicate | R | — | HG-3 | Duplicate of CA-03 (union: adds chained barrels and renames) |
+| `DAR-003` | Export identity is ignored when choosing JavaScript dispatch paths | high | Agree | R | HD-17 | HG-3 | Open |
+| `DAR-004` | Named re-exports lose aliases and cannot traverse barrels | medium | Duplicate | R | HD-18, HD-19 | HG-3 | Duplicate of CA-03 (union: adds chained barrels and renames) |
 | `DAR-005` | Parameter lowering introduces keywords and duplicate names after allocation | medium | Agree | R | — | HG-6 | Open |
 | `DAR-006` | Override arity correction fails through a second inheritance level | medium | Agree | R | — | HG-6 | Open |
 | `DAR-007` | Inherited static-member hoisting creates unreserved top-level names | medium | Agree | R | — | HG-6 | Open |

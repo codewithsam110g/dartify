@@ -24,7 +24,7 @@ each row.
 | `CA-07` | Cross-file global declaration merging is unsupported: partial duplicate classes and `dynamic` use sites | medium | Agree | R | HD-06 | HG-3 | Open |
 | `CA-08` | Default CLI output omits link failures (missing/ambiguous type references) | low | Agree | R | — | HG-2 | Open |
 | `CA-09` | A bigint literal type with numeric separators (`1_000n`) aborts the whole run | low | Agree | R | — | HG-2 | Open |
-| `CA-10` | The CLI/programmatic path does not report TypeScript syntax errors; malformed input yields plausible output and exit 0 | low→high | Duplicate | M | HD-03 | HG-2 | Duplicate of DAR-001 |
+| `CA-10` | The CLI/programmatic path does not report TypeScript syntax errors; malformed input yields plausible output and exit 0 | low→high | Duplicate | M | HD-13 | HG-2 | Duplicate of DAR-001 |
 | `CA-11` | File names containing `'` or `$` produce invalid Dart import/export directives | low→medium | Agree | M | — | HG-5 | Open |
 | `CA-12` | Private-use characters in source text are interpreted as backend placeholder tokens | low | Agree | A | — | HG-5 | Open |
 | `CA-13` | Link report memoisation misreports symbols inside a reference cycle | low→medium | Agree | R | — | HG-2 | Open |
@@ -44,11 +44,11 @@ each row.
 | `CA-27` | Watch-latency claims are only partly reproduced (Leaflet edit and three.js core edit) | low | Agree | D | HD-09 | HG-8 | Open |
 | `CA-28` | The e2e oracle script is never executed by the suite | low | Agree | T | — | HG-8 | Open |
 | `CA-29` | The platform-type registry has no committed generator or SDK validation script | low | Agree | T | HD-10 | HG-8 | Open |
-| `CA-30` | The CLI is not invocation-compatible with js_facade_gen, and its semantics-changing flags are silently ignored | low | Agree | R | HD-07 | HG-2 | Open |
+| `CA-30` | The CLI is not invocation-compatible with js_facade_gen, and its semantics-changing flags are silently ignored | low | Agree | R | HD-07, HD-14 | HG-2 | Open |
 | `CA-31` | Construct signatures on type-only interfaces are dropped without a diagnostic (and the class is marked `@anonymous`) | low | Agree | R | HD-11 | HG-4 | Open |
 | `CA-32` | A lone CR in JSDoc escapes the `///` comment and injects Dart declarations (found by the independent re-run and, independently, as codex `DAR-022`; it overturns the closing audit's "falsified" lone-CR row) | medium | Agree | M | — | HG-5 | Open |
 | `CA-33` | The closing-audit registration corrupted this file: a `$`-pattern in the `CA-11` title spliced a copy of the header and every pre-CA row into that row, and `CA-30`/`CA-31` sit outside any table | low | Already fixed | D | — | — | Fixed (D3 adoption, `18a3b0b`) |
-| `DAR-001` | Filesystem compilation accepts malformed declarations and reports success | high | Agree | M | HD-03 | HG-2 | Open |
+| `DAR-001` | Filesystem compilation accepts malformed declarations and reports success | high | Agree | M | HD-13 | HG-2 | Open |
 | `DAR-002` | Explicit input failures are silently dropped when another file is readable | medium | Agree | R | HD-04 | HG-2 | Open |
 | `DAR-003` | Export identity is ignored when choosing JavaScript dispatch paths | high | Agree | R | — | HG-3 | Open |
 | `DAR-004` | Named re-exports lose aliases and cannot traverse barrels | medium | Duplicate | R | — | HG-3 | Duplicate of CA-03 (union: adds chained barrels and renames) |

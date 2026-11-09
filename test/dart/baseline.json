@@ -25,6 +25,14 @@
     "globals_augment": {
       "INFO DEPRECATED_MEMBER_USE": 1
     },
+    "globals_core": {},
+    "globals_companion": {
+      "INFO DEPRECATED_MEMBER_USE": 1
+    },
+    "globals_redeclared": {},
+    "globals_split": {
+      "INFO DEPRECATED_MEMBER_USE": 1
+    },
     "consumers": {}
   }
 }

@@ -64,3 +64,23 @@ export function emptySemanticReport(): SemanticReport {
     diagnostics: [],
   };
 }
+
+/**
+ * Where a redirected FQN ends up: the declaration a merge folded it into, after
+ * any chain of merges. An FQN nothing redirected is its own answer.
+ */
+export function followRedirects(
+  redirects: ReadonlyMap<string, string>,
+  fqn: string,
+): string {
+  const seen = new Set<string>();
+  let current = fqn;
+  while (redirects.has(current)) {
+    if (seen.has(current)) {
+      throw new Error(`Semantic redirect cycle detected at '${current}'`);
+    }
+    seen.add(current);
+    current = redirects.get(current)!;
+  }
+  return current;
+}

@@ -10,3 +10,35 @@ changed
 5
 true
 false
+apple
+none
+[[apple, fig], [kiwi]]
+kiwi
+[Lapple, Lfig, Lkiwi]
+6
+[m]
+null
+[apple, fig, kiwi]
+6
+kiwi
+apple
+labels set true apple+fig+kiwi
+maybeLabels set null
+2
+ABC!
+[e, u, a, i, o]
+42
+false
+object
+fn:function
+apple+fig+kiwi/1+2
+[APPLE, FIG, KIWI]
+<text>
+cp
+42
+same:3
+43
+5
+0
+7
+sp

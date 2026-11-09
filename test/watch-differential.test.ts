@@ -303,6 +303,158 @@ describe("watch mode equals a cold compilation after every edit", () => {
     }
   }, 120_000);
 
+  /**
+   * Augmentations of lib types the backend lowers to Dart SDK types (HD-23) and
+   * identical redeclarations of one global (HD-06). Both change what *other*
+   * files emit: a module's `Array<string>` is the lib's reference until a script
+   * file augments `Array`, then the project's, and the owner of a repeated
+   * `declare var` is whichever file sorts first.
+   */
+  test("lib-type augmentation, identical redeclaration and cross-file companion edits", async () => {
+    const root = mkdtempSync(join(tmpdir(), "dartify-differential-augment-"));
+    roots.push(root);
+    cpSync(GLOBALS_FIXTURE, root, { recursive: true });
+    const files = [join(root, "*.d.ts")];
+    const outDir = join(root, "out");
+    const session = new WatchSession({ files, outDir });
+
+    const write = (name: string, text: string) => writeFileSync(join(root, name), text);
+    const edit = (name: string, apply: (text: string) => string) =>
+      write(name, apply(readFileSync(join(root, name), "utf8")));
+    const remove = (name: string) => unlinkSync(join(root, name));
+
+    const edits: { name: string; run: () => void; touched: string[] }[] = [
+      {
+        name: "a module starts using Array<string> (no augmentation yet)",
+        run: () => edit("plain.d.ts", replace("  settings: Settings;\n", "  settings: Settings;\n  items: Array<string>;\n")),
+        touched: ["plain.d.ts"],
+      },
+      {
+        name: "a script file augments Array: an extension on List, the module's type stays List<String>",
+        run: () => write("arr.d.ts", "interface Array<T> {\n  second(): T;\n}\ndeclare function useArr(a: Array<string>): string[];\n"),
+        touched: ["arr.d.ts"],
+      },
+      {
+        name: "a collection-typed member is added to the augmentation",
+        run: () => edit("arr.d.ts", replace("  second(): T;\n", "  second(): T;\n  words(): string[];\n  grid: number[][];\n")),
+        touched: ["arr.d.ts"],
+      },
+      {
+        name: "a declare global block in a module augments Array too",
+        run: () => edit("m.d.ts", (text) => `${text}declare global {\n  interface Array<T> {\n    third(): T;\n  }\n}\n`),
+        touched: ["m.d.ts"],
+      },
+      {
+        name: "a String augmentation is added",
+        run: () => write("str.d.ts", "interface String {\n  shout(): string;\n}\ndeclare function describe(s: String): string;\n"),
+        touched: ["str.d.ts"],
+      },
+      {
+        name: "a Window interface and its value companion arrive in one file",
+        run: () =>
+          write(
+            "win.d.ts",
+            "interface Window {\n  prop: string;\n}\ndeclare var Window: {\n  prototype: Window;\n  new (): Window;\n  extra: number;\n};\n",
+          ),
+        touched: ["win.d.ts"],
+      },
+      {
+        name: "the companion is removed: the interface alone is the extension",
+        run: () => edit("win.d.ts", replace(/declare var Window: \{[\s\S]*?\};\n/, "")),
+        touched: ["win.d.ts"],
+      },
+      {
+        name: "the Array augmentation file is removed: Array<string> is the lib's reference again",
+        run: () => remove("arr.d.ts"),
+        touched: ["arr.d.ts"],
+      },
+      {
+        name: "the declare global part is dropped too",
+        run: () => edit("m.d.ts", replace(/declare global \{\n  interface Array<T> \{[\s\S]*?\n  \}\n\}\n/, "")),
+        touched: ["m.d.ts"],
+      },
+      {
+        name: "a declare var is written in one file",
+        run: () => write("d1.d.ts", "declare var shared: number;\ndeclare function same(x: number): string;\n"),
+        touched: ["d1.d.ts"],
+      },
+      {
+        name: "the identical declarations appear in a second file: one binding, owned by the first",
+        run: () => write("d2.d.ts", "declare var shared: number;\ndeclare function same(x: number): string;\ndeclare function user(): number;\n"),
+        touched: ["d2.d.ts"],
+      },
+      {
+        name: "a third file repeats only the function",
+        run: () => write("d3.d.ts", "declare function same(x: number): string;\n"),
+        touched: ["d3.d.ts"],
+      },
+      {
+        name: "the second file's variable stops being identical (a conflict stays visible)",
+        run: () => edit("d2.d.ts", replace("declare var shared: number;", "declare var shared: string;")),
+        touched: ["d2.d.ts"],
+      },
+      {
+        name: "it is identical again",
+        run: () => edit("d2.d.ts", replace("declare var shared: string;", "declare var shared: number;")),
+        touched: ["d2.d.ts"],
+      },
+      {
+        name: "the owner of the repeated declarations is deleted: the next file owns them",
+        run: () => remove("d1.d.ts"),
+        touched: ["d1.d.ts"],
+      },
+      {
+        name: "an overload is added in the third file",
+        run: () => edit("d3.d.ts", (text) => `${text}declare function same(x: string): string;\n`),
+        touched: ["d3.d.ts"],
+      },
+      // An interface and its constructor-shaped value in different files are one
+      // declaration; the companion file arriving or leaving changes the class the
+      // other file emits, and whichever sorts first owns it.
+      {
+        name: "an interface is declared in a script file",
+        run: () => write("ctr_a.d.ts", "interface Counter {\n  value: number;\n}\ndeclare function useCounter(c: Counter): void;\n"),
+        touched: ["ctr_a.d.ts"],
+      },
+      {
+        name: "its constructor-shaped value arrives in another file: one class, with the constructor and statics",
+        run: () =>
+          write(
+            "ctr_b.d.ts",
+            "declare var Counter: {\n  prototype: Counter;\n  new (start: number): Counter;\n  zero(): Counter;\n};\n",
+          ),
+        touched: ["ctr_b.d.ts"],
+      },
+      {
+        name: "a static is added to the companion file",
+        run: () => edit("ctr_b.d.ts", replace("  zero(): Counter;\n", "  zero(): Counter;\n  DEFAULT: number;\n")),
+        touched: ["ctr_b.d.ts"],
+      },
+      { name: "the companion file is removed", run: () => remove("ctr_b.d.ts"), touched: ["ctr_b.d.ts"] },
+      {
+        name: "the companion comes back in a file that sorts first (ownership moves)",
+        run: () =>
+          write("0_ctr.d.ts", "declare var Counter: {\n  prototype: Counter;\n  new (start: number): Counter;\n  zero(): Counter;\n};\n"),
+        touched: ["0_ctr.d.ts"],
+      },
+      { name: "that file is removed again", run: () => remove("0_ctr.d.ts"), touched: ["0_ctr.d.ts"] },
+      {
+        name: "the Window interface's value arrives in another file: still the one extension",
+        run: () => write("win_value.d.ts", "declare var Window: {\n  prototype: Window;\n  new (): Window;\n  extra: number;\n};\n"),
+        touched: ["win_value.d.ts"],
+      },
+      { name: "the Window value file is removed", run: () => remove("win_value.d.ts"), touched: ["win_value.d.ts"] },
+      { name: "identical rewrite of the owner", run: () => edit("d2.d.ts", (text) => text), touched: ["d2.d.ts"] },
+    ];
+
+    await expectEquivalent(await session.build(), files, outDir, "initial build");
+    for (const step of edits) {
+      step.run();
+      const build = await session.build(step.touched.map((name) => join(root, name)));
+      await expectEquivalent(build, files, outDir, step.name);
+    }
+  }, 120_000);
+
   /** Edits real corpora, comparing every incremental build with a cold one. */
   async function runCorpus(source: string, inputs: string[], edits: Edit[]) {
     const root = mkdtempSync(join(tmpdir(), "dartify-differential-corpus-"));

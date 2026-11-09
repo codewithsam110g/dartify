@@ -1,5 +1,7 @@
+import { IRDeclKind } from "@ir/declaration";
 import { isGloballyVisible, Symbol, SymbolFacet } from "@/symbol";
 import { logicalNameOfFQN, sourceFileOfFQN } from "@/symbol/fqn";
+import { semanticKey } from "./shape";
 import { SemanticReport } from "./types";
 
 /**
@@ -33,6 +35,24 @@ export function declaresMergeableGlobals(
 
 function compareCodeUnits(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/**
+ * Whether `part` repeats a value declaration an earlier file already made:
+ * `declare var shared: number;` or one function signature written identically
+ * in two script files. TypeScript sees one declaration, so Dart gets one
+ * binding; identity is the IR's structural key, never source text (HD-06).
+ * Interfaces need no such rule, the D-12 merge already folds identical members.
+ */
+function repeatsEarlierFile(gathered: readonly SymbolFacet[], part: SymbolFacet): boolean {
+  if (part.ir.kind !== IRDeclKind.Variable && part.ir.kind !== IRDeclKind.Function) return false;
+  const key = semanticKey(part.ir);
+  return gathered.some(
+    (other) =>
+      other.ir.kind === part.ir.kind &&
+      other.origin.filePath !== part.origin.filePath &&
+      semanticKey(other.ir) === key,
+  );
 }
 
 /**
@@ -86,8 +106,10 @@ export function mergeGlobalDeclarations(
         .sort((a, b) => a.origin.sourceOrder - b.origin.sourceOrder);
       const kept = symbol.facets.filter((facet) => !isGlobalMergeable(facet));
       // Appended after the owner's own parts, so the owner's declaration keeps
-      // its place in its library and in merge order.
+      // its place in its library and in merge order. A value written
+      // identically in an earlier file is that same declaration and is dropped.
       for (const facet of moved) {
+        if (repeatsEarlierFile(gathered, facet)) continue;
         facet.origin = { ...facet.origin, sourceOrder: nextOrder++ };
         gathered.push(facet);
       }

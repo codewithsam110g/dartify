@@ -184,27 +184,70 @@ other files emit no partial class and import the owner where they use it. A
 file left with nothing to declare produces no library. Watch mode keeps the
 same owner as a cold run.
 
-**Augmenting a browser type.** `interface Window { myProp: string }` in a
-script file or `declare global` does not declare a new type; it adds to the
-`Window` TypeScript's lib already has, which dartify maps to `dart:html`'s
-`Window`. The members become an extension on the SDK type, reached through
-`package:js/js_util.dart`, in the owning file's library:
+An interface in one file and its constructor-shaped value
+(`declare var Counter: { prototype: Counter; new (): Counter; … }`) in another
+are one class too, with the constructor and statics of the value.
+
+The same global declared identically in several script files
+(`declare var shared: number;`, one function signature) is one declaration to
+TypeScript and gets one binding, owned by the first file. "Identical" is the
+declarations' structure, parameter names included, not their source text.
+Declarations that differ keep today's behaviour: overloads become `f_1`, `f_2`,
+and a conflicting `declare var` stays visible as `UNSUPPORTED_DECLARATION_GROUP`.
+
+**Augmenting a lib type.** `interface Window { myProp: string }` or
+`interface Array<T> { second(): T }` in a script file or `declare global` does
+not declare a new type; it adds to the type TypeScript's lib already has. When
+dartify lowers that lib type to a Dart SDK type, the members become an
+extension on the SDK type, reached through `package:js/js_util.dart`, in the
+owning file's library, and every use of the lib type keeps the SDK type:
 
 ```dart
-extension WindowAugment on Window {
+extension WindowAugment on Window {            // dart:html
   String get myProp => getProperty<String>(this, "myProp");
   set myProp(String value) => setProperty(this, "myProp", value);
 }
+
+extension ArrayAugment<T> on List<T> {         // Array<T>; type parameters and bounds are kept
+  T second() => callMethod<T>(this, "second", []);
+}
 ```
+
+The lib types covered are those of `dart:html`, `dart:svg` and the other
+platform libraries dartify maps (`Window`, `Document`, `Float32Array`, …) and
+the core ones: `Array` and `ReadonlyArray` (`List`), `String`, `Number`
+(`num`), `Boolean` (`bool`), `Object` and `Function`. `Array<string>` written
+elsewhere stays a `List<String>`, never a project class. If the same file also
+declares the lib type's value (`declare var Window: { prototype: Window; new
+(): Window; … }`), in this file or another, the interface is still the
+extension; the value's members, which would be statics on the SDK type, are
+reported.
 
 Readonly members get no setter; optional parameters admit null and trailing
 unset ones are not sent, so JavaScript sees exactly the arguments given. What
 an extension cannot carry (call, construct and index signatures, statics,
 `extends`, computed names) is not bound and is reported as
-`AUGMENTATION_MEMBER_UNSUPPORTED`. Everywhere else `Window` is still the SDK's
-type. A lib type with no platform mapping (`Math`, `Array`, an
-`HTMLElementTagNameMap` of your own entries) is an ordinary merged global: a
-class holding only the members the project declares.
+`AUGMENTATION_MEMBER_UNSUPPORTED`.
+
+An array that comes from JavaScript is a `List<dynamic>` to dart2js, which
+rejects `getProperty<List<String>>` on it. A member typed with a list
+(`string[]`, `Array<number>`, `string[][]`, an alias for one, with or without
+`null`) is therefore read as a `List<dynamic>` and copied with `List<E>.from`,
+level by level. The result is a correctly typed, real JavaScript array that can
+be handed back to JavaScript, but it is a snapshot: adding to it does not change
+the array the property holds. A member typed with a bare type parameter (`T`)
+is read as is.
+
+The extension works on values that are the JavaScript value itself. A list from
+JavaScript or a Dart list literal under dart2js is an array, so `Array.prototype`
+additions reach it; a `List` made another way (an unmodifiable view, a
+`ListBase` subclass) is not. A Dart closure is not a JavaScript function, so an
+extension on `Function` reaches functions that came from JavaScript. `Date` is
+not covered: a Dart `DateTime` is not a JavaScript `Date`, so `interface Date`
+stays an ordinary merged global, as do `Promise` (a generated class, not an SDK
+type) and every lib type with no Dart mapping (`Math`, an
+`HTMLElementTagNameMap` of your own entries): a class holding only the members
+the project declares.
 
 ### What counts as input, and when a run fails
 

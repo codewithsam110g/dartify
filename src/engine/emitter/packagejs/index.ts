@@ -414,7 +414,7 @@ function emitFacet(
   const scoped = { ...context, currentFQN: fqn };
   switch (facet.ir.kind) {
     case IRDeclKind.Class:
-      return emitClass(facet, scoped);
+      return sdkAugmentation(facet) ? emitAugmentation(facet, scoped) : emitClass(facet, scoped);
     case IRDeclKind.Interface:
       return sdkAugmentation(facet) ? emitAugmentation(facet, scoped) : emitInterface(facet, scoped);
     case IRDeclKind.Function:

@@ -48,6 +48,15 @@ export const FIXTURE_SETS: Record<string, string[]> = {
   // see def_files/synthetic/globals/README.md.
   globals_merge: ["part1", "part2", "part3"].map((name) => `def_files/synthetic/globals/merge/${name}.d.ts`),
   globals_augment: ["a_window", "b_more"].map((name) => `def_files/synthetic/globals/augment/${name}.d.ts`),
+  // Augmentations of core-mapped lib types, a lib type's interface and value in one file, and
+  // identical global redeclarations (HD-23, HD-06).
+  globals_core: ["a_core", "b_use"].map((name) => `def_files/synthetic/globals/core/${name}.d.ts`),
+  globals_companion: ["def_files/synthetic/globals/companion/window.d.ts"],
+  globals_redeclared: ["one", "two"].map((name) => `def_files/synthetic/globals/redeclared/${name}.d.ts`),
+  // An interface and its constructor-shaped value in different files, in both orders (HD-06).
+  globals_split: ["a_counter", "b_counter", "c_window", "d_window"].map(
+    (name) => `def_files/synthetic/globals/split/${name}.d.ts`,
+  ),
 };
 
 /** `--js-root` per set: three's typings are ES modules; its browser global is THREE. */
@@ -155,7 +164,10 @@ describe.skipIf(!ENABLED)("Dart acceptance gate", () => {
 
   test("dart2js output merges globals across files and augments browser types at runtime", () => {
     // Settings declared in three files is one class; the extension on
-    // dart:html's Window reads, writes and calls members of the page's global.
+    // dart:html's Window reads, writes and calls members of the page's global;
+    // extensions on List, String, num and bool reach the JavaScript prototypes,
+    // collection-typed members arrive as typed lists, and identical global
+    // redeclarations are one binding.
     mkdirSync(join(root, "web"), { recursive: true });
     copyFileSync(resolve("def_files/synthetic/globals/main.dart"), join(root, "web", "globals_main.dart"));
     copyFileSync(resolve("def_files/synthetic/globals/probe.js"), join(root, "globals_probe.js"));

@@ -218,6 +218,12 @@ function generatedCompanionNames(
       ? [`${declarationName}Extension`, `${declarationName}Augment`]
       : [`${declarationName}Extension`];
   }
+  if (facet.ir.kind === IRDeclKind.Class && (facet.ir as IRClass).hostAugmentation) {
+    // The same, for an augmenting interface folded with its value companion
+    // (HD-23): the class the merge builds is never emitted when the host type
+    // maps to an SDK type, but the extension takes its place.
+    return [`${declarationName}Extension`, `${declarationName}Augment`];
+  }
   if (facet.ir.kind === IRDeclKind.Enum) {
     return [`${declarationName}Enum`];
   }

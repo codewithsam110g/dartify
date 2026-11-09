@@ -17,7 +17,7 @@ import {
   SymbolType,
 } from "@/symbol";
 import { semanticKey } from "./shape";
-import { SemanticReport } from "./types";
+import { followRedirects, SemanticReport } from "./types";
 
 export function mergeDeclarationGroups(
   draft: Map<string, Symbol[]>,
@@ -234,7 +234,7 @@ function mergeConstructorCompanions(
   for (const { fqn: variableFQN, facet: variableFacet } of variables) {
     const shape = anonymousValueShape(variableFacet, draft);
     if (!shape) continue;
-    const target = constructorTarget(shape.facet.ir as IRInterface);
+    const target = constructorTarget(shape.facet.ir as IRInterface, redirects);
     if (target.kind === "none") continue;
     if (target.kind === "ambiguous") {
       report.diagnostics.push({
@@ -318,7 +318,7 @@ function mergeDefaultInterfaceValues(
     const shape = anonymousValueShape(variableFacet, draft);
     if (!shape) continue;
     const shapeIR = shape.facet.ir as IRInterface;
-    const constructor = constructorTarget(shapeIR);
+    const constructor = constructorTarget(shapeIR, redirects);
     if (constructor.kind !== "none") {
       diagnoseConflict(
         report,
@@ -434,7 +434,18 @@ type ConstructorTarget =
   | { kind: "resolved"; fqn: string }
   | { kind: "ambiguous"; candidates: string[] };
 
-function constructorTarget(shape: IRInterface): ConstructorTarget {
+/**
+ * The declaration a constructor-shaped value constructs. `prototype: X` and
+ * `new (): X` name X by every declaration of its symbol, and a global declared
+ * in several files has one per file (`a.d.ts::X`, `b.d.ts::X`): the global
+ * merge has already folded them into one, so candidates are followed through
+ * its redirects before they are counted, or the target would look ambiguous
+ * (HD-06).
+ */
+function constructorTarget(
+  shape: IRInterface,
+  redirects: ReadonlyMap<string, string>,
+): ConstructorTarget {
   const candidates: string[] = [];
   const prototype = shape.properties.find(
     (property) => property.name === "prototype",
@@ -445,7 +456,9 @@ function constructorTarget(shape: IRInterface): ConstructorTarget {
       candidates.push(...referenceCandidates(signature.returnType));
     }
   }
-  const unique = [...new Set(candidates)].sort();
+  const unique = [
+    ...new Set(candidates.map((fqn) => followRedirects(redirects, fqn))),
+  ].sort();
   if (shape.constructSignatures.length === 0 && !prototype) {
     return { kind: "none" };
   }
@@ -477,6 +490,9 @@ function synthesizeClass(
     implements: structuredClone(target.extends),
     isAbstract: false,
     typeParams: structuredClone(target.typeParams),
+    ...(target.hostAugmentation
+      ? { hostAugmentation: structuredClone(target.hostAugmentation) }
+      : {}),
     constructors: shape.constructSignatures.map(withoutReturnType),
     properties: [
       ...structuredClone(target.properties),

@@ -12,6 +12,7 @@ import { mergeDeclarationGroups } from "./merge";
 import { assignSemanticNames } from "./names";
 import {
   emptySemanticReport,
+  followRedirects,
   SemanticRedirect,
   SemanticReport,
 } from "./types";
@@ -229,18 +230,7 @@ export function rewriteRedirects(
   redirects: ReadonlyMap<string, string>,
 ): void {
   if (redirects.size === 0) return;
-  const resolveRedirect = (fqn: string): string => {
-    const seen = new Set<string>();
-    let current = fqn;
-    while (redirects.has(current)) {
-      if (seen.has(current)) {
-        throw new Error(`Semantic redirect cycle detected at '${current}'`);
-      }
-      seen.add(current);
-      current = redirects.get(current)!;
-    }
-    return current;
-  };
+  const resolveRedirect = (fqn: string): string => followRedirects(redirects, fqn);
 
   for (const group of draft.values()) {
     for (const symbol of group) {

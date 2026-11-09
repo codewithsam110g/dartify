@@ -7,7 +7,7 @@ import { IRClass } from "@ir/class";
 import { IRInterface } from "@ir/interface";
 import { IRTypeAlias } from "@ir/typealias";
 import { IRHostTypeIdentity, TypeKind } from "@ir/type";
-import { isPlatformType } from "./types";
+import { sdkMapping } from "./types";
 import { forEachIRType } from "@ir/visit";
 
 /** What a resolved reference denotes on the Dart side. */
@@ -211,15 +211,18 @@ export function isShapeCandidate(facet: SymbolFacet): boolean {
 }
 
 /**
- * The platform type an interface adds members to, when the backend maps the
- * host type it merges with to an SDK class (HD-22): such an interface becomes an
- * extension on the SDK type and no Dart type of its own. A host type with no
- * mapping is not covered; its project declaration is an ordinary global.
+ * The lib type a global declaration adds members to, when the backend lowers it
+ * to a Dart SDK type from either of its tables (HD-22, HD-23): such a
+ * declaration becomes an extension on the SDK type and no Dart type of its own.
+ * It is an interface, or the class the semantic pass built from the interface
+ * and its value companion. A lib type with no SDK type is not covered; its
+ * project declaration is an ordinary global.
  */
 export function sdkAugmentation(facet: SymbolFacet): IRHostTypeIdentity | undefined {
-  if (!facet.emit || facet.ir.kind !== IRDeclKind.Interface) return undefined;
-  const identity = (facet.ir as IRInterface).hostAugmentation;
-  return identity && isPlatformType(identity) ? identity : undefined;
+  if (!facet.emit) return undefined;
+  if (facet.ir.kind !== IRDeclKind.Interface && facet.ir.kind !== IRDeclKind.Class) return undefined;
+  const identity = (facet.ir as IRInterface | IRClass).hostAugmentation;
+  return identity && sdkMapping(identity)?.jsBacked ? identity : undefined;
 }
 
 export function enumValueType(declaration: IREnum): "num" | "String" | "Object" {

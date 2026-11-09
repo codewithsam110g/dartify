@@ -123,7 +123,7 @@ export function typeAdmitsNull(type: IRType, context: EmitContext): boolean {
  * A dart:core type name, qualified through `dart:core` when a member of the
  * class being emitted shadows it (a JavaScript property named `bool`).
  */
-function core(name: string, context: EmitContext): string {
+export function core(name: string, context: EmitContext): string {
   return context.shadowed?.has(name) ? context.plan.importName("dart:core", name) : name;
 }
 
@@ -513,6 +513,80 @@ function padTypeArguments(
   return `<${emitted.join(", ")}>`;
 }
 
+/** A type that lowers to a Dart `List`, with the context its element is emitted in. */
+export interface ListElement {
+  element: IRType;
+  context: EmitContext;
+}
+
+const ANY: IRType = { kind: TypeKind.Any, name: "any", isNullable: false };
+
+/**
+ * The element type of `type` when it lowers to a Dart `List` (`T[]`,
+ * `Array<T>`, `ReadonlyArray<T>`, a tuple of one type, a type alias for one of
+ * these, either with `| null`/`| undefined`), undefined for anything else. Read
+ * from the IR rather than the emitted text, so an alias and a project
+ * augmentation of `Array` are seen through.
+ *
+ * Why it exists: a JavaScript array reaches Dart as a `List<dynamic>`, and
+ * dart2js rejects `getProperty<List<String>>` on it at run time. Code that
+ * reads through `js_util` (the extensions of HD-22 and HD-23) has to know where
+ * a list is to convert it.
+ */
+export function listElementOf(
+  type: IRType,
+  context: EmitContext,
+  seen: ReadonlySet<string> = new Set(),
+): ListElement | undefined {
+  switch (type.kind) {
+    case TypeKind.Array:
+      return type.elementType ? { element: type.elementType, context } : undefined;
+    case TypeKind.Tuple: {
+      const members = type.tupleTypes ?? [];
+      const unique = new Set(members.map((member) => emit(member, context).text));
+      return unique.size === 1 ? { element: members[0], context } : undefined;
+    }
+    case TypeKind.Union: {
+      const rest = (type.unionTypes ?? []).filter(
+        (member) =>
+          member.kind !== TypeKind.Void &&
+          member.kind !== TypeKind.Null &&
+          member.kind !== TypeKind.Undefined,
+      );
+      return rest.length === 1 ? listElementOf(rest[0], context, seen) : undefined;
+    }
+    case TypeKind.Intersection: {
+      const first = type.intersectionTypes?.[0];
+      return first ? listElementOf(first, context, seen) : undefined;
+    }
+    case TypeKind.TypeReference: {
+      const fqn = type.reference?.resolvedFQN;
+      const target = fqn ? context.index.typeTarget(fqn) : undefined;
+      if (target) {
+        if (target.kind !== "type" || target.facet.ir.kind !== "typeAlias" || seen.has(target.fqn)) {
+          return undefined;
+        }
+        const alias = target.facet.ir as IRTypeAlias;
+        return listElementOf(
+          alias.type,
+          withSubstitution(context, target.typeParams, type.genericArgs, context),
+          new Set([...seen, target.fqn]),
+        );
+      }
+      const identity = type.host ?? (fqn ? context.index.augmentedHost(fqn) : undefined);
+      if (
+        identity?.family === "typescript" &&
+        (identity.qualifiedName === "Array" || identity.qualifiedName === "ReadonlyArray")
+      ) {
+        return { element: type.genericArgs?.[0] ?? ANY, context };
+      }
+      return undefined;
+    }
+    default:
+      return undefined;
+  }
+}
+
 /** `typedef` used for `bigint`, which has no faithful package:js type. */
 function bigIntSupport(context: EmitContext): Emitted {
   const shared = sharedName(context, "JSBigInt");
@@ -532,9 +606,63 @@ function bigIntSupport(context: EmitContext): Emitted {
 const DOM_LIBRARY = /^lib\.(dom|webworker)/;
 const ES_LIBRARY = /^lib\.(es|dom)/;
 
+interface CoreType {
+  /** The dart:core name. */
+  name: string;
+  /** How many leading TypeScript type parameters are the Dart type's own type arguments. */
+  typeArgs: number;
+  /**
+   * Whether a Dart value of this type is the JavaScript value itself, so that
+   * `js_util` reaches the lib type's members through it. A Dart `DateTime` is
+   * not a JavaScript `Date`: an extension on it would compile and then throw.
+   */
+  jsBacked: boolean;
+}
+
+/**
+ * The TypeScript lib types the core lowering maps to a Dart core type. Both
+ * the lowering of a reference (`host`) and the question of whether an
+ * augmentation extends an SDK type (`sdkMapping`) read this one table. Not in
+ * it: `Promise`/`PromiseLike` (a per-library generated class, not an SDK type)
+ * and `Partial`/`Required`/`Readonly`/`NonNullable` (lib type aliases, which an
+ * interface cannot augment).
+ */
+const CORE_TYPES: ReadonlyMap<string, CoreType> = new Map([
+  ["Array", { name: "List", typeArgs: 1, jsBacked: true }],
+  ["ReadonlyArray", { name: "List", typeArgs: 1, jsBacked: true }],
+  ["Date", { name: "DateTime", typeArgs: 0, jsBacked: false }],
+  ["Boolean", { name: "bool", typeArgs: 0, jsBacked: true }],
+  ["Number", { name: "num", typeArgs: 0, jsBacked: true }],
+  ["String", { name: "String", typeArgs: 0, jsBacked: true }],
+  ["Object", { name: "Object", typeArgs: 0, jsBacked: true }],
+  ["Function", { name: "Function", typeArgs: 0, jsBacked: true }],
+]);
+
+/** The Dart SDK type a host (lib) type is lowered to, from either table (HD-23). */
+export interface SdkMapping {
+  library: string;
+  name: string;
+  /** See `CoreType.typeArgs`; platform classes are never generic in Dart. */
+  typeArgs: number;
+  jsBacked: boolean;
+}
+
 /** Whether a host identity maps to a Dart SDK platform class. */
 export function isPlatformType(identity: IRHostTypeIdentity): boolean {
   return platformMapping(identity) !== undefined;
+}
+
+/**
+ * The one lookup that decides whether a lib type has a Dart SDK type: the core
+ * table (`Array` → `List`, `String`, …) or the platform registry
+ * (`browserTypes.ts`).
+ */
+export function sdkMapping(identity: IRHostTypeIdentity): SdkMapping | undefined {
+  if (identity.family !== "typescript") return undefined;
+  const coreType = CORE_TYPES.get(identity.qualifiedName);
+  if (coreType) return { library: "dart:core", ...coreType };
+  const platform = platformMapping(identity);
+  return platform ? { ...platform, typeArgs: 0, jsBacked: true } : undefined;
 }
 
 export function platformMapping(
@@ -557,22 +685,13 @@ function host(type: IRType, identity: IRHostTypeIdentity, context: EmitContext):
   const args = type.genericArgs ?? [];
   const arg = (index: number) => (args[index] ? emit(args[index], context).text : "dynamic");
   if (identity.family === "typescript") {
+    const coreType = CORE_TYPES.get(identity.qualifiedName);
+    if (coreType) {
+      const typeArguments = Array.from({ length: coreType.typeArgs }, (_, index) => arg(index));
+      const written = typeArguments.length > 0 ? `<${typeArguments.join(", ")}>` : "";
+      return nullable(plain(`${core(coreType.name, context)}${written}`), type.isNullable);
+    }
     switch (identity.qualifiedName) {
-      case "Array":
-      case "ReadonlyArray":
-        return nullable(plain(`${core("List", context)}<${arg(0)}>`), type.isNullable);
-      case "Date":
-        return nullable(plain(core("DateTime", context)), type.isNullable);
-      case "Boolean":
-        return nullable(plain(core("bool", context)), type.isNullable);
-      case "Number":
-        return nullable(plain(core("num", context)), type.isNullable);
-      case "String":
-        return nullable(plain(core("String", context)), type.isNullable);
-      case "Object":
-        return nullable(plain(core("Object", context)), type.isNullable);
-      case "Function":
-        return nullable(plain(core("Function", context)), type.isNullable);
       case "Promise":
       case "PromiseLike":
         return nullable(plain(`${promiseSupport(context)}<${arg(0)}>`), type.isNullable);

@@ -3,13 +3,16 @@ import { IRDeclKind } from "@ir/declaration";
 import { forEachIRType } from "@ir/visit";
 import { Symbol, SymbolFacet } from "@/symbol";
 import { dependenciesOfFacets } from "@/symbol/dependencies";
+import { aliasOnlyNames, ModuleExportTable } from "@/symbol/exports";
 import { sourceFileOfFQN } from "@/symbol/fqn";
 import { SymbolTable, SymbolTableDraft } from "@/symbol/table";
 import { anonymousShapeKey } from "./shape";
+import { FileOrder, mergeGlobalDeclarations } from "./globals";
 import { mergeDeclarationGroups } from "./merge";
 import { assignSemanticNames } from "./names";
 import {
   emptySemanticReport,
+  followRedirects,
   SemanticRedirect,
   SemanticReport,
 } from "./types";
@@ -21,9 +24,12 @@ export interface SemanticPassResult {
 }
 
 /** Runs every pre-link semantic rewrite against a detached table draft. */
-export function runSemanticPass(symbolTable: SymbolTable): SemanticPassResult {
+export function runSemanticPass(
+  symbolTable: SymbolTable,
+  fileOrder?: FileOrder,
+): SemanticPassResult {
   return symbolTable.transaction((table) => {
-    const result = runSemanticPassOnDraft(table);
+    const result = runSemanticPassOnDraft(table, new Map(), fileOrder);
     return result;
   });
 }
@@ -33,7 +39,11 @@ export function runSemanticPass(symbolTable: SymbolTable): SemanticPassResult {
  * caller's `SymbolTable`; it is replaced wholesale with the semantic output and
  * committed only if this function returns.
  */
-export function runSemanticPassOnDraft(table: SymbolTableDraft): SemanticPassResult {
+export function runSemanticPassOnDraft(
+  table: SymbolTableDraft,
+  exportRecords: ModuleExportTable = new Map(),
+  fileOrder?: FileOrder,
+): SemanticPassResult {
   const input: ReadonlyMap<string, readonly Symbol[]> = new Map(table);
   const report = emptySemanticReport();
   report.inputSymbols = [...input.values()].reduce(
@@ -63,11 +73,14 @@ export function runSemanticPassOnDraft(table: SymbolTableDraft): SemanticPassRes
   const draft = cloneAndConsolidate(input);
   suppressExternalAugmentations(draft, report);
   const redirects = canonicalizeAnonymousSymbols(draft, report);
+  // Before the per-group merges, so they see every part of a global (HD-06).
+  mergeGlobalDeclarations(draft, report, redirects, fileOrder);
   mergeDeclarationGroups(draft, report, redirects);
   rewriteRedirects(draft, redirects);
 
   const aliases = registerAliasSymbols(draft);
-  assignSemanticNames(draft, report);
+  // A declaration exported only under an alias takes that public name (HD-18).
+  assignSemanticNames(draft, report, aliasOnlyNames(exportRecords, draft));
   refreshDependencies(draft);
   table.clear();
   for (const [fqn, group] of draft) table.set(fqn, group);
@@ -217,18 +230,7 @@ export function rewriteRedirects(
   redirects: ReadonlyMap<string, string>,
 ): void {
   if (redirects.size === 0) return;
-  const resolveRedirect = (fqn: string): string => {
-    const seen = new Set<string>();
-    let current = fqn;
-    while (redirects.has(current)) {
-      if (seen.has(current)) {
-        throw new Error(`Semantic redirect cycle detected at '${current}'`);
-      }
-      seen.add(current);
-      current = redirects.get(current)!;
-    }
-    return current;
-  };
+  const resolveRedirect = (fqn: string): string => followRedirects(redirects, fqn);
 
   for (const group of draft.values()) {
     for (const symbol of group) {

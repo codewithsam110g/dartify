@@ -1,6 +1,6 @@
 # Architecture
 
-*Decisions: D-05, D-06, D-08–D-16, D-19–D-26. This page describes the system as it is meant to be; where the code
+*Decisions: D-05, D-06, D-08–D-16, D-19–D-26; HD-06, HD-17–HD-23. This page describes the system as it is meant to be; where the code
 differs, that is a bug or a pending decision, and it is listed at the bottom.*
 
 ## Purpose and scope
@@ -31,12 +31,12 @@ v1 (D-05).
 | `src/resolution/` | Module resolution, program roots, missing modules | ts-morph | emitter |
 | `src/engine/phase/symbolGeneration.ts` + `src/engine/parser/**` | PHASE 1: declarations → IR → `SymbolTable`; per-statement `StatementCache` for watch | `src/ir/`, `src/symbol/` | semantic, emitter |
 | `src/ir/` | Output-agnostic IR; `visit.ts` is the live recursive walker | — | any backend |
-| `src/symbol/` | Symbol table, FQNs (D-21), export tables | `src/ir/` | emitter |
-| `src/engine/semantic/` + `linkerPhase.ts` | PHASE 2: canonicalize, merge, overload/identifier/namespace naming, mint aliases (`alias/`), link the dependency graph; `shape.ts` gives metadata-free structural identity | IR, symbols | emitter (D-12) |
+| `src/symbol/` | Symbol table, FQNs (D-21), and the **export graph** (`exports.ts`, HD-17/HD-18): raw per-file export/import records are resolved over the whole program into per-element declarations and each input's runtime export routes; a pure function of (records, symbols, inputs), recomputed whole on every build | `src/ir/` | emitter |
+| `src/engine/semantic/` + `linkerPhase.ts` | PHASE 2: canonicalize, merge, overload/identifier/namespace naming, mint aliases (`alias/`), link the dependency graph; `shape.ts` gives metadata-free structural identity; `globals.ts` makes a global declared in several files (script files, `declare global`) one symbol owned by the first declaring file in the run's file order, before the per-group merges, and folds a `declare var` or function signature written identically in several files into one (HD-06) | IR, symbols | emitter (D-12) |
 | `src/engine/phase/emitterPhase.ts` + `emitter/backend.ts` | PHASE 3: hands the `LinkedProgram` to a `Backend` | `LinkedProgram` only | parsers, ts-morph nodes |
-| `src/engine/emitter/packagejs/` | The v1 backend: `program.ts` indexes the program; `library.ts` plans imports and allocates support-typedef names *after* the whole library is rendered (emission writes placeholder tokens); `types.ts` lowers `IRType`; `declarations.ts` lowers declarations; `index.ts` renders all libraries and resolves barrel export ambiguity; `browserTypes.ts` (D-22) | `LinkedProgram` | parsers |
+| `src/engine/emitter/packagejs/` | The v1 backend: `program.ts` indexes the program; `library.ts` plans imports and allocates support-typedef names *after* the whole library is rendered (emission writes placeholder tokens); `types.ts` lowers `IRType`; `declarations.ts` lowers declarations; `index.ts` renders all libraries and resolves barrel export ambiguity; `routes.ts` plans each declaration's runtime `@JS` path from the export routes and the root (HD-17, HD-20) and reports the declarations no input exports once per library (HD-21); `publicNames.ts` declares a module's additional public names, in file and ambient modules alike, and `export * as ns` pointers (HD-18, HD-19); `declarations.ts` emits a global declaration that augments a lib type the backend lowers to a Dart SDK type, from the platform registry or the core table (`sdkMapping` in `types.ts`), as an extension on that type (HD-22, HD-23); `browserTypes.ts` (D-22) | `LinkedProgram` | parsers |
 | `src/reporting/` | Structured diagnostics, the verbose link report and `reportRun`, the one report a one-shot run and every watch rebuild print | phase output | — |
-| `src/watch.ts` | `WatchSession`: one ts-morph project, per-file generation/semantic/link caches, per-FQN member/heritage fingerprints that pick which libraries re-render (D-16) | `transpiler.ts` | — |
+| `src/watch.ts` | `WatchSession`: one ts-morph project, per-file generation/semantic/link caches, per-FQN member/heritage fingerprints that pick which libraries re-render (D-16); the files that declare globals are analyzed together in one pass, and regenerating any of them regenerates all, because the owner of a merged global depends on every part (HD-06) | `transpiler.ts` | — |
 | `tools/graph.ts`, `tools/ir.ts` | Dependency-graph SVG and linked-IR JSON (`pnpm graph`, `pnpm ir`) | phase output | being imported by `src/` (D-13) |
 | `docs/history/legacy/` | The original implementation, an exhibit (D-29) | — | the build |
 
@@ -67,7 +67,9 @@ cli.ts → transpiler.ts
    87% resolvable; checking all 449 three.js `typeof` nodes cost ~60 ms).
 2. **Semantic + link** merges declarations, names everything legally and deterministically, mints named degradations
    (D-10), and links each IR use site to a checker target. There is no fuzzy wrong-file/name fallback: missing modules
-   are visible edges.
+   are visible edges. Globals TypeScript merges across files are merged here too, into the first declaring file's class. The linker also resolves module exports over the whole export graph: a declaration exported only
+   under an alias takes that public name (per-file, in the naming pass), and every declaration an input file exports gets
+   its runtime route(s), which the backend turns into `@JS` paths (HD-17).
 3. **Emission** renders each library, then plans imports and support typedefs, then resolves barrels. Errors per
    declaration are contained and visible (D-26).
 

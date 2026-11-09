@@ -113,19 +113,29 @@ export interface LinkedProgram {
   readonly report: LinkReport;
 }
 
+/**
+ * `inputFiles` are the files the user named. Runtime export routes (HD-17) are
+ * the property paths an input exports a declaration under, so what is an input
+ * and what is a dependency has to reach the export graph. `fileOrder` is the
+ * run's deterministic file order (inputs, then dependencies, each sorted): the
+ * first file declaring a global owns it when several files do (HD-06).
+ */
 export async function runLinker(
   symbolTable: SymbolTable,
   namespaceExports: NamespaceExports,
   moduleExports: ModuleExportTable = new Map(),
+  inputFiles: readonly string[] = [],
+  fileOrder: readonly string[] = [],
 ): Promise<LinkedProgram> {
   // The run's table is consumed here: the linker takes ownership instead of
   // copying, and the result becomes the caller's `LinkedProgram`.
   const symbols = symbolTable.release();
-  const semantic = runSemanticPassOnDraft(symbols);
+  const semantic = runSemanticPassOnDraft(symbols, moduleExports, fileOrderOf(fileOrder));
   const report = linkDraft(symbols, namespaceExports, semantic);
   const linkedExports = linkModuleExports(
     structuredClone(moduleExports),
-    symbols.keys(),
+    symbols,
+    inputFiles,
   );
   report.moduleExportDiagnostics = [...linkedExports.diagnostics];
   return {
@@ -134,6 +144,11 @@ export async function runLinker(
     moduleExports: linkedExports,
     report,
   };
+}
+
+/** Positions in a file list, the form the semantic pass takes. */
+export function fileOrderOf(files: readonly string[]): Map<string, number> {
+  return new Map(files.map((file, index) => [file, index]));
 }
 
 function linkDraft(

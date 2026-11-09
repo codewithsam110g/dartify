@@ -21,11 +21,14 @@ import { aliasUnionDisplay, isPlatformType } from "./types";
 import { BROWSER_TYPES } from "./browserTypes";
 import { codeSpan, dartDocLines, dartString } from "./text";
 import {
+  core as coreName,
   EmitContext,
   emitType,
   emitTypeParams,
+  listElementOf,
   REST_ARITY,
   restElement,
+  sdkMapping,
   typeAdmitsNull,
   withSubstitution,
   withTypeParams,
@@ -35,6 +38,7 @@ import {
 export interface EmitDiagnostic {
   code:
     | "ANONYMOUS_DEFAULT_NOT_BOUND"
+    | "AUGMENTATION_MEMBER_UNSUPPORTED"
     | "CONST_ENUM_MEMBER_WITHOUT_VALUE"
     | "HERITAGE_DROPPED"
     | "NATIVE_NAME_CONFLICT";
@@ -86,18 +90,38 @@ function unquote(name: string): string {
   return match ? match[2] : name;
 }
 
-/** The JavaScript object path of a top-level facet. */
+/** `a`, `a.b`: a specifier JavaScript can address as a property path. */
+export function isJsPropertyPath(specifier: string): boolean {
+  return /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(specifier);
+}
+
+/**
+ * The JavaScript object path of a top-level facet.
+ *
+ * Under a root the path an input file exports the declaration under decides
+ * (HD-17); a declaration none exports keeps `<root>.<local name>`. Without a
+ * root a module's declarations bind bare globals — except an ambient module
+ * whose specifier is itself a valid path (`h3`), which prefixes it as before;
+ * any other specifier (`@scope/pkg`) cannot appear in an `@JS` string
+ * (dart2js crashes on it), so those bind bare globals too (HD-20).
+ */
 export function jsPath(facet: SymbolFacet, context?: EmitContext): string {
-  const segments = facet.origin.scopes.flatMap((scope) => {
-    if (scope.kind === "global") return [];
-    if (scope.kind === "namespace") return scope.jsSegments.map(unquote);
-    return [scope.specifier];
-  });
+  if (context?.pathOverride) return context.pathOverride;
+  const routed = context?.currentFQN ? context.routes?.routed(context.currentFQN) : undefined;
+  if (routed) return routed;
+
+  const scopes = facet.origin.scopes;
   // A module that declares `export as namespace L` is reached at runtime
   // through the global `L` (UMD), so its declarations bind `L.<name>`
   // (`E-42`). `declare global` declarations stay global.
-  const isGlobal = facet.origin.scopes.some((scope) => scope.kind === "global");
-  const root = !isGlobal && facet.origin.fileIsModule ? context?.jsRoot : undefined;
+  const isGlobal = scopes.some((scope) => scope.kind === "global");
+  const isAmbientModule = scopes[0]?.kind === "externalModule";
+  const root = isGlobal ? undefined : isAmbientModule || facet.origin.fileIsModule ? context?.jsRoot : undefined;
+  const segments = scopes.flatMap((scope) => {
+    if (scope.kind === "global") return [];
+    if (scope.kind === "namespace") return scope.jsSegments.map(unquote);
+    return root === undefined && isJsPropertyPath(scope.specifier) ? [scope.specifier] : [];
+  });
   return [...(root ? [root] : []), ...segments, unquote(jsName(facet.ir))].join(".");
 }
 
@@ -601,8 +625,11 @@ function implementable(type: IRType, context: EmitContext): boolean {
       !(isCallableOnly(ir as IRInterface, target.facet) && !typedefCycle(target.facet, context))
     );
   }
-  if (type.host) {
-    switch (type.host.qualifiedName) {
+  const identity =
+    type.host ??
+    (type.reference?.resolvedFQN ? context.index.augmentedHost(type.reference.resolvedFQN) : undefined);
+  if (identity) {
+    switch (identity.qualifiedName) {
       case "Array":
       case "ReadonlyArray":
         return true;
@@ -611,7 +638,7 @@ function implementable(type: IRType, context: EmitContext): boolean {
       case "Readonly":
         return !!type.genericArgs?.[0] && implementable(type.genericArgs[0], context);
     }
-    return isPlatformType(type.host);
+    return isPlatformType(identity);
   }
   return false;
 }
@@ -1355,6 +1382,309 @@ export function emitInterface(
       ...(hasRuntimeBinding ? nativeConflict(path, name) : []),
     ],
   };
+}
+
+/** The element type of a rest parameter (`...parts: string[]`), `any` when unknown. */
+function restOf(parameter: IRParameter): IRType {
+  const type = parameter.type;
+  if (type.kind === TypeKind.Array && type.elementType) return type.elementType;
+  if (
+    type.kind === TypeKind.TypeReference &&
+    (type.name === "Array" || type.name === "ReadonlyArray") &&
+    type.genericArgs?.length === 1
+  ) {
+    return type.genericArgs[0];
+  }
+  return { kind: TypeKind.Any, name: "any", isNullable: false };
+}
+
+/** A local variable name that no parameter of the member uses. */
+function freshName(base: string, taken: ReadonlySet<string>): string {
+  let name = base;
+  for (let suffix = 2; taken.has(name); suffix++) name = `${base}${suffix}`;
+  return name;
+}
+
+/**
+ * Builds a typed Dart list from the JavaScript array `js_util` returns, or is
+ * undefined when `type` needs none (not a list, or a list of `dynamic`).
+ *
+ * Why: an array that comes from JavaScript is a `List<dynamic>` to dart2js, and
+ * `getProperty<List<String>>` on it fails the cast at run time (HD-23). The
+ * array is requested as `List<dynamic>` and copied with `List<E>.from`, which
+ * checks each element and yields a real, correctly typed JavaScript array: a
+ * `List.cast` view would also read, but it is not a JavaScript array, so
+ * handing it back to JavaScript (an argument, a setter) would pass an opaque
+ * Dart object. The price is that the list is a snapshot, not the live array.
+ * Nested lists are converted level by level.
+ */
+function typedList(
+  type: IRType,
+  context: EmitContext,
+  taken: ReadonlySet<string>,
+): ((expression: string) => string) | undefined {
+  const shape = listElementOf(type, context);
+  if (!shape) return undefined;
+  const elementText = emitType(shape.element, shape.context);
+  if (isTopLike(elementText, shape.context)) return undefined;
+  const list = coreName("List", context);
+  const item = freshName("item", taken);
+  const inner = typedList(shape.element, shape.context, new Set([...taken, item]));
+  if (!inner) return (expression) => `${list}<${elementText}>.from(${expression})`;
+  const guarded = typeAdmitsNull(shape.element, shape.context) ? `${item} == null ? null : ` : "";
+  return (expression) =>
+    `<${elementText}>[for (final ${item} in ${expression}) ${guarded}${inner(item)}]`;
+}
+
+/**
+ * A read of a member through `js_util`: `call(requested)` is the call asking
+ * for `requested`. Lists are requested as `List<dynamic>` and converted
+ * (`typedList`); everything else is requested as the member's own type.
+ */
+function typedRead(
+  type: IRType,
+  text: string,
+  context: EmitContext,
+  call: (requested: string) => string,
+  taken: ReadonlySet<string>,
+): { expression: string } | { statements: string[] } {
+  const convert = typedList(type, context, taken);
+  if (!convert) return { expression: call(text) };
+  const requested = `${coreName("List", context)}<dynamic>`;
+  if (!text.endsWith("?") && !typeAdmitsNull(type, context)) {
+    return { expression: convert(call(requested)) };
+  }
+  const raw = freshName("raw", taken);
+  return {
+    statements: [
+      `final ${raw} = ${call(`${requested}?`)};`,
+      `return ${raw} == null ? null : ${convert(raw)};`,
+    ],
+  };
+}
+
+/** What every Dart object declares: an extension cannot declare a member of these names. */
+const OBJECT_MEMBERS: ReadonlySet<string> = new Set(["hashCode", "noSuchMethod", "runtimeType", "toString"]);
+
+/** The `js_util` functions an augmentation body calls by their bare names. */
+const JS_UTIL_FUNCTIONS = ["callMethod", "getProperty", "setProperty"] as const;
+
+/**
+ * A global declaration that adds members to a lib type the backend lowers to a
+ * Dart SDK type (HD-22, HD-23):
+ *
+ *     interface Window { myProp: string; ping(n?: number): boolean }
+ *     interface Array<T> { second(): T }
+ *
+ * merges with the host library's declaration in TypeScript. Dart cannot reopen
+ * an SDK class, so the members become an extension on it (`extension
+ * ArrayAugment<T> on List<T>`), reaching the JavaScript object through
+ * `js_util` because an SDK type is not an interop class. The type itself stays
+ * the SDK's everywhere (`ProgramIndex`). The declaration is an interface, or
+ * the class the semantic pass made from the interface and its value companion
+ * (`declare var Window: { new (): Window; … }`), whose static members and
+ * constructors are reported with the rest. What an extension cannot carry
+ * (call, construct and index signatures, statics, heritage, computed names) is
+ * reported, one diagnostic each.
+ */
+export function emitAugmentation(facet: SymbolFacet, context: EmitContext): EmittedDeclaration {
+  const declaration = facet.ir as IRInterface | IRClass;
+  const mapped = sdkMapping(declaration.hostAugmentation!)!;
+  const name = `${dartName(declaration)}Augment`;
+  const diagnostics: EmitDiagnostic[] = [];
+  const unsupported = (what: string) =>
+    diagnostics.push({
+      code: "AUGMENTATION_MEMBER_UNSUPPORTED",
+      name: declaration.name,
+      message: `${declaration.name}: ${what} cannot be added to ${mapped.name} (${mapped.library}) and is not bound`,
+    });
+
+  // The extension's own members are in scope in its body, so a member named
+  // like a dart:core type, or like a `js_util` function the body calls, must
+  // not capture its uses there. An extension also cannot declare what every
+  // Dart object already does (`toString`), so those members are reported.
+  const memberNames = new Set<string>();
+  const members = [
+    ...declaration.properties,
+    ...declaration.getAccessors,
+    ...declaration.setAccessors,
+    ...declaration.methods,
+  ].filter((member) => !isComputed(member) && !member.isStatic);
+  const ofObject = (member: IRBindingName) => OBJECT_MEMBERS.has(dartName(member));
+  for (const member of members) if (!ofObject(member)) memberNames.add(dartName(member));
+  for (const name of JS_UTIL_FUNCTIONS) if (memberNames.has(name)) context.plan.declare(name);
+  const scope: EmitContext = { ...withTypeParams(context, declaration.typeParams), shadowed: memberNames };
+
+  // The SDK type's own type arguments are the leading type parameters of the
+  // lib type (`Array<T>` → `List<T>`); a platform class has none, and then the
+  // type parameters only serve the members' signatures.
+  const typeArguments = Array.from({ length: mapped.typeArgs }, (_, index) => {
+    const parameter = declaration.typeParams[index];
+    return parameter ? (parameter.dartName ?? parameter.name) : "dynamic";
+  });
+  const sdkType =
+    mapped.library === "dart:core" ? coreName(mapped.name, context) : context.plan.importName(mapped.library, mapped.name);
+  const receiver = typeArguments.length > 0 ? `${sdkType}<${typeArguments.join(", ")}>` : sdkType;
+
+  const getProperty = context.plan.importName("package:js/js_util.dart", "getProperty");
+  const setProperty = context.plan.importName("package:js/js_util.dart", "setProperty");
+  const callMethod = context.plan.importName("package:js/js_util.dart", "callMethod");
+  const literal = (binding: IRBindingName) => dartString(unquote(jsName(binding)));
+
+  const body: string[] = [];
+  const getter = (binding: IRBindingName, type: IRType, text: string, doc: { jsDoc?: string }) => {
+    body.push(...docs(doc, "  "));
+    const read = typedRead(
+      type,
+      text,
+      scope,
+      (requested) => `${getProperty}<${requested}>(this, ${literal(binding)})`,
+      new Set(),
+    );
+    const header = `  ${text} get ${dartName(binding)}`;
+    if ("expression" in read) body.push(`${header} => ${read.expression};`);
+    else body.push(`${header} {`, ...read.statements.map((line) => `    ${line}`), "  }");
+  };
+  const setter = (binding: IRBindingName, type: string, parameter: string) => {
+    body.push(`  set ${dartName(binding)}(${type} ${parameter}) => ${setProperty}(this, ${literal(binding)}, ${parameter});`);
+  };
+
+  const declaredByObject = (member: IRBindingName) => {
+    if (!ofObject(member)) return false;
+    unsupported(`member ${jsName(member)}, which every Dart object declares,`);
+    return true;
+  };
+  for (const property of declaration.properties) {
+    if (isComputed(property)) {
+      unsupported(`computed member ${jsName(property)}`);
+      continue;
+    }
+    if (property.isStatic) {
+      unsupported(`static member ${jsName(property)}`);
+      continue;
+    }
+    if (declaredByObject(property)) continue;
+    const type = propertyType(property, scope);
+    getter(property, property.type, type, property);
+    if (!property.isReadonly) setter(property, type, "value");
+  }
+  for (const accessor of declaration.getAccessors) {
+    if (isComputed(accessor) || accessor.isStatic) {
+      unsupported(`${accessor.isStatic ? "static " : "computed "}accessor ${jsName(accessor)}`);
+      continue;
+    }
+    if (declaredByObject(accessor)) continue;
+    getter(accessor, accessor.type, emitType(accessor.type, scope), accessor);
+  }
+  for (const accessor of declaration.setAccessors) {
+    if (isComputed(accessor) || accessor.isStatic) {
+      unsupported(`${accessor.isStatic ? "static " : "computed "}accessor ${jsName(accessor)}`);
+      continue;
+    }
+    if (declaredByObject(accessor)) continue;
+    setter(accessor, emitType(accessor.parameter.type, scope), parameterName(accessor.parameter));
+  }
+  for (const method of declaration.methods) {
+    if (isComputed(method) || method.isStatic) {
+      unsupported(`${method.isStatic ? "static " : "computed "}method ${jsName(method)}`);
+      continue;
+    }
+    if (declaredByObject(method)) continue;
+    const inner = withTypeParams(scope, method.typeParams);
+    const returnType = emitType(method.returnType, inner);
+    // Rest parameters are polyfilled as optional positionals (`E-31`); the
+    // arguments are collected in order and trailing unset optionals dropped,
+    // because JavaScript must see exactly the arguments given. The method has
+    // a body here, so an optional parameter must admit null.
+    const requiredParameters: string[] = [];
+    const optionalParameters: string[] = [];
+    const names: string[] = [];
+    for (const parameter of method.parameters) {
+      if (parameter.isRest) {
+        const element = restOf(parameter);
+        for (let index = 1; index <= REST_ARITY; index++) {
+          names.push(`${parameterName(parameter)}${index}`);
+          optionalParameters.push(`${nullableType(element, inner)} ${names[names.length - 1]}`);
+        }
+        continue;
+      }
+      names.push(parameterName(parameter));
+      if (parameter.isOptional || optionalParameters.length > 0) {
+        optionalParameters.push(`${nullableType(parameter.type, inner)} ${parameterName(parameter)}`);
+      } else {
+        requiredParameters.push(`${emitType(parameter.type, inner)} ${parameterName(parameter)}`);
+      }
+    }
+    const required = requiredParameters.length;
+    const parameters = [
+      ...(required > 0 ? [requiredParameters.join(", ")] : []),
+      ...(optionalParameters.length > 0 ? [`[${optionalParameters.join(", ")}]`] : []),
+    ].join(", ");
+    const signature = `${returnType} ${dartName(method)}${emitTypeParams(method.typeParams, inner)}(${parameters})`;
+    const returns = method.returnType.kind === TypeKind.Void ? "" : "return ";
+    const call = (requested: string) => `${callMethod}<${requested}>(this, ${literal(method)}, `;
+    const taken = new Set([...names, "args"]);
+    body.push(...docs(method, "  "));
+    if (required === names.length) {
+      const read = typedRead(
+        method.returnType,
+        returnType,
+        inner,
+        (requested) => `${call(requested)}[${names.join(", ")}])`,
+        taken,
+      );
+      if ("expression" in read) body.push(`  ${signature} => ${read.expression};`);
+      else body.push(`  ${signature} {`, ...read.statements.map((line) => `    ${line}`), "  }");
+    } else {
+      const read = typedRead(method.returnType, returnType, inner, (requested) => `${call(requested)}args)`, taken);
+      body.push(
+        `  ${signature} {`,
+        `    final args = <Object?>[${names.join(", ")}];`,
+        `    while (args.length > ${required} && args.last == null) {`,
+        `      args.removeLast();`,
+        `    }`,
+        ...("expression" in read
+          ? [`    ${returns}${read.expression};`]
+          : read.statements.map((line) => `    ${line}`)),
+        `  }`,
+      );
+    }
+  }
+  if (declaration.kind === IRDeclKind.Class) {
+    for (const constructor of declaration.constructors) {
+      void constructor;
+      unsupported("a construct signature");
+    }
+  } else {
+    for (const signature of declaration.callSignatures) {
+      void signature;
+      unsupported("a call signature");
+    }
+    for (const signature of declaration.constructSignatures) {
+      void signature;
+      unsupported("a construct signature");
+    }
+  }
+  for (const signature of declaration.indexSignatures) {
+    void signature;
+    unsupported("an index signature");
+  }
+  const heritage =
+    declaration.kind === IRDeclKind.Class
+      ? [declaration.extends, ...declaration.implements].filter((type): type is IRType => type !== undefined)
+      : declaration.extends;
+  if (heritage.length > 0) unsupported("an extends clause");
+
+  const lines =
+    body.length === 0
+      ? [`// ${declaration.name} adds nothing Dart can express to ${mapped.name} (${mapped.library}).`]
+      : [
+          `/// Members this project adds to \`${mapped.name}\` (${mapped.library}), which TypeScript merges into the host type.`,
+          `extension ${name}${emitTypeParams(declaration.typeParams, scope)} on ${receiver} {`,
+          ...body,
+          "}",
+        ];
+  return { lines, diagnostics };
 }
 
 export function emitFunction(facet: SymbolFacet, context: EmitContext): EmittedDeclaration {

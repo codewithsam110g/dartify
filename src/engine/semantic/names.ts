@@ -23,9 +23,14 @@ import { sourceFileOfFQN } from "@/symbol/fqn";
 import { legalDartName } from "./keywords";
 import { SemanticReport } from "./types";
 
+/**
+ * `publicNames` maps a top-level FQN to the only name its module exports it
+ * under (HD-18): that name, not the declaration's own, is its Dart name.
+ */
 export function assignSemanticNames(
   draft: ReadonlyMap<string, readonly Symbol[]>,
   report: SemanticReport,
+  publicNames: ReadonlyMap<string, string> = new Map(),
 ): void {
   renameOverloads(draft, report);
   for (const [fqn, group] of draft) {
@@ -36,7 +41,7 @@ export function assignSemanticNames(
       }
     }
   }
-  allocateTopLevelNames(draft, report);
+  allocateTopLevelNames(draft, report, publicNames);
 }
 
 function renameOverloads(
@@ -92,11 +97,14 @@ interface TopLevelEntry {
   forcedDualValue: boolean;
   preferred: string;
   scopeSegments: string[];
+  /** The name is the declaration's public API name, so it is allocated first. */
+  isPublicName: boolean;
 }
 
 function allocateTopLevelNames(
   draft: ReadonlyMap<string, readonly Symbol[]>,
   report: SemanticReport,
+  publicNames: ReadonlyMap<string, string>,
 ): void {
   const byFile = new Map<string, TopLevelEntry[]>();
   for (const [fqn, group] of draft) {
@@ -108,13 +116,18 @@ function allocateTopLevelNames(
       (facet) => facet.namespace === "value",
     );
     const isDual = hasSeparateType && hasSeparateValue;
+    const publicName = publicNames.get(fqn);
     for (const facet of symbol.facets) {
       if (!facet.emit) continue;
-      const sourceName = facet.ir.name;
+      const sourceName = publicName ?? facet.ir.name;
       const context = facet.namespace === "value" ? "value" : "type";
       const escaped = legalDartName(sourceName, context);
       if (escaped !== sourceName) report.keywordRenames++;
-      const preassigned = facet.ir.dartName;
+      // Overload groups were named `<name>_<n>` before the public name was known.
+      const preassigned =
+        publicName && facet.ir.dartName?.startsWith(`${facet.ir.name}_`)
+          ? `${escaped}${facet.ir.dartName.slice(facet.ir.name.length)}`
+          : facet.ir.dartName;
       const forcedDualValue = isDual && facet.namespace === "value";
       const preferred = forcedDualValue
         ? withJSPrefix(preassigned ?? escaped)
@@ -124,6 +137,7 @@ function allocateTopLevelNames(
         forcedDualValue,
         preferred,
         scopeSegments: dartScopeSegments(facet),
+        isPublicName: publicName !== undefined,
       };
       const file = sourceFileOfFQN(fqn);
       const entries = byFile.get(file) ?? [];
@@ -137,7 +151,11 @@ function allocateTopLevelNames(
     entries.sort((a, b) => {
       const aScoped = a.scopeSegments.length > 0 ? 1 : 0;
       const bScoped = b.scopeSegments.length > 0 ? 1 : 0;
-      return aScoped - bScoped || bySourceOrder(a.facet, b.facet);
+      return (
+        Number(b.isPublicName) - Number(a.isPublicName) ||
+        aScoped - bScoped ||
+        bySourceOrder(a.facet, b.facet)
+      );
     });
     for (const entry of entries) {
       const allocated = allocateName(
@@ -194,7 +212,17 @@ function generatedCompanionNames(
   declarationName: string,
 ): string[] {
   if (facet.ir.kind === IRDeclKind.Interface) {
-    return [`${declarationName}Extension`];
+    // A backend may emit an augmentation of a host type as an extension of
+    // its own (HD-22); its name is reserved so nothing else takes it.
+    return (facet.ir as IRInterface).hostAugmentation
+      ? [`${declarationName}Extension`, `${declarationName}Augment`]
+      : [`${declarationName}Extension`];
+  }
+  if (facet.ir.kind === IRDeclKind.Class && (facet.ir as IRClass).hostAugmentation) {
+    // The same, for an augmenting interface folded with its value companion
+    // (HD-23): the class the merge builds is never emitted when the host type
+    // maps to an SDK type, but the extension takes its place.
+    return [`${declarationName}Extension`, `${declarationName}Augment`];
   }
   if (facet.ir.kind === IRDeclKind.Enum) {
     return [`${declarationName}Enum`];

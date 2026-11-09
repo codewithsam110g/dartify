@@ -63,9 +63,11 @@ deprecation info.
   tool's registry, re-validated against the current SDK) — matched on the
   TypeScript checker's declaration identity, never on spelling, so your own
   `HtmlElement` is never confused with the platform's.
-- **Barrels become libraries.** `export * from "./x"` becomes
-  `export 'x.dart';`, with names two sources both supply hidden as TypeScript
-  does.
+- **Barrels become libraries** that expose the TypeScript public names:
+  `export * from "./x"` becomes `export 'x.dart';` (names two sources both
+  supply are hidden, as TypeScript does), names are followed through chains of
+  barrels, and a renamed export gets its public name (see
+  [Modules, barrels and runtime paths](#modules-barrels-and-runtime-paths)).
 - `Promise<T>` is a typed interop class: `await load().toFuture()`.
 
 ## Getting started
@@ -115,6 +117,137 @@ dart_bindgen -d "node_modules/@types/three/index.d.ts" -o ./generated --js-root 
 
 Libraries that declare `export as namespace X` (Leaflet's `L`) get that root
 automatically.
+
+### Modules, barrels and runtime paths
+
+**Dispatch follows the exports.** With a root (`--js-root R`, or the library's
+own `export as namespace R`) every value binds to the path its package really
+exports it under, read off the declaration files you pass, not off where the
+declaration happens to be written:
+
+- `export { Widget as Gadget } from "./widgets"` binds `R.Gadget`;
+- a default export of an input file binds `R.default`
+  (`export { default as Tool } from "./tool"` binds `R.Tool`);
+- `export = fn` makes `fn` the root itself, so `declare namespace fn { … }`
+  members bind `R.member` (the lodash shape), not `R.fn.member`;
+- `export * as ns from "./m"` adds `ns.` to the path (`R.ns.foo`);
+- a declaration reachable by several routes takes the most direct one, then the
+  first input in path order; they all denote one JavaScript object.
+
+Only the files you name are entry points; their dependencies are followed.
+A value no input exports (an internal class a signature mentions) keeps
+`R.<its name>` and is reported as `EXPORT_ROUTE_MISSING`, once per library with
+every such name listed (three.js leaves 740 of them in 218 libraries, so
+that is 218 diagnostics, not 740); two different values at one path are
+reported as `EXPORT_PATH_CONFLICT`. Without a root nothing changes: module
+declarations bind bare globals.
+
+**Barrels expose the TypeScript public names.** Dart cannot rename on `export`,
+so a name a module exports under a different name is declared in its library:
+
+| TypeScript | Dart |
+|---|---|
+| `export { A } from "./b"` (b re-exports `./a`), `import { A } from "./a"; export { A }` | `export 'a.dart' show A;` |
+| `declare function hidden(): void; export { hidden as publicName }` | emitted as `publicName` |
+| `export { A as B } from "./a"` (class, interface, enum, type alias) | `typedef B<T> = A<T>;` (constructors and static members work through it) |
+| `export { f as g } from "./a"` (function, variable) | a second `external` binding of `g` |
+| `export { default as X } from "./a"` | `X` (a bare `default` keeps the declaration's name) |
+
+**`export * as ns from "./m"`** has no Dart spelling that carries types, so the
+barrel does not re-export `ns`. It carries a comment with the line that gives
+the same names, and `m.dart` is always generated:
+
+```dart
+// export * as ns from './m': import 'm.dart' as ns;
+```
+
+Write that import where you use it: `ns.foo()` and `ns.Widget` both work. The
+run counts it as a `NAMESPACE_REEXPORT_NOT_FORWARDED` diagnostic.
+
+**Ambient modules** (`declare module "@scope/pkg" { … }` in a script file) bind
+under `--js-root` like any module. Without a root, a specifier that is a valid
+JavaScript property path (`h3`) is kept as the path prefix (`@JS("h3.fn")`);
+any other specifier (`@scope/pkg`, `my-lib`) cannot appear in an `@JS` string
+(dart2js crashes on it), so its values bind bare globals and the run reports
+`AMBIENT_MODULE_UNROOTED`; pass `--js-root` to bind them under one global.
+An export list inside an ambient module gives Dart the TypeScript public name
+as it does for a file (`export { hidden as shown }` declares `shown`).
+
+### Globals declared in several files
+
+TypeScript merges a global declaration across files: `interface Settings` in
+two script files (or in a script file and a `declare global { … }` block) is one
+symbol. dartify makes it one Dart class, owned by the first declaring file in
+the run's file order (the inputs, then their dependencies, each sorted). The
+members of every part are merged by the same rules as parts in one file; the
+other files emit no partial class and import the owner where they use it. A
+file left with nothing to declare produces no library. Watch mode keeps the
+same owner as a cold run.
+
+An interface in one file and its constructor-shaped value
+(`declare var Counter: { prototype: Counter; new (): Counter; … }`) in another
+are one class too, with the constructor and statics of the value.
+
+The same global declared identically in several script files
+(`declare var shared: number;`, one function signature) is one declaration to
+TypeScript and gets one binding, owned by the first file. "Identical" is the
+declarations' structure, parameter names included, not their source text.
+Declarations that differ keep today's behaviour: overloads become `f_1`, `f_2`,
+and a conflicting `declare var` stays visible as `UNSUPPORTED_DECLARATION_GROUP`.
+
+**Augmenting a lib type.** `interface Window { myProp: string }` or
+`interface Array<T> { second(): T }` in a script file or `declare global` does
+not declare a new type; it adds to the type TypeScript's lib already has. When
+dartify lowers that lib type to a Dart SDK type, the members become an
+extension on the SDK type, reached through `package:js/js_util.dart`, in the
+owning file's library, and every use of the lib type keeps the SDK type:
+
+```dart
+extension WindowAugment on Window {            // dart:html
+  String get myProp => getProperty<String>(this, "myProp");
+  set myProp(String value) => setProperty(this, "myProp", value);
+}
+
+extension ArrayAugment<T> on List<T> {         // Array<T>; type parameters and bounds are kept
+  T second() => callMethod<T>(this, "second", []);
+}
+```
+
+The lib types covered are those of `dart:html`, `dart:svg` and the other
+platform libraries dartify maps (`Window`, `Document`, `Float32Array`, …) and
+the core ones: `Array` and `ReadonlyArray` (`List`), `String`, `Number`
+(`num`), `Boolean` (`bool`), `Object` and `Function`. `Array<string>` written
+elsewhere stays a `List<String>`, never a project class. If the same file also
+declares the lib type's value (`declare var Window: { prototype: Window; new
+(): Window; … }`), in this file or another, the interface is still the
+extension; the value's members, which would be statics on the SDK type, are
+reported.
+
+Readonly members get no setter; optional parameters admit null and trailing
+unset ones are not sent, so JavaScript sees exactly the arguments given. What
+an extension cannot carry (call, construct and index signatures, statics,
+`extends`, computed names) is not bound and is reported as
+`AUGMENTATION_MEMBER_UNSUPPORTED`.
+
+An array that comes from JavaScript is a `List<dynamic>` to dart2js, which
+rejects `getProperty<List<String>>` on it. A member typed with a list
+(`string[]`, `Array<number>`, `string[][]`, an alias for one, with or without
+`null`) is therefore read as a `List<dynamic>` and copied with `List<E>.from`,
+level by level. The result is a correctly typed, real JavaScript array that can
+be handed back to JavaScript, but it is a snapshot: adding to it does not change
+the array the property holds. A member typed with a bare type parameter (`T`)
+is read as is.
+
+The extension works on values that are the JavaScript value itself. A list from
+JavaScript or a Dart list literal under dart2js is an array, so `Array.prototype`
+additions reach it; a `List` made another way (an unmodifiable view, a
+`ListBase` subclass) is not. A Dart closure is not a JavaScript function, so an
+extension on `Function` reaches functions that came from JavaScript. `Date` is
+not covered: a Dart `DateTime` is not a JavaScript `Date`, so `interface Date`
+stays an ordinary merged global, as do `Promise` (a generated class, not an SDK
+type) and every lib type with no Dart mapping (`Math`, an
+`HTMLElementTagNameMap` of your own entries): a class holding only the members
+the project declares.
 
 ### What counts as input, and when a run fails
 

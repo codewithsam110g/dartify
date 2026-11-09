@@ -10,8 +10,15 @@
  * includes its file (merges, overload names, collision names, minted aliases,
  * anonymous canonicalization), so per-file semantic results compose. A file's
  * links can only change when a file it imports changes, which puts it in the
- * dirty set. Script (non-module) files declare globals any file can bind by
- * name, so changing one dirties everything.
+ * dirty set. Script (non-module) files and `declare global` blocks declare
+ * globals any file can bind by name, so changing one dirties everything.
+ *
+ * One rewrite is not per file: global declarations that TypeScript merges
+ * across files become one class owned by the first declaring file (HD-06). A
+ * file that declares globals therefore skips the per-file pass; once a build
+ * has regenerated all of them, one pass over exactly those files merges them
+ * the way a cold run's whole-program pass does, and every other file still
+ * composes per file.
  *
  * The session owns all of its state; there is still no process-global
  * compiler state (task 4.11). Its output is identical to a fresh
@@ -33,6 +40,8 @@ import {
   runSemanticPassOnDraft,
   SemanticPassResult,
 } from "@engine/semantic/run";
+import { declaresMergeableGlobals } from "@engine/semantic/globals";
+import { emptySemanticReport } from "@engine/semantic/types";
 import {
   generateSymbols,
   GenerationDiagnostic,
@@ -40,6 +49,7 @@ import {
   syntacticDiagnosticsOf,
 } from "@engine/phase/symbolGeneration";
 import {
+  fileOrderOf,
   LinkDiagnostic,
   LinkEdge,
   LinkedProgram,
@@ -66,8 +76,14 @@ interface FileState {
   linkDiagnostics: LinkDiagnostic[];
   /** Files this file imports or references. */
   dependencies: Set<string>;
-  /** A script file's declarations are global. */
-  isScript: boolean;
+  /**
+   * Whether the file declares globals other files can merge into or bind
+   * (a script file, or a `declare global` block). Such a file's semantic pass
+   * waits for the cluster pass of the build that regenerated it.
+   */
+  declaresGlobals: boolean;
+  /** Generated but not yet analyzed: set between generation and the cluster pass. */
+  deferred: boolean;
   /** See `fingerprints`; keyed by FQN. */
   interfaceKey: Map<string, string>;
   memberKey: Map<string, string>;
@@ -182,6 +198,12 @@ export class WatchSession {
     // their unchanged statements); a file whose *interface* changed
     // regenerates its importers too, and so on transitively. A file whose
     // members changed only forces its heritage dependents to re-render.
+    // A removed file that declared globals leaves every other such file with a
+    // different cluster.
+    let globalsRemoved = false;
+    for (const [file, state] of this.states) {
+      if (!live.has(file) && state.declaresGlobals) globalsRemoved = true;
+    }
     for (const file of [...this.states.keys()]) if (!live.has(file)) this.states.delete(file);
     for (const file of [...this.statementCaches.keys()]) if (!live.has(file)) this.statementCaches.delete(file);
     const sources = new Map(programFiles);
@@ -193,9 +215,15 @@ export class WatchSession {
         dependents.set(dependency, set);
       }
     }
-    const scriptChanged = [...seeds].some(
-      (file) => this.states.get(file)?.isScript && this.built,
-    );
+    // Whether a regenerated file did or may now declare globals: a script, or
+    // text with a `global {` block (an over-approximation costs only speed).
+    const mayDeclareGlobals = (file: string): boolean => {
+      if (this.states.get(file)?.declaresGlobals) return true;
+      const sourceFile = sources.get(file);
+      return sourceFile !== undefined && (!isModule(sourceFile) || /\bglobal\s*\{/.test(sourceFile.getFullText()));
+    };
+    const scriptChanged = this.built && (globalsRemoved || [...seeds].some(mayDeclareGlobals));
+    let escalated = scriptChanged;
     const dirty = new Set<string>();
     const memberChanged = new Set<string>();
     let heritageChanged = false;
@@ -214,6 +242,18 @@ export class WatchSession {
       const previous = this.states.get(file);
       const next = await this.regenerate(file, sourceFile, statementCache);
       this.states.set(file, next);
+      // A regenerated file that declares (or declared) globals can change what
+      // every other file binds and merges, so the whole program is redone.
+      const touchesGlobals = next.declaresGlobals || previous?.declaresGlobals === true;
+      if (touchesGlobals && this.built && !escalated) {
+        escalated = true;
+        for (const other of live) if (!dirty.has(other)) queue.push(other);
+      }
+      if (next.deferred) {
+        // Analyzed below, with the other files that declare globals.
+        heritageChanged = true;
+        continue;
+      }
       const changedSurface = previous
         ? changedKeys(previous.interfaceKey, next.interfaceKey)
         : [...next.interfaceKey.keys()];
@@ -232,7 +272,7 @@ export class WatchSession {
       if (previous && changedKeys(previous.heritageKey, next.heritageKey).length > 0) {
         heritageChanged = true;
       }
-      if (changedSurface.length > 0 || next.isScript) {
+      if (changedSurface.length > 0) {
         // An importer can only observe a changed declaration it names.
         const names = namesOf(changedSurface);
         for (const dependent of dependents.get(file) ?? []) {
@@ -240,11 +280,9 @@ export class WatchSession {
           const tokens = this.states.get(dependent)?.tokens;
           if (!tokens || [...names].some((name) => tokens.has(name))) queue.push(dependent);
         }
-        if (next.isScript && this.built) {
-          for (const other of live) if (!dirty.has(other)) queue.push(other);
-        }
       }
     }
+    this.analyzeGlobalDeclarers(programFiles.map(([file]) => file));
     const generateTime = lap();
 
     // Link dirty files against the whole merged table.
@@ -299,7 +337,7 @@ export class WatchSession {
     );
     const semantic = mergeSemanticResults([...this.states.values()].map((state) => state.semantic));
     const report = summarizeLinks(allEdges, linkDiagnostics, table.keys(), semantic);
-    const moduleExports = linkModuleExports(moduleExportTable, table.keys());
+    const moduleExports = linkModuleExports(moduleExportTable, table, [...this.run.inputFiles.keys()].sort());
     report.moduleExportDiagnostics = [...moduleExports.diagnostics];
     const program: LinkedProgram = { symbols: table, namespaceExports, moduleExports, report };
     const linkTime = lap();
@@ -390,8 +428,15 @@ export class WatchSession {
       })),
     ];
     const groups = table.release();
-    const semantic = runSemanticPassOnDraft(groups);
-    const keys = fingerprints(groups, semantic, this.states.get(file), freshFQNs);
+    const declaresGlobals = !isModule(sourceFile) || declaresMergeableGlobals(groups.values());
+    // A file that declares globals is analyzed with the others of its kind
+    // (`analyzeGlobalDeclarers`); everything else composes per file.
+    const semantic = declaresGlobals
+      ? { report: emptySemanticReport(), aliasesMinted: 0, aliasUseSites: 0 }
+      : runSemanticPassOnDraft(groups, moduleExports);
+    const keys = declaresGlobals
+      ? emptyFingerprints()
+      : fingerprints(groups, semantic, this.states.get(file), freshFQNs);
     return {
       groups,
       semantic,
@@ -405,7 +450,8 @@ export class WatchSession {
           .getReferencedSourceFiles()
           .map((referenced) => toForwardSlash(referenced.getFilePath())),
       ),
-      isScript: !isModule(sourceFile),
+      declaresGlobals,
+      deferred: declaresGlobals,
       interfaceKey: keys.interfaceKey,
       memberKey: keys.memberKey,
       heritageKey: keys.heritageKey,
@@ -414,6 +460,73 @@ export class WatchSession {
       tokens: new Set(sourceFile.getFullText().match(/[A-Za-z_$][\w$]*/g) ?? []),
     };
   }
+
+  /**
+   * The semantic pass of every file that declares globals, run over exactly
+   * those files at once: a global declared in several of them becomes one
+   * declaration owned by the first in the cold run's file order (HD-06), and
+   * the per-FQN rewrites compose, so the result is what a whole-program pass
+   * gives these files. A build that regenerates any such file regenerates all
+   * of them (`build`), so no stale part can be left out.
+   */
+  private analyzeGlobalDeclarers(order: readonly string[]): void {
+    const files = order.filter((file) => this.states.get(file)?.deferred);
+    if (files.length === 0) return;
+    const union = new Map<string, Symbol[]>();
+    const records: ModuleExportTable = new Map();
+    for (const file of files) {
+      const state = this.states.get(file)!;
+      for (const [fqn, group] of state.groups) union.set(fqn, group);
+      if (state.moduleExports.length > 0) records.set(file, state.moduleExports);
+    }
+    const semantic = runSemanticPassOnDraft(union, records, fileOrderOf(order));
+    const slices = new Map<string, Map<string, Symbol[]>>(files.map((file) => [file, new Map()]));
+    for (const [fqn, group] of union) slices.get(sourceFileOfFQN(fqn))?.set(fqn, group);
+    files.forEach((file, index) => {
+      const state = this.states.get(file)!;
+      const groups = slices.get(file)!;
+      // The pass's counts belong to one file so the session sums them once.
+      const own: SemanticPassResult =
+        index === 0
+          ? semantic
+          : { report: emptySemanticReport(), aliasesMinted: 0, aliasUseSites: 0 };
+      // Redirects belong to the file whose declaration was redirected.
+      const fingerprintReport: SemanticPassResult = {
+        ...own,
+        report: {
+          ...own.report,
+          redirects: semantic.report.redirects.filter(
+            (redirect) => sourceFileOfFQN(redirect.fromFQN) === file,
+          ),
+        },
+      };
+      const keys = fingerprints(groups, fingerprintReport);
+      state.groups = groups;
+      state.semantic = own;
+      state.interfaceKey = keys.interfaceKey;
+      state.memberKey = keys.memberKey;
+      state.heritageKey = keys.heritageKey;
+      state.lightKey = keys.lightKey;
+      state.fileKey = keys.fileKey;
+      state.deferred = false;
+    });
+  }
+}
+
+function emptyFingerprints(): {
+  interfaceKey: Map<string, string>;
+  memberKey: Map<string, string>;
+  heritageKey: Map<string, string>;
+  lightKey: Map<string, string>;
+  fileKey: string;
+} {
+  return {
+    interfaceKey: new Map(),
+    memberKey: new Map(),
+    heritageKey: new Map(),
+    lightKey: new Map(),
+    fileKey: "",
+  };
 }
 
 /** Fields that never affect another file's generation or rendering. */

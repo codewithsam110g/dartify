@@ -136,11 +136,15 @@ describe("S2 linker", () => {
     );
   });
 
+  // Two namespaces each declare an `Options`; a bare `Options` is not in scope
+  // for the checker (TS2304), so only the name is left to bind by, and two
+  // different globals carry it. (The same global declared in two files is one
+  // symbol and is merged, HD-06.)
   test("reports syntax-only repeated global names as ambiguous", async () => {
     await withTestProject(
       {
-        "a.d.ts": "interface Options {}",
-        "b.d.ts": "interface Options {}",
+        "a.d.ts": "declare namespace A { interface Options {} }",
+        "b.d.ts": "declare namespace B { interface Options {} }",
         "use.d.ts": "export interface Uses { options: Options }",
       },
       ({ analysis, files }) => {

@@ -1,6 +1,6 @@
 # HG-3 brief: module and export identity
 
-**Status:** Approved (2026-11-06)
+**Status:** Done (2026-11-09, merged into `refactor/orchestration`, `c06dd62`)
 **Implementer:** a fresh `implementer` (Sonnet 5.5, xhigh) for Phase A; Phase B by the same agent or a fresh one, the
 planner's call at the Phase A review.
 **Branch:** `hg-3`, in a worktree the planner creates from `refactor/orchestration`.
@@ -132,3 +132,15 @@ None new.
   still shadowed), the interface + value companion case, a possible runtime cast failure for collection-typed augmented
   members, and identical cross-file redeclarations giving `shared` + `shared_2`. The user chose a fix round before the
   merge: **HD-23** and [fix1](HG-3-fix1.md). Unmapped lib types registered as `RS-14`.
+- fix1 ([brief](HG-3-fix1.md)) done and merged 2026-11-09 (`c06dd62`). Core-mapped lib types (`Array`/`ReadonlyArray`,
+  `String`, `Number`, `Boolean`, `Object`, `Function`) and every platform mapping augment as extensions on the SDK type;
+  `Date` (→ `DateTime`, not JS-backed) and `Promise` (a generated class) excluded and pinned by a test. Interface + value
+  companions fold in one file and across files (the cross-file case was added at the planner's request: same defect
+  class as CA-07); companion members get `AUGMENTATION_MEMBER_UNSUPPORTED`. List-typed augmented members are copied with
+  `List<E>.from` (Phase B's `getProperty<List<String>>` threw `TypeError … JSArray<dynamic>` under dart2js; a `.cast`
+  view was rejected because it hands JavaScript an opaque Dart object). Identical cross-file redeclarations give one
+  binding. Kept beyond the brief: `js_util` names qualified when a member shadows them; `toString`/`hashCode`/
+  `runtimeType`/`noSuchMethod` members reported instead of analyzer errors. Gate rerun by the planner: `pnpm test`
+  493/13, S2 2/2, S3 2/2, S4 54/54, S5 3/3, Dart 4/4, incremental 9/9, e2e 3/3, build, stress 1,694/1,694. Against Phase
+  B, every gated corpus byte-identical; only `lib.dom.d.ts` (ungated stress input) changed: 385 extensions, analyzer
+  errors on its output 3,689 → 48. Remaining items registered as `RS-15`–`RS-19`.

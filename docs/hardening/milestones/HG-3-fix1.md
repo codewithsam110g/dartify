@@ -1,6 +1,6 @@
 # HG-3 fix1 brief: lib-type augmentation gaps
 
-**Status:** Approved (2026-11-06)
+**Status:** Done (2026-11-09, merged into `refactor/orchestration` with HG-3, `c06dd62`)
 **Implementer:** a fresh `implementer` (Sonnet 5.5, xhigh)
 **Branch:** `hg-3` (Phase A and Phase B are committed there), in the existing worktree `.claude/worktrees/hg-3`.
 **Decisions:** HD-06, HD-22, **HD-23** (agreed for this round), D-10, D-14, D-16, D-22.
@@ -48,3 +48,4 @@ unworkable for a case, stop that item and report. No edits to `docs/decisions.md
    parameter elsewhere), the `Window` interface + value file, and two files with `declare var shared: number;`.
 
 ## History
+- Done 2026-11-09; one follow-up to the same agent (cross-file interface + value companions). See [HG-3.md](HG-3.md) History.

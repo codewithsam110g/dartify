@@ -17,11 +17,11 @@ each row.
 
 | `CA-01` | TypeScript `Date` is bound as Dart `DateTime`, which silently produces wrong values under dart2js | high | Agree | R | HD-02 | HG-4 | Open |
 | `CA-02` | Watch mode diverges from a cold build when a module file's `declare global` declarations change | medium | Agree | R | — | HG-7 | Open |
-| `CA-03` | Barrel re-exports are silently lost or renamed: import-then-export, `export * as ns`, and `export { A as B }` | medium | Agree | R | HD-18, HD-19 | HG-3 | Open |
+| `CA-03` | Barrel re-exports are silently lost or renamed: import-then-export, `export * as ns`, and `export { A as B }` | medium | Agree | R | HD-18, HD-19 | HG-3 | Fixed (HG-3) |
 | `CA-04` | Members named like dart:core `Object` members produce analyzer errors (INVALID_OVERRIDE) | medium | Agree | R | — | HG-6 | Open |
 | `CA-05` | A member that shares its enclosing type's name produces analyzer errors | low | Agree | R | — | HG-6 | Open |
-| `CA-06` | Ambient external modules bind `@JS("<module specifier>.<name>")`; non-identifier specifiers crash dart2js | medium | Agree | R | HD-05, HD-20 | HG-3 | Open |
-| `CA-07` | Cross-file global declaration merging is unsupported: partial duplicate classes and `dynamic` use sites | medium | Agree | R | HD-06, HD-22 | HG-3 | Open |
+| `CA-06` | Ambient external modules bind `@JS("<module specifier>.<name>")`; non-identifier specifiers crash dart2js | medium | Agree | R | HD-05, HD-20 | HG-3 | Fixed (HG-3) |
+| `CA-07` | Cross-file global declaration merging is unsupported: partial duplicate classes and `dynamic` use sites | medium | Agree | R | HD-06, HD-22 | HG-3 | Fixed (HG-3) |
 | `CA-08` | Default CLI output omits link failures (missing/ambiguous type references) | low | Agree | R | — | HG-2 | Fixed (HG-2) |
 | `CA-09` | A bigint literal type with numeric separators (`1_000n`) aborts the whole run | low | Agree | R | — | HG-2 | Fixed (HG-2) |
 | `CA-10` | The CLI/programmatic path does not report TypeScript syntax errors; malformed input yields plausible output and exit 0 | low→high | Duplicate | M | HD-13, HD-16 | HG-2 | Duplicate of DAR-001; fixed (HG-2) |
@@ -50,8 +50,8 @@ each row.
 | `CA-33` | The closing-audit registration corrupted this file: a `$`-pattern in the `CA-11` title spliced a copy of the header and every pre-CA row into that row, and `CA-30`/`CA-31` sit outside any table | low | Already fixed | D | — | — | Fixed (D3 adoption, `18a3b0b`) |
 | `DAR-001` | Filesystem compilation accepts malformed declarations and reports success | high | Agree | M | HD-13, HD-16 | HG-2 | Fixed (HG-2) |
 | `DAR-002` | Explicit input failures are silently dropped when another file is readable | medium | Agree | R | HD-04 | HG-2 | Fixed (HG-2) |
-| `DAR-003` | Export identity is ignored when choosing JavaScript dispatch paths | high | Agree | R | HD-17, HD-21 | HG-3 | Open |
-| `DAR-004` | Named re-exports lose aliases and cannot traverse barrels | medium | Duplicate | R | HD-18, HD-19 | HG-3 | Duplicate of CA-03 (union: adds chained barrels and renames) |
+| `DAR-003` | Export identity is ignored when choosing JavaScript dispatch paths | high | Agree | R | HD-17, HD-21 | HG-3 | Fixed (HG-3) |
+| `DAR-004` | Named re-exports lose aliases and cannot traverse barrels | medium | Duplicate | R | HD-18, HD-19 | HG-3 | Duplicate of CA-03; fixed (HG-3) |
 | `DAR-005` | Parameter lowering introduces keywords and duplicate names after allocation | medium | Agree | R | — | HG-6 | Open |
 | `DAR-006` | Override arity correction fails through a second inheritance level | medium | Agree | R | — | HG-6 | Open |
 | `DAR-007` | Inherited static-member hoisting creates unreserved top-level names | medium | Agree | R | — | HG-6 | Open |
@@ -75,4 +75,4 @@ each row.
 | `VFY-001` | The run-isolation test has no explicit timeout and fails under coverage instrumentation (32.8 s vs 30 s) | low | Agree | T | — | HG-1 | Fixed (HG-1) |
 | `VFY-002` | The CLI bundle inlines all of `package.json` (scripts, devDependencies) to read `version` | low | Agree | R | — | HG-1 | Fixed (HG-1) |
 
-**Counts:** 59 rows = 48 distinct defects (3 high, 26 medium, 19 low) + 8 duplicates + `T-11` + 2 VFY. Open: 36 · Fixed: 15 (`CA-33`; HG-1: `CA-17`–`CA-20`, `VFY-001`, `VFY-002`; HG-2: `CA-08`, `CA-09`, `CA-13`, `CA-14`, `CA-30`, `DAR-001`, `DAR-002`, `DAR-023`) · Duplicate: 8 (`CA-10` and seven `DAR`); each duplicate closes with its twin.
+**Counts:** 59 rows = 48 distinct defects (3 high, 26 medium, 19 low) + 8 duplicates + `T-11` + 2 VFY. Open: 31 · Fixed: 19 (`CA-33`; HG-1: `CA-17`–`CA-20`, `VFY-001`, `VFY-002`; HG-2: `CA-08`, `CA-09`, `CA-13`, `CA-14`, `CA-30`, `DAR-001`, `DAR-002`, `DAR-023`; HG-3: `DAR-003`, `CA-03`, `CA-06`, `CA-07`) · Duplicate: 8 (`CA-10` and seven `DAR`); each duplicate closes with its twin.

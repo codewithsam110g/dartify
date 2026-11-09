@@ -54,6 +54,38 @@ The drop-in replacement for the archived `js_facade_gen`, targeting
   `--destination` (like `-o`), `--base-path`, a single library printed to
   stdout when no destination is given, and `--skip-formatting` (a no-op).
   `-d` is no longer required; at least one input is (`CA-30`).
+- Runtime paths follow the package's exports (HD-17): with `--js-root R` or
+  a UMD `export as namespace R`, a default export binds `R.default`, an
+  `export =` module is `R` itself (lodash: `@JS("_._")` → `@JS("_")`),
+  renamed and re-exported declarations bind the exported name, and
+  `export * as ns` adds `ns.` — bindings that used to compile and then throw
+  `NoSuchMethodError` now reach the real JavaScript (`DAR-003`). Without a
+  root nothing changes.
+- Barrels expose the TypeScript public names (HD-18): named re-exports follow
+  barrel chains, `import { A } …; export { A }` and `export { default as X }`
+  are no longer lost (three.js `Nodes.dart` gains 136 names), and a renamed
+  export is a typedef (types) or a second `external` binding (functions,
+  variables), also inside `declare module` (`CA-03`, `DAR-004`).
+- `export * as ns from './m'` writes `// … import 'm.dart' as ns;` in the
+  barrel, always emits `m.dart`, and is counted (HD-19).
+- Ambient `declare module "@scope/pkg"` without `--js-root` binds bare
+  globals with a diagnostic instead of an `@JS` path that crashed dart2js;
+  with `--js-root` it binds under the root (HD-20, `CA-06`).
+- Global declarations merged across files are one Dart class owned by the
+  first declaring file, including an interface in one file and its
+  `declare var` constructor value in another; identical redeclarations are
+  one binding (HD-06, `CA-07`).
+- Augmenting a platform or core type (`interface Window { … }`,
+  `interface Array<T> { … }`, `String`, …) is a typed extension on the Dart
+  SDK type through `package:js/js_util.dart`, generic where the type is; it
+  no longer generates a class that shadowed `dart:html`'s type, references
+  keep the SDK type, and list-typed members are copied so dart2js does not
+  throw a cast error (HD-22, HD-23).
+- New diagnostics, counted in the default output and itemized with `-lv`:
+  `EXPORT_ROUTE_MISSING` (once per library, HD-21), `EXPORT_PATH_CONFLICT`,
+  `NAMESPACE_REEXPORT_NOT_FORWARDED`, `AMBIENT_MODULE_UNROOTED`,
+  `PUBLIC_NAME_UNAVAILABLE`, `AUGMENTATION_MEMBER_UNSUPPORTED`;
+  `MODULE_EXPORT_UNRESOLVED` also covers unresolvable export-list elements.
 
 ### package:js backend (S5)
 
